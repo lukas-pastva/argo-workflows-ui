@@ -165,31 +165,60 @@ table.wf-table tbody tr:hover          { background: #eef4ff; }
   cursor: pointer;
 }
 
-/* ----------------------------------------- */
-/* Full-width, capped-height filter panel    */
-/* ----------------------------------------- */
-.label-filters {
+/* ------------------------------------- */
+/* Entire filter panel collapsible       */
+/* ------------------------------------- */
+.filter-panel {
   width: 100%;
-  padding: 0.75rem 1rem;
-  background: #fff;
+  margin: 1rem 0;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
-  margin: 1rem 0;
-  max-height: 30vh;
-  overflow-y: auto;
+  background: #fff;
 }
 
-/* Custom collapse icons */
-.label-filters summary {
-  list-style: none;
-  cursor: pointer;
+.filter-panel summary.filter-title {
+  padding: 0.75rem 1rem;
   font-weight: 600;
-  padding: 0.25rem 0;
+  cursor: pointer;
+  list-style: none;
+  position: relative;
 }
-.label-filters summary::-webkit-details-marker {
+.filter-panel summary.filter-title::-webkit-details-marker {
   display: none;
 }
-.label-filters summary::after {
+.filter-panel summary.filter-title::after {
+  content: "[+]";
+  position: absolute;
+  right: 1rem;
+}
+.filter-panel[open] summary.filter-title::after {
+  content: "[-]";
+}
+
+/* AND/OR toggle */
+.filter-mode {
+  padding: 0 1rem;
+  font-size: 0.9rem;
+}
+
+/* Label filters */
+.label-filters {
+  width: 100%;
+  max-height: 25vh;
+  overflow-y: auto;
+  padding: 0.5rem 1rem 1rem;
+}
+
+.label-filters details summary {
+  list-style: none;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0;
+}
+.label-filters details summary::-webkit-details-marker {
+  display: none;
+}
+.label-filters details summary::after {
   content: "[+]";
   float: right;
 }
@@ -197,12 +226,11 @@ table.wf-table tbody tr:hover          { background: #eef4ff; }
   content: "[-]";
 }
 
-/* Value pills */
-.label-filters .label-values {
-  padding-left: 0.75rem;
+.label-values {
+  padding-left: 1rem;
   margin-top: 0.25rem;
 }
-.label-filters .label-values span {
+.label-values span {
   display: inline-block;
   margin: 0 0.5rem 0.5rem 0;
   padding: 0.25rem 0.5rem;
@@ -210,11 +238,9 @@ table.wf-table tbody tr:hover          { background: #eef4ff; }
   cursor: pointer;
   background: var(--bg);
   opacity: 0.6;
-  transition: background 0.2s, opacity 0.2s, color 0.2s;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
 }
-
-/* Selected state: dark background, white text */
-.label-filters .label-values span.selected {
+.label-values span.selected {
   background: var(--primary-dark);
   color: #fff;
   opacity: 1;

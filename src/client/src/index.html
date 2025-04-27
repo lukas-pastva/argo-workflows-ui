@@ -8,7 +8,8 @@
   <body>
     <div id="root"></div>
 
-    <!-- entry file renamed from index.js → index.jsx -->
+    <!-- load runtime config before the app bundle -->
+    <script src="/env.js"></script>
     <script type="module" src="./index.jsx"></script>
   </body>
 </html>

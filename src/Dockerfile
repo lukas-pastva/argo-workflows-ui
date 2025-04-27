@@ -14,13 +14,12 @@ COPY client/public ./public
 RUN npm install
 RUN npm run build          # → creates /app/client/dist
 
-
 # ---------- 2. Build the server image ---------- #
 FROM node:20-alpine AS server
 
 WORKDIR /app/server
 
-# -- add curl so you can run the debug commands printed in the logs --
+# add curl for debug curls
 RUN apk add --no-cache curl
 
 COPY server/package*.json ./

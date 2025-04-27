@@ -6,9 +6,7 @@ import {
 } from "../api";
 import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
 
-/* ------------------------------------------------------------------ */
-/*  Build-time configuration via Vite env                             */
-/* ------------------------------------------------------------------ */
+// build‐time env (import.meta.env) only works at compile time!
 const rawSkip = (import.meta.env.VITE_SKIP_LABELS || "")
   .split(",")
   .map((p) => p.trim())
@@ -26,7 +24,6 @@ const trimPrefixes = (import.meta.env.VITE_LABEL_PREFIX_TRIM || "events.argoproj
   .map((p) => p.trim())
   .filter(Boolean);
 
-/* — helpers — */
 const shouldSkip = (k, v) =>
   rawSkip.some((p) =>
     p.includes("=") ? p === `${k}=${v}` : p === k
@@ -34,9 +31,7 @@ const shouldSkip = (k, v) =>
 
 const trimKey = (k) => {
   for (const pref of trimPrefixes) {
-    if (k.startsWith(pref)) {
-      return k.slice(pref.length);
-    }
+    if (k.startsWith(pref)) return k.slice(pref.length);
   }
   return k;
 };
@@ -46,8 +41,9 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [selected, setSelected] = useState({});
   const [confirmNames, setConfirmNames] = useState(null);
   const [filters, setFilters] = useState({});
+  const [mode, setMode] = useState("and"); // "and" vs "or" filter logic
 
-  /* fetch + auto-refresh */
+  // fetch + auto-refresh
   useEffect(() => {
     async function fetchAll() {
       try {
@@ -65,46 +61,56 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     return () => clearInterval(id);
   }, [onError]);
 
-  /* collect label groups (displayKey → [{ value, fullKey }]) */
+  // collect labels: displayKey → [{ value, fullKey }]
   const labelGroups = useMemo(() => {
     const g = {};
     items.forEach((wf) => {
       Object.entries(wf.metadata.labels || {}).forEach(([k, v]) => {
         if (shouldSkip(k, v)) return;
-        const displayKey = trimKey(k);
-        if (!g[displayKey]) g[displayKey] = new Map();
-        g[displayKey].set(v, k);
+        const dk = trimKey(k);
+        if (!g[dk]) g[dk] = new Map();
+        g[dk].set(v, k);
       });
     });
     return Object.fromEntries(
-      Object.entries(g).map(([displayKey, map]) => [
-        displayKey,
+      Object.entries(g).map(([dk, map]) => [
+        dk,
         Array.from(map.entries())
           .map(([value, fullKey]) => ({ value, fullKey }))
-          .sort((a, b) => a.value.localeCompare(b.value))
+          .sort((a, b) => a.value.localeCompare(b.value)),
       ])
     );
   }, [items]);
 
-  /* filter helpers */
+  // toggle one filter pair
   const toggleFilter = (pair) =>
     setFilters((f) => ({ ...f, [pair]: !f[pair] }));
 
-  const activePairs = Object.entries(filters)
+  const active = Object.entries(filters)
     .filter(([, on]) => on)
     .map(([p]) => p);
 
-  const filteredItems =
-    activePairs.length === 0
-      ? items
-      : items.filter((wf) =>
-          activePairs.every((pair) => {
-            const [k, v] = pair.split("=");
-            return wf.metadata.labels?.[k] === v;
-          })
-        );
+  // AND vs OR logic
+  const filteredItems = useMemo(() => {
+    if (active.length === 0) return items;
+    if (mode === "and") {
+      return items.filter((wf) =>
+        active.every((pair) => {
+          const [k, v] = pair.split("=");
+          return wf.metadata.labels?.[k] === v;
+        })
+      );
+    } else {
+      return items.filter((wf) =>
+        active.some((pair) => {
+          const [k, v] = pair.split("=");
+          return wf.metadata.labels?.[k] === v;
+        })
+      );
+    }
+  }, [items, active, mode]);
 
-  /* selection logic */
+  // selection logic
   const isRunning = (wf) => wf.status.phase === "Running";
   const nonRunning = filteredItems.filter((wf) => !isRunning(wf));
   const allSel =
@@ -129,7 +135,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       return c;
     });
 
-  /* delete handlers */
+  // delete handlers
   const handleSingleDelete = async (name) => {
     if (!window.confirm(`Delete workflow “${name}”?`)) return;
     try {
@@ -151,42 +157,61 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     }
   };
 
-  /* group workflows by template */
-  const grouped = filteredItems.reduce((acc, wf) => {
-    const key =
-      wf.spec?.workflowTemplateRef?.name ||
-      wf.metadata.generateName ||
-      "Unlabelled";
-    (acc[key] = acc[key] || []).push(wf);
-    return acc;
-  }, {});
-  const groups = Object.entries(grouped).sort(([a], [b]) =>
-    a.localeCompare(b)
-  );
+  // group by template
+  const groups = useMemo(() => {
+    const m = {};
+    filteredItems.forEach((wf) => {
+      const key =
+        wf.spec?.workflowTemplateRef?.name ||
+        wf.metadata.generateName ||
+        "Unlabelled";
+      ;(m[key] = m[key] || []).push(wf);
+    });
+    return Object.entries(m).sort(([a], [b]) => a.localeCompare(b));
+  }, [filteredItems]);
 
-  /* render */
   return (
     <div className="wf-container">
       <h2 style={{ paddingLeft: "1rem" }}>Workflows</h2>
 
-      {/* full-width, capped-height filter panel */}
-      <div className="label-filters">
-        {Object.entries(labelGroups)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([displayKey, entries]) => (
-            <details
-              key={displayKey}
-              open={!collapsedSet.has(displayKey)}
-            >
-              <summary>{displayKey}</summary>
+      {/* entire filter panel collapsible */}
+      <details className="filter-panel" open>
+        <summary className="filter-title">Filters</summary>
+
+        <div className="filter-mode">
+          <label>
+            <input
+              type="radio"
+              name="mode"
+              value="and"
+              checked={mode === "and"}
+              onChange={() => setMode("and")}
+            />{" "}
+            Match all
+          </label>
+          <label style={{ marginLeft: "1rem" }}>
+            <input
+              type="radio"
+              name="mode"
+              value="or"
+              checked={mode === "or"}
+              onChange={() => setMode("or")}
+            />{" "}
+            Match any
+          </label>
+        </div>
+
+        <div className="label-filters">
+          {Object.entries(labelGroups).map(([dk, entries]) => (
+            <details key={dk} open={!collapsedSet.has(dk)}>
+              <summary>{dk}</summary>
               <div className="label-values">
                 {entries.map(({ value, fullKey }) => {
                   const pair = `${fullKey}=${value}`;
-                  const on = !!filters[pair];
                   return (
                     <span
                       key={pair}
-                      className={on ? "selected" : ""}
+                      className={filters[pair] ? "selected" : ""}
                       onClick={() => toggleFilter(pair)}
                     >
                       {value}
@@ -196,10 +221,11 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
               </div>
             </details>
           ))}
-      </div>
+        </div>
+      </details>
 
-      {/* bulk-delete button */}
-      {Object.values(selected).filter(Boolean).length > 0 && (
+      {/* bulk-delete */}
+      {Object.values(selected).some(Boolean) && (
         <div style={{ margin: "0.5rem 1rem" }}>
           <button
             className="btn-danger"
@@ -214,7 +240,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       )}
 
-      {/* workflow tables */}
+      {/* workflows */}
       {groups.map(([groupName, list]) => (
         <section key={groupName} style={{ marginBottom: "1rem" }}>
           <h3 className="wf-group-title">{groupName}</h3>
@@ -283,7 +309,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </section>
       ))}
 
-      {/* batch-delete confirmation */}
       {confirmNames && (
         <DeleteConfirmModal
           names={confirmNames}
