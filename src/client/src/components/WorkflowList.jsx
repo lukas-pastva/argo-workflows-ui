@@ -1,14 +1,23 @@
 // src/client/src/components/WorkflowList.jsx
 import React, { useEffect, useState, useMemo } from "react";
-import { listWorkflows, deleteWorkflow, deleteWorkflows } from "../api";
+import {
+  listWorkflows,
+  deleteWorkflow,
+  deleteWorkflows,
+} from "../api";
 import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
 
-// read comma-separated skip-keys from Vite env
-const skipKeysEnv = import.meta.env.VITE_SKIP_LABELS || "";
-const skipKeys = skipKeysEnv
+/* ------------------------------------------------------------------ */
+/*  1.  Skip-pattern handling                                         */
+/*      • Accept both “key”  and  “key=value” in VITE_SKIP_LABELS      */
+/* ------------------------------------------------------------------ */
+const rawSkip = (import.meta.env.VITE_SKIP_LABELS || "")
   .split(",")
-  .map((k) => k.trim())
+  .map((p) => p.trim())
   .filter(Boolean);
+
+const shouldSkip = (k, v) =>
+  rawSkip.some((p) => (p.includes("=") ? p === `${k}=${v}` : p === k));
 
 export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [items, setItems] = useState([]);
@@ -16,7 +25,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [confirmNames, setConfirmNames] = useState(null);
   const [filters, setFilters] = useState({});
 
-  /* fetch + auto-refresh */
+  /* ---------------- fetch + auto-refresh ------------------------- */
   useEffect(() => {
     async function fetchAll() {
       try {
@@ -34,38 +43,39 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     return () => clearInterval(id);
   }, [onError]);
 
-  /* collect all key=value pairs, skipping unwanted keys */
-  const allLabelPairs = useMemo(() => {
-    const s = new Set();
+  /* ---------------- collect label groups ------------------------- */
+  const labelGroups = useMemo(() => {
+    const g = {};
     items.forEach((wf) => {
       Object.entries(wf.metadata.labels || {}).forEach(([k, v]) => {
-        if (!skipKeys.includes(k)) {
-          s.add(`${k}=${v}`);
-        }
+        if (shouldSkip(k, v)) return;
+        (g[k] = g[k] || new Set()).add(v);
       });
     });
-    return Array.from(s).sort();
+    /* convert Set → sorted array for stable render */
+    return Object.fromEntries(
+      Object.entries(g).map(([k, set]) => [k, Array.from(set).sort()])
+    );
   }, [items]);
 
+  /* ---------------- filter helpers ------------------------------- */
   const toggleFilter = (pair) =>
     setFilters((f) => ({ ...f, [pair]: !f[pair] }));
-
-  /* apply filters: must have every selected key=value */
-  const active = Object.entries(filters)
+  const activePairs = Object.entries(filters)
     .filter(([, on]) => on)
-    .map(([pair]) => pair);
+    .map(([p]) => p);
 
   const filteredItems =
-    active.length === 0
+    activePairs.length === 0
       ? items
       : items.filter((wf) =>
-          active.every((pair) => {
+          activePairs.every((pair) => {
             const [k, v] = pair.split("=");
             return wf.metadata.labels?.[k] === v;
           })
         );
 
-  /* selection logic (unchanged) */
+  /* ---------------- selection logic (unchanged) ------------------ */
   const isRunning = (wf) => wf.status.phase === "Running";
   const nonRunning = filteredItems.filter((wf) => !isRunning(wf));
   const allSel =
@@ -90,7 +100,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       return c;
     });
 
-  /* delete handlers (unchanged) */
+  /* ---------------- delete handlers (unchanged) ------------------ */
   const handleSingleDelete = async (name) => {
     if (!window.confirm(`Delete workflow “${name}”?`)) return;
     try {
@@ -112,7 +122,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     }
   };
 
-  /* group by template (unchanged) */
+  /* ---------------- group workflows by template (unchanged) ------ */
   const grouped = filteredItems.reduce((acc, wf) => {
     const key =
       wf.spec?.workflowTemplateRef?.name ||
@@ -125,49 +135,71 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     a.localeCompare(b)
   );
 
+  /* ---------------- render --------------------------------------- */
   return (
     <div className="wf-container">
       <h2 style={{ paddingLeft: "1rem" }}>Workflows</h2>
 
-      {/* label=value filter bar */}
+      {/* ------------ expandable label filters -------------------- */}
       <div style={{ padding: "0 1rem", marginBottom: "1rem" }}>
-        {allLabelPairs.map((pair) => {
-          const on = !!filters[pair];
-          return (
-            <span
-              key={pair}
-              onClick={() => toggleFilter(pair)}
-              style={{
-                display: "inline-block",
-                margin: "0 .5rem .5rem 0",
-                padding: "0.25rem .5rem",
-                borderRadius: "4px",
-                cursor: "pointer",
-                background: "var(--bg)",
-                opacity: on ? 1 : 0.4,
-                transition: "opacity .2s",
-              }}
-            >
-              {pair}
-            </span>
-          );
-        })}
+        {Object.entries(labelGroups)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([key, values]) => (
+            <details key={key} style={{ marginBottom: "0.5rem" }}>
+              <summary
+                style={{
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  marginBottom: "0.25rem",
+                }}
+              >
+                {key}
+              </summary>
+              <div style={{ paddingLeft: "0.75rem" }}>
+                {values.map((val) => {
+                  const pair = `${key}=${val}`;
+                  const on = !!filters[pair];
+                  return (
+                    <span
+                      key={pair}
+                      onClick={() => toggleFilter(pair)}
+                      style={{
+                        display: "inline-block",
+                        margin: "0 .5rem .5rem 0",
+                        padding: "0.25rem .5rem",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        background: "var(--bg)",
+                        opacity: on ? 1 : 0.4,
+                        transition: "opacity .2s",
+                      }}
+                    >
+                      {val}
+                    </span>
+                  );
+                })}
+              </div>
+            </details>
+          ))}
       </div>
 
-      {/* bulk-delete button */}
+      {/* ------------ bulk-delete button ------------------------- */}
       {Object.values(selected).filter(Boolean).length > 0 && (
         <div style={{ margin: "0.5rem 1rem" }}>
           <button
             className="btn-danger"
-            onClick={() => setConfirmNames(
-              Object.keys(selected).filter((n) => selected[n])
-            )}
+            onClick={() =>
+              setConfirmNames(
+                Object.keys(selected).filter((n) => selected[n])
+              )
+            }
           >
             Delete selected
           </button>
         </div>
       )}
 
+      {/* ------------ workflow tables ---------------------------- */}
       {groups.map(([groupName, list]) => (
         <section key={groupName} style={{ marginBottom: "1rem" }}>
           <h3 className="wf-group-title">{groupName}</h3>
@@ -236,6 +268,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </section>
       ))}
 
+      {/* ------------ batch-delete confirmation modal ------------ */}
       {confirmNames && (
         <DeleteConfirmModal
           names={confirmNames}
