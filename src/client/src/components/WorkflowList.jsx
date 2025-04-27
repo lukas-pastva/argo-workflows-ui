@@ -1,3 +1,4 @@
+// src/client/src/components/WorkflowList.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import {
   listWorkflows,
@@ -55,14 +56,38 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     return () => clearInterval(id);
   }, [onError]);
 
-  // group into a Map: template → [workflows]
+  // compute labelGroups: Map<displayKey, Array<{ fullKey, value }>>
+  const labelGroups = useMemo(() => {
+    const groups = new Map();
+    items.forEach((wf) => {
+      const labels = wf.metadata.labels || {};
+      Object.entries(labels).forEach(([k, v]) => {
+        if (shouldSkip(k, v)) return;
+        const displayKey = trimKey(k);
+        if (!groups.has(displayKey)) groups.set(displayKey, []);
+        groups.get(displayKey).push({ fullKey: k, value: v });
+      });
+    });
+    // dedupe entries in each group
+    for (const [displayKey, entries] of groups) {
+      const seen = new Set();
+      const uniq = [];
+      entries.forEach((e) => {
+        const pair = `${e.fullKey}=${e.value}`;
+        if (!seen.has(pair)) {
+          seen.add(pair);
+          uniq.push(e);
+        }
+      });
+      groups.set(displayKey, uniq);
+    }
+    return groups;
+  }, [items]);
+
+  // group workflows by template/name
   const grouped = useMemo(() => {
     const m = new Map();
     items.forEach((wf) => {
-      (wf.metadata.labels || {}) &&
-        Object.entries(wf.metadata.labels).forEach(([k, v]) => {
-          // skip logic omitted here; filters apply later
-        });
       const key =
         wf.spec?.workflowTemplateRef?.name ||
         wf.metadata.generateName ||
@@ -70,7 +95,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       if (!m.has(key)) m.set(key, []);
       m.get(key).push(wf);
     });
-    // sort workflows within each group by start time desc
+    // sort by start time desc
     for (const arr of m.values()) {
       arr.sort(
         (a, b) => new Date(b.status.startedAt) - new Date(a.status.startedAt)
@@ -97,7 +122,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     .filter(([, on]) => on)
     .map(([p]) => p);
 
-  // ALWAYS OR logic
+  // filter rows by active labels (OR logic)
   const filteredRows = useMemo(() => {
     if (active.length === 0) return rows;
     return rows.filter(({ wf }) =>
@@ -157,7 +182,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     <div className="wf-container">
       <h2 style={{ paddingLeft: "1rem" }}>Workflows</h2>
 
-      {/* Filter panel unchanged */}
+      {/* Filter panel */}
       <details className="filter-panel">
         <summary className="filter-title">Filters</summary>
         <div className="label-filters">
@@ -165,13 +190,15 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             <details key={dk}>
               <summary>{dk}</summary>
               <div className="label-values">
-                {entries.map(({ value, fullKey }) => {
+                {entries.map(({ fullKey, value }) => {
                   const pair = `${fullKey}=${value}`;
                   return (
                     <span
                       key={pair}
                       className={filters[pair] ? "selected" : ""}
-                      onClick={() => setFilters((f) => ({ ...f, [pair]: !f[pair] }))}
+                      onClick={() =>
+                        setFilters((f) => ({ ...f, [pair]: !f[pair] }))
+                      }
                     >
                       {value}
                     </span>
@@ -197,7 +224,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       )}
 
-      {/* Single intimate table */}
+      {/* Workflows table */}
       <table className="wf-table intimate">
         <thead>
           <tr>
