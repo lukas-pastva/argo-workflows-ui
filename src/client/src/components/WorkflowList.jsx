@@ -6,12 +6,12 @@ import {
 } from "../api";
 import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
 
-// ─── Runtime config pulled from env.js at runtime ──────────────────
+// runtime config from env.js
 const env = window.__ENV__ || {};
 
 const rawSkip = (env.skipLabels || "")
   .split(",")
-  .map((p) => p.trim())
+  .map((s) => s.trim())
   .filter(Boolean);
 
 const trimPrefixes = (env.labelPrefixTrim || "")
@@ -51,64 +51,75 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       }
     }
     fetchAll();
-    const id = setInterval(fetchAll, 10_000);
+    const id = setInterval(fetchAll, 10000);
     return () => clearInterval(id);
   }, [onError]);
 
-  // collect and group labels by trimmed key
-  const labelGroups = useMemo(() => {
-    const g = {};
+  // group into a Map: template → [workflows]
+  const grouped = useMemo(() => {
+    const m = new Map();
     items.forEach((wf) => {
-      Object.entries(wf.metadata.labels || {}).forEach(([k, v]) => {
-        if (shouldSkip(k, v)) return;
-        const dk = trimKey(k);
-        if (!g[dk]) g[dk] = new Map();
-        g[dk].set(v, k);
-      });
+      (wf.metadata.labels || {}) &&
+        Object.entries(wf.metadata.labels).forEach(([k, v]) => {
+          // skip logic omitted here; filters apply later
+        });
+      const key =
+        wf.spec?.workflowTemplateRef?.name ||
+        wf.metadata.generateName ||
+        "Unlabelled";
+      if (!m.has(key)) m.set(key, []);
+      m.get(key).push(wf);
     });
-    return Object.fromEntries(
-      Object.entries(g).map(([dk, map]) => [
-        dk,
-        Array.from(map.entries())
-          .map(([value, fullKey]) => ({ value, fullKey }))
-          .sort((a, b) => a.value.localeCompare(b.value)),
-      ])
+    // sort workflows within each group by start time desc
+    for (const arr of m.values()) {
+      arr.sort(
+        (a, b) => new Date(b.status.startedAt) - new Date(a.status.startedAt)
+      );
+    }
+    return Array.from(m.entries()).sort(([a], [b]) =>
+      a.localeCompare(b)
     );
   }, [items]);
 
-  // toggle a single filter
-  const toggleFilter = (pair) =>
-    setFilters((f) => ({ ...f, [pair]: !f[pair] }));
+  // flatten into rows: [{ wf, group }]
+  const rows = useMemo(() => {
+    const r = [];
+    grouped.forEach(([group, list]) => {
+      list.forEach((wf) => {
+        r.push({ wf, group });
+      });
+    });
+    return r;
+  }, [grouped]);
+
+  // derive active filter pairs
   const active = Object.entries(filters)
     .filter(([, on]) => on)
     .map(([p]) => p);
 
-  // always OR (match any)
-  const filteredItems = useMemo(() => {
-    if (active.length === 0) return items;
-    return items.filter((wf) =>
+  // ALWAYS OR logic
+  const filteredRows = useMemo(() => {
+    if (active.length === 0) return rows;
+    return rows.filter(({ wf }) =>
       active.some((pair) => {
         const [k, v] = pair.split("=");
         return wf.metadata.labels?.[k] === v;
       })
     );
-  }, [items, active]);
+  }, [rows, active]);
 
   // selection logic
   const isRunning = (wf) => wf.status.phase === "Running";
-  const nonRunning = filteredItems.filter((wf) => !isRunning(wf));
+  const nonRunning = filteredRows.map((r) => r.wf).filter((wf) => !isRunning(wf));
   const allSel =
     nonRunning.length > 0 &&
     nonRunning.every((wf) => selected[wf.metadata.name]);
 
   const toggleRow = (wf) => {
     if (isRunning(wf)) return;
-    setSelected((s) => ({
-      ...s,
-      [wf.metadata.name]: !s[wf.metadata.name],
-    }));
+    setSelected((s) => ({ ...s, [wf.metadata.name]: !s[wf.metadata.name] }));
   };
-  const toggleSelectAll = () =>
+  const toggleSelectAll = () => {
     setSelected((s) => {
       const c = { ...s };
       if (allSel) {
@@ -118,6 +129,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       }
       return c;
     });
+  };
 
   // delete handlers
   const handleSingleDelete = async (name) => {
@@ -141,28 +153,15 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     }
   };
 
-  // group workflows by template
-  const groups = useMemo(() => {
-    const m = {};
-    filteredItems.forEach((wf) => {
-      const key =
-        wf.spec?.workflowTemplateRef?.name ||
-        wf.metadata.generateName ||
-        "Unlabelled";
-      ;(m[key] = m[key] || []).push(wf);
-    });
-    return Object.entries(m).sort(([a], [b]) => a.localeCompare(b));
-  }, [filteredItems]);
-
   return (
     <div className="wf-container">
       <h2 style={{ paddingLeft: "1rem" }}>Workflows</h2>
 
-      {/* entire filter panel, collapsed by default */}
+      {/* Filter panel unchanged */}
       <details className="filter-panel">
         <summary className="filter-title">Filters</summary>
         <div className="label-filters">
-          {Object.entries(labelGroups).map(([dk, entries]) => (
+          {Array.from(labelGroups.entries()).map(([dk, entries]) => (
             <details key={dk}>
               <summary>{dk}</summary>
               <div className="label-values">
@@ -172,7 +171,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     <span
                       key={pair}
                       className={filters[pair] ? "selected" : ""}
-                      onClick={() => toggleFilter(pair)}
+                      onClick={() => setFilters((f) => ({ ...f, [pair]: !f[pair] }))}
                     >
                       {value}
                     </span>
@@ -184,15 +183,13 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       </details>
 
-      {/* bulk-delete button */}
+      {/* Bulk delete */}
       {Object.values(selected).some(Boolean) && (
         <div style={{ margin: "0.5rem 1rem" }}>
           <button
             className="btn-danger"
             onClick={() =>
-              setConfirmNames(
-                Object.keys(selected).filter((n) => selected[n])
-              )
+              setConfirmNames(Object.keys(selected).filter((n) => selected[n]))
             }
           >
             Delete selected
@@ -200,76 +197,62 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       )}
 
-      {/* grouped workflow tables */}
-      {groups.map(([groupName, list]) => (
-        <section key={groupName} style={{ marginBottom: "1rem" }}>
-          <h3 className="wf-group-title">{groupName}</h3>
-          <table className="wf-table">
-            <thead>
-              <tr>
-                <th style={{ width: "4rem" }}>
+      {/* Single intimate table */}
+      <table className="wf-table intimate">
+        <thead>
+          <tr>
+            <th>Template</th>
+            <th style={{ width: "4rem" }}>
+              <input
+                type="checkbox"
+                checked={allSel}
+                onChange={toggleSelectAll}
+              />
+            </th>
+            <th>Name</th>
+            <th>Start Time</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredRows.map(({ wf, group }) => {
+            const nm = wf.metadata.name;
+            const delOk = !isRunning(wf);
+            return (
+              <tr key={nm}>
+                <td className="group-col">{group}</td>
+                <td>
                   <input
                     type="checkbox"
-                    checked={allSel}
-                    onChange={toggleSelectAll}
+                    checked={!!selected[nm]}
+                    disabled={!delOk}
+                    onChange={() => toggleRow(wf)}
                   />
-                </th>
-                <th>Name</th>
-                <th>Start Time</th>
-                <th>Status</th>
-                <th />
+                </td>
+                <td>{nm}</td>
+                <td>{new Date(wf.status.startedAt).toLocaleString()}</td>
+                <td>{wf.status.phase}</td>
+                <td>
+                  <button className="btn" onClick={() => onShowLogs(nm)}>
+                    Logs
+                  </button>
+                  {delOk && (
+                    <button
+                      className="btn-danger"
+                      onClick={() => handleSingleDelete(nm)}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {list
-                .sort(
-                  (a, b) =>
-                    new Date(b.status.startedAt) -
-                    new Date(a.status.startedAt)
-                )
-                .map((wf) => {
-                  const nm = wf.metadata.name;
-                  const del = !isRunning(wf);
-                  return (
-                    <tr key={nm}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={!!selected[nm]}
-                          disabled={!del}
-                          onChange={() => toggleRow(wf)}
-                        />
-                      </td>
-                      <td>{nm}</td>
-                      <td>
-                        {new Date(wf.status.startedAt).toLocaleString()}
-                      </td>
-                      <td>{wf.status.phase}</td>
-                      <td style={{ whiteSpace: "nowrap" }}>
-                        <button
-                          className="btn"
-                          onClick={() => onShowLogs(nm)}
-                        >
-                          Logs
-                        </button>
-                        {del && (
-                          <button
-                            className="btn-danger"
-                            onClick={() => handleSingleDelete(nm)}
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
-        </section>
-      ))}
+            );
+          })}
+        </tbody>
+      </table>
 
-      {/* delete confirmation modal */}
+      {/* Delete confirm modal */}
       {confirmNames && (
         <DeleteConfirmModal
           names={confirmNames}
