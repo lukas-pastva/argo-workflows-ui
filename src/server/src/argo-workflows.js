@@ -53,6 +53,7 @@ function curlHint(url, method = "GET", body = null) {
 
 /* ------------------------------------------------------------------ */
 /*  List workflows                                                    */
+/*  (now sorted by template ASC, then start-time DESC)               */
 /* ------------------------------------------------------------------ */
 export async function listWorkflows() {
   const url =
@@ -66,8 +67,20 @@ export async function listWorkflows() {
   if (!r.ok) throw new Error(`Argo ${r.status}`);
 
   const j = await r.json();
-  if (debug) console.log(`[DEBUG] Retrieved ${j.items?.length || 0} workflows`);
-  return j.items || [];
+  const items = j.items || [];
+
+  // sort by [template name ASC, start time DESC]
+  items.sort((a, b) => {
+    const aKey = a.spec?.workflowTemplateRef?.name || a.metadata.generateName || "";
+    const bKey = b.spec?.workflowTemplateRef?.name || b.metadata.generateName || "";
+    if (aKey < bKey) return -1;
+    if (aKey > bKey) return 1;
+    // same template → newest first
+    return new Date(b.status.startedAt) - new Date(a.status.startedAt);
+  });
+
+  if (debug) console.log(`[DEBUG] Sorted ${items.length} workflows by template and start time`);
+  return items;
 }
 
 /* ------------------------------------------------------------------ */
@@ -133,7 +146,7 @@ export async function submitWorkflow({ template, parameters }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Delete a workflow (NEW)                                           */
+/*  Delete a workflow                                                 */
 /* ------------------------------------------------------------------ */
 export async function deleteWorkflow(name) {
   const url =

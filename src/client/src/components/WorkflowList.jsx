@@ -95,10 +95,25 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     return groups;
   }, [items]);
 
-  // group workflows by template/name
+  // group + sort by template ASC, then by start time DESC
   const grouped = useMemo(() => {
+    // first, sort the flat list by [template, -startedAt]
+    const sorted = [...items].sort((a, b) => {
+      const aKey = a.spec?.workflowTemplateRef?.name
+        || a.metadata.generateName
+        || "";
+      const bKey = b.spec?.workflowTemplateRef?.name
+        || b.metadata.generateName
+        || "";
+      if (aKey < bKey) return -1;
+      if (aKey > bKey) return 1;
+      // same template → newest first
+      return new Date(b.status.startedAt) - new Date(a.status.startedAt);
+    });
+
+    // then group in that exact order
     const m = new Map();
-    items.forEach((wf) => {
+    sorted.forEach((wf) => {
       const key =
         wf.spec?.workflowTemplateRef?.name ||
         wf.metadata.generateName ||
@@ -106,15 +121,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       if (!m.has(key)) m.set(key, []);
       m.get(key).push(wf);
     });
-    // sort by start time desc
-    for (const arr of m.values()) {
-      arr.sort(
-        (a, b) => new Date(b.status.startedAt) - new Date(a.status.startedAt)
-      );
-    }
-    return Array.from(m.entries()).sort(([a], [b]) =>
-      a.localeCompare(b)
-    );
+    return Array.from(m.entries());
   }, [items]);
 
   // flatten into rows: [{ wf, group }]
@@ -146,7 +153,9 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
   // selection logic
   const isRunning = (wf) => wf.status.phase === "Running";
-  const nonRunning = filteredRows.map((r) => r.wf).filter((wf) => !isRunning(wf));
+  const nonRunning = filteredRows
+    .map((r) => r.wf)
+    .filter((wf) => !isRunning(wf));
   const allSel =
     nonRunning.length > 0 &&
     nonRunning.every((wf) => selected[wf.metadata.name]);
