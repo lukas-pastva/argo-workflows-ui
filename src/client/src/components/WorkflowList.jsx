@@ -20,16 +20,23 @@ const trimPrefixes = (env.labelPrefixTrim || "")
   .map((p) => p.trim())
   .filter(Boolean);
 
-const shouldSkip = (k, v) =>
-  rawSkip.some((p) =>
-    p.includes("=") ? p === `${k}=${v}` : p === k
-  );
-
 const trimKey = (k) => {
   for (const pref of trimPrefixes) {
     if (k.startsWith(pref)) return k.slice(pref.length);
   }
   return k;
+};
+
+const shouldSkip = (k, v) => {
+  const displayKey = trimKey(k);
+  return rawSkip.some((p) => {
+    if (p.includes("=")) {
+      return p === `${k}=${v}`;
+    } else {
+      // skip if raw key or trimmed key matches
+      return p === k || p === displayKey;
+    }
+  });
 };
 
 export default function WorkflowList({ onShowLogs, onError = () => {} }) {
@@ -256,7 +263,16 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                 onClick={() => onShowLogs(nm)}
                 style={{ cursor: "pointer" }}
               >
-                <td className="group-col">{group}</td>
+                <td
+                  className="group-col"
+                  style={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {group}
+                </td>
                 <td>
                   <input
                     type="checkbox"
