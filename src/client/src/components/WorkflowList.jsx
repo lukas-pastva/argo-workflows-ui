@@ -8,16 +8,35 @@ import {
 import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
 
 /* ------------------------------------------------------------------ */
-/*  1.  Skip-pattern handling                                         */
-/*      • Accept both “key”  and  “key=value” in VITE_SKIP_LABELS      */
+/*  Build-time configuration via Vite env                             */
 /* ------------------------------------------------------------------ */
 const rawSkip = (import.meta.env.VITE_SKIP_LABELS || "")
   .split(",")
   .map((p) => p.trim())
   .filter(Boolean);
 
+const collapsedSet = new Set(
+  (import.meta.env.VITE_COLLAPSED_LABEL_GROUPS || "")
+    .split(",")
+    .map((k) => k.trim())
+    .filter(Boolean)
+);
+
+const trimPrefixes = (import.meta.env.VITE_LABEL_PREFIX_TRIM || "events.argoproj.io/")
+  .split(",")
+  .map((p) => p.trim())
+  .filter(Boolean);
+
+/* –– helpers –– */
 const shouldSkip = (k, v) =>
   rawSkip.some((p) => (p.includes("=") ? p === `${k}=${v}` : p === k));
+
+const trimKey = (k) => {
+  for (const pref of trimPrefixes) {
+    if (k.startsWith(pref)) return k.slice(pref.length);
+  }
+  return k;
+};
 
 export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [items, setItems] = useState([]);
@@ -49,10 +68,10 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     items.forEach((wf) => {
       Object.entries(wf.metadata.labels || {}).forEach(([k, v]) => {
         if (shouldSkip(k, v)) return;
-        (g[k] = g[k] || new Set()).add(v);
+        const showKey = trimKey(k);
+        (g[showKey] = g[showKey] || new Set()).add(v);
       });
     });
-    /* convert Set → sorted array for stable render */
     return Object.fromEntries(
       Object.entries(g).map(([k, set]) => [k, Array.from(set).sort()])
     );
@@ -61,6 +80,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   /* ---------------- filter helpers ------------------------------- */
   const toggleFilter = (pair) =>
     setFilters((f) => ({ ...f, [pair]: !f[pair] }));
+
   const activePairs = Object.entries(filters)
     .filter(([, on]) => on)
     .map(([p]) => p);
@@ -145,7 +165,11 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         {Object.entries(labelGroups)
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([key, values]) => (
-            <details key={key} style={{ marginBottom: "0.5rem" }}>
+            <details
+              key={key}
+              open={!collapsedSet.has(key)}            /* default state */
+              style={{ marginBottom: "0.5rem" }}
+            >
               <summary
                 style={{
                   cursor: "pointer",
@@ -183,7 +207,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           ))}
       </div>
 
-      {/* ------------ bulk-delete button ------------------------- */}
+      {/* ------------ bulk-delete button -------------------------- */}
       {Object.values(selected).filter(Boolean).length > 0 && (
         <div style={{ margin: "0.5rem 1rem" }}>
           <button

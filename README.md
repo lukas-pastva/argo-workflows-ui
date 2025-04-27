@@ -7,14 +7,12 @@
 A lightweight, single-container web interface for Kubernetes **Argo Workflows**.
 
 ## Features
-- **Workflow list** – live table of all runs in the selected namespace (name, start time, phase).  
-- **Label filter per key** – filters are now grouped by label _name_; pick one or more values from each group to narrow the list.  
-- **Full-screen log viewer** – follows pod logs in real time while a workflow is still running; opens with one click.  
-- **Trigger workflows** – automatically loads available workflow templates, builds a parameter form on the fly, and submits new runs.  
-- **Auto-refresh** – list refreshes every 10 seconds; log stream keeps scrolling as new lines arrive.  
-- **Self-contained image** – React 18 + Vite front-end and Express proxy back-end packaged together; just drop it into the cluster – no external services needed.
-
-Use it when you want a clean, minimal alternative to the full Argo console.
+- **Workflow list** – live table of all runs in the selected namespace.  
+- **Label filters** – grouped by label *key*, expanded by default; groups can be collapsed via an env var.  
+- **Full-screen log viewer** – real-time, auto-scrolling logs.  
+- **Trigger workflows** – choose a template, fill in parameters, hit *Submit*.  
+- **Auto-refresh** – list every 10 s, log stream continuously.  
+- **Self-contained image** – React + Vite front-end and Express back-end in one container.
 
 ---
 
@@ -23,40 +21,27 @@ Use it when you want a clean, minimal alternative to the full Argo console.
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | **`ARGO_WORKFLOWS_URL`** | Base URL of the Argo Workflows API server. | `http://argo-workflows-server:2746` |
-| **`ARGO_WORKFLOWS_TOKEN`** | Bearer token for the API. Leave **unset** to make the server automatically read the in-cluster service-account token from `/var/run/secrets/kubernetes.io/serviceaccount/token`. | *(auto-detected)* |
-| **`ARGO_WORKFLOWS_NAMESPACE`** | Namespace to operate in. | value of the pod’s `$POD_NAMESPACE` env var, else `default` |
-| `DEBUG_LOGS` | Set to `true` for verbose logging. | `false` |
-| `VITE_SKIP_LABELS` | Comma-separated list of **label keys** or **exact `key=value` pairs** to hide from the UI filter (whitespace is ignored). | `events.argoproj.io/action-timestamp` |
+| **`ARGO_WORKFLOWS_TOKEN`** | Bearer token; omit to use the pod’s service-account token automatically. | *(auto)* |
+| **`ARGO_WORKFLOWS_NAMESPACE`** | Namespace to operate in. | `$POD_NAMESPACE` or `default` |
+| `DEBUG_LOGS` | Verbose server logging. | `false` |
+| **Front-end build-time vars (`VITE_*`)** | | |
+| `VITE_SKIP_LABELS` | Comma-separated list of **label keys** *or* exact `key=value` pairs to hide completely. | `events.argoproj.io/action-timestamp` |
+| `VITE_COLLAPSED_LABEL_GROUPS` | Comma-separated list of label *keys* that should start *collapsed* in the UI. | *(none – everything expanded)* |
+| `VITE_LABEL_PREFIX_TRIM` | Comma-separated list of prefixes to strip from label keys when shown (purely cosmetic). | `events.argoproj.io/` |
 
-The image therefore runs out-of-the-box in the same namespace as the Argo controller and server – no secrets, no additional config.
+> **Important:** all `VITE_*` variables are read by Vite at *build time* – set them before running `npm run build` (or bake them into the Docker layer that performs the build).
 
-### Running with my helm-chartie
+### Example helm-values
 ```yaml
-deployments:
-
-  argo-workflows-ui:
-    image: lukaspastva/argo-workflows-ui:latest
-    resources:
-      limits:
-        memory: 400Mi
-      requests:
-        cpu: 100m
-        memory: 100Mi
-    serviceAccountExternal: argo-workflows-workflow-controller
-    ports:
-      - name: http
-        port: 8080
-        domains:
-          - "deploy.example.com"
-        paths:
-          - "/"
-    env:
-      - name: DEBUG_LOGS
-        value: "true"
-      - name: POD_NAMESPACE
-        value: "argo-workflows"
-      - name: VITE_HEADER_BG
-        value: "#0f2733s"
-      - name: VITE_SKIP_LABELS
-        value: "events.argoproj.io/action-timestamp,git-commit"
+env:
+  - name: DEBUG_LOGS
+    value: "true"
+  - name: POD_NAMESPACE
+    value: "argo-workflows"
+  - name: VITE_SKIP_LABELS
+    value: "events.argoproj.io/action-timestamp,git-commit"
+  - name: VITE_COLLAPSED_LABEL_GROUPS
+    value: "git-revision"
+  - name: VITE_LABEL_PREFIX_TRIM
+    value: "events.argoproj.io/,tekton.dev/"
 ```
