@@ -247,27 +247,43 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             const nm = wf.metadata.name;
             const delOk = !isRunning(wf);
             return (
-              <tr key={nm}>
+              <tr
+                key={nm}
+                onClick={() => onShowLogs(nm)}
+                style={{ cursor: "pointer" }}
+              >
                 <td className="group-col">{group}</td>
                 <td>
                   <input
                     type="checkbox"
                     checked={!!selected[nm]}
                     disabled={!delOk}
-                    onChange={() => toggleRow(wf)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleRow(wf);
+                    }}
                   />
                 </td>
                 <td>{nm}</td>
                 <td>{new Date(wf.status.startedAt).toLocaleString()}</td>
                 <td>{wf.status.phase}</td>
                 <td>
-                  <button className="btn" onClick={() => onShowLogs(nm)}>
+                  <button
+                    className="btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onShowLogs(nm);
+                    }}
+                  >
                     Logs
                   </button>
                   {delOk && (
                     <button
                       className="btn-danger"
-                      onClick={() => handleSingleDelete(nm)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSingleDelete(nm);
+                      }}
                     >
                       Delete
                     </button>
