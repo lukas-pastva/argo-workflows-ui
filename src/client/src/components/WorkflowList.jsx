@@ -68,7 +68,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         groups.get(displayKey).push({ fullKey: k, value: v });
       });
     });
-    // dedupe entries in each group
+    // dedupe entries in each group, drop empty
     for (const [displayKey, entries] of groups) {
       const seen = new Set();
       const uniq = [];
@@ -79,7 +79,11 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           uniq.push(e);
         }
       });
-      groups.set(displayKey, uniq);
+      if (uniq.length > 0) {
+        groups.set(displayKey, uniq);
+      } else {
+        groups.delete(displayKey);
+      }
     }
     return groups;
   }, [items]);
@@ -264,7 +268,15 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     }}
                   />
                 </td>
-                <td>{nm}</td>
+                <td
+                  style={{
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {nm}
+                </td>
                 <td>{new Date(wf.status.startedAt).toLocaleString()}</td>
                 <td>{wf.status.phase}</td>
                 <td>
