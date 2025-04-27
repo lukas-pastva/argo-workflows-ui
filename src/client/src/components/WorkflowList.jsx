@@ -27,13 +27,19 @@ const trimPrefixes = (import.meta.env.VITE_LABEL_PREFIX_TRIM || "events.argoproj
   .map((p) => p.trim())
   .filter(Boolean);
 
-/* –– helpers –– */
+/* — helpers — */
 const shouldSkip = (k, v) =>
-  rawSkip.some((p) => (p.includes("=") ? p === `${k}=${v}` : p === k));
+  rawSkip.some((p) =>
+    p.includes("=") 
+      ? p === `${k}=${v}` 
+      : p === k
+  );
 
 const trimKey = (k) => {
   for (const pref of trimPrefixes) {
-    if (k.startsWith(pref)) return k.slice(pref.length);
+    if (k.startsWith(pref)) {
+      return k.slice(pref.length);
+    }
   }
   return k;
 };
@@ -63,17 +69,24 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   }, [onError]);
 
   /* ---------------- collect label groups ------------------------- */
+  // Map displayKey → array of { value, fullKey }
   const labelGroups = useMemo(() => {
     const g = {};
     items.forEach((wf) => {
       Object.entries(wf.metadata.labels || {}).forEach(([k, v]) => {
         if (shouldSkip(k, v)) return;
-        const showKey = trimKey(k);
-        (g[showKey] = g[showKey] || new Set()).add(v);
+        const displayKey = trimKey(k);
+        if (!g[displayKey]) g[displayKey] = new Map();
+        g[displayKey].set(v, k);
       });
     });
     return Object.fromEntries(
-      Object.entries(g).map(([k, set]) => [k, Array.from(set).sort()])
+      Object.entries(g).map(([displayKey, map]) => [
+        displayKey,
+        Array.from(map.entries())
+          .map(([value, fullKey]) => ({ value, fullKey }))
+          .sort((a, b) => a.value.localeCompare(b.value))
+      ])
     );
   }, [items]);
 
@@ -95,7 +108,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           })
         );
 
-  /* ---------------- selection logic (unchanged) ------------------ */
+  /* ---------------- selection logic ------------------------------ */
   const isRunning = (wf) => wf.status.phase === "Running";
   const nonRunning = filteredItems.filter((wf) => !isRunning(wf));
   const allSel =
@@ -120,7 +133,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       return c;
     });
 
-  /* ---------------- delete handlers (unchanged) ------------------ */
+  /* ---------------- delete handlers ------------------------------ */
   const handleSingleDelete = async (name) => {
     if (!window.confirm(`Delete workflow “${name}”?`)) return;
     try {
@@ -142,7 +155,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     }
   };
 
-  /* ---------------- group workflows by template (unchanged) ------ */
+  /* ---------------- group workflows by template ------------------ */
   const grouped = filteredItems.reduce((acc, wf) => {
     const key =
       wf.spec?.workflowTemplateRef?.name ||
@@ -160,45 +173,26 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     <div className="wf-container">
       <h2 style={{ paddingLeft: "1rem" }}>Workflows</h2>
 
-      {/* ------------ expandable label filters -------------------- */}
-      <div style={{ padding: "0 1rem", marginBottom: "1rem" }}>
+      {/* ------------ narrowed & restyled filter panel -------------- */}
+      <div className="label-filters">
         {Object.entries(labelGroups)
           .sort(([a], [b]) => a.localeCompare(b))
-          .map(([key, values]) => (
+          .map(([displayKey, entries]) => (
             <details
-              key={key}
-              open={!collapsedSet.has(key)}            /* default state */
-              style={{ marginBottom: "0.5rem" }}
+              key={displayKey}
+              open={!collapsedSet.has(displayKey)}
             >
-              <summary
-                style={{
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  marginBottom: "0.25rem",
-                }}
-              >
-                {key}
-              </summary>
-              <div style={{ paddingLeft: "0.75rem" }}>
-                {values.map((val) => {
-                  const pair = `${key}=${val}`;
+              <summary>{displayKey}</summary>
+              <div className="label-values">
+                {entries.map(({ value, fullKey }) => {
+                  const pair = `${fullKey}=${value}`;
                   const on = !!filters[pair];
                   return (
                     <span
                       key={pair}
                       onClick={() => toggleFilter(pair)}
-                      style={{
-                        display: "inline-block",
-                        margin: "0 .5rem .5rem 0",
-                        padding: "0.25rem .5rem",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        background: "var(--bg)",
-                        opacity: on ? 1 : 0.4,
-                        transition: "opacity .2s",
-                      }}
                     >
-                      {val}
+                      {value}
                     </span>
                   );
                 })}

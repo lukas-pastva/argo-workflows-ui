@@ -34,6 +34,8 @@ A lightweight, single-container web interface for Kubernetes **Argo Workflows**.
 ### Example helm-values
 ```yaml
 env:
+  - name: VITE_HEADER_BG
+    value: "#0f2733s"
   - name: DEBUG_LOGS
     value: "true"
   - name: POD_NAMESPACE

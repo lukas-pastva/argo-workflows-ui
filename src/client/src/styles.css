@@ -164,3 +164,49 @@ table.wf-table tbody tr:hover          { background: #eef4ff; }
   font-size: 1.5rem;
   cursor: pointer;
 }
+/* --------------------------------- */
+/* Narrower, custom-styled filter pane */
+/* --------------------------------- */
+.label-filters {
+  max-width: 20rem;
+  padding: 0.75rem;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  margin: 1rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+/* Hide default marker, add custom [+]/[-] */
+.label-filters summary {
+  list-style: none;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.25rem 0;
+}
+.label-filters summary::-webkit-details-marker {
+  display: none;
+}
+.label-filters summary::after {
+  content: "[+]";
+  float: right;
+}
+.label-filters details[open] summary::after {
+  content: "[-]";
+}
+
+/* wrap values more cleanly */
+.label-filters .label-values {
+  padding-left: 0.75rem;
+  margin-top: 0.25rem;
+}
+.label-filters .label-values span {
+  display: inline-block;
+  margin: 0 0.5rem 0.5rem 0;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  background: var(--bg);
+  transition: opacity 0.2s;
+}
