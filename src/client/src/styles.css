@@ -1,0 +1,165 @@
+/* ---------------- Argo CD-like palette & font ------------------- */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+
+:root {
+  --primary      : rgb(24, 190, 148);
+  --primary-dark : #3c6cd4;
+  --danger       : #ef5654;        /* Argo CD delete red */
+  --danger-dark  : #d64543;
+  --bg           : #f4f6f8;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  background: var(--bg);
+}
+
+/* ---------------- Layout --------------------------------------- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  /* default bg - overridable via inline style from env */
+  background: var(--primary);
+  color: #fff;
+  padding: 0.75rem 1rem;
+}
+
+.header h1 { margin: 0; font-size: 1.4rem; }
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* full-screen variant for the workflow list */
+.wf-container {
+  width: 100%;
+  max-width: none;
+  padding: 0;          /* flush with viewport edges */
+}
+
+.card {
+  background: #fff;
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  margin-top: 1.5rem;
+}
+
+/* ---------------- Buttons -------------------------------------- */
+.btn,
+.btn-danger,
+.btn-light {
+  display: inline-block;
+  border: none;
+  padding: 0.4rem 1.2rem;          /* larger size */
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.1;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+.btn:active,
+.btn-danger:active,
+.btn-light:active { transform: scale(0.97); }
+
+.btn         { background: var(--primary); color: #fff; }
+.btn:hover   { background: var(--primary-dark); }
+
+.btn-danger  { background: var(--danger);  color: #fff; }
+.btn-danger:hover { background: var(--danger-dark); }
+
+.btn-light {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+.btn-light:hover { background: rgba(77,138,240,0.12); }
+
+/* ---------------- Workflow tables ------------------------------ */
+table.wf-table { width: 100%; border-collapse: collapse; }
+
+table.wf-table th,
+table.wf-table td { padding: 0.25rem 0.6rem; text-align: left; } /* compact */
+
+table.wf-table thead th { border-bottom: 2px solid #e5e7eb; }
+
+table.wf-table tbody tr:nth-child(odd) { background: #fafafa; }
+table.wf-table tbody tr:hover          { background: #eef4ff; }
+
+/* ---------------- Group headings ------------------------------- */
+.wf-group-title {
+  margin: 0.25rem 0 0.5rem;
+  padding-left: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-left: 3px solid var(--primary);
+}
+
+
+/* ---------------- Trigger-workflow form ------------------------ */
+.trigger-select {
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+}
+
+.trigger-form { margin-top: 1rem; }
+
+.field       { margin-bottom: 0.75rem; }
+.field label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.field input,
+.field textarea,
+.trigger-select {
+  width: 100%;
+  max-width: 26rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+/* ---------------- Modal ---------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-dialog {
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.8rem 2rem;
+  width: min(90vw, 600px);
+  position: relative;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.modal-dialog h2 { margin-top: 0; }
+
+.modal-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
