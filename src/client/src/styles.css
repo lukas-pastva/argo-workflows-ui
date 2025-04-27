@@ -57,7 +57,8 @@ body {
 .btn-light {
   display: inline-block;
   border: none;
-  padding: 0.4rem 1.2rem;          /* larger size */
+  padding: 0.4rem 1.2rem;
+  margin-right:  .4rem;
   font-size: 0.9rem;
   font-weight: 500;
   line-height: 1.1;
@@ -86,7 +87,7 @@ body {
 table.wf-table { width: 100%; border-collapse: collapse; }
 
 table.wf-table th,
-table.wf-table td { padding: 0.25rem 0.6rem; text-align: left; } /* compact */
+table.wf-table td { padding: 0.25rem 0.6rem; text-align: left; font-size: .9rem } /* compact */
 
 table.wf-table thead th { border-bottom: 2px solid #e5e7eb; }
 

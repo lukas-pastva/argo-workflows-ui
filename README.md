@@ -55,6 +55,8 @@ deployments:
         value: "true"
       - name: POD_NAMESPACE
         value: "argo-workflows"
+      - name: VITE_HEADER_BG
+        value: "#0f2733s"
       - name: VITE_SKIP_LABELS
         value: "events.argoproj.io/action-timestamp"
 ```
