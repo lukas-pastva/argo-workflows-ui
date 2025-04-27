@@ -164,21 +164,23 @@ table.wf-table tbody tr:hover          { background: #eef4ff; }
   font-size: 1.5rem;
   cursor: pointer;
 }
-/* --------------------------------- */
-/* Narrower, custom-styled filter pane */
-/* --------------------------------- */
+
+/* ----------------------------------------- */
+/* Full-width, capped-height filter panel    */
+/* ----------------------------------------- */
 .label-filters {
-  max-width: 20rem;
-  padding: 0.75rem;
+  width: 100%;
+  max-width: none;
+  padding: 0.75rem 1rem;
   background: #fff;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
-  margin: 1rem;
-  max-height: 60vh;
+  margin: 1rem 0;
+  max-height: 30vh;
   overflow-y: auto;
 }
 
-/* Hide default marker, add custom [+]/[-] */
+/* Custom collapse icons */
 .label-filters summary {
   list-style: none;
   cursor: pointer;
@@ -196,7 +198,7 @@ table.wf-table tbody tr:hover          { background: #eef4ff; }
   content: "[-]";
 }
 
-/* wrap values more cleanly */
+/* Value pills */
 .label-filters .label-values {
   padding-left: 0.75rem;
   margin-top: 0.25rem;

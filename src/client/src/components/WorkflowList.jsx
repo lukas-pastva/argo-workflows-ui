@@ -1,4 +1,3 @@
-// src/client/src/components/WorkflowList.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import {
   listWorkflows,
@@ -50,7 +49,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [confirmNames, setConfirmNames] = useState(null);
   const [filters, setFilters] = useState({});
 
-  /* ---------------- fetch + auto-refresh ------------------------- */
+  /* fetch + auto-refresh */
   useEffect(() => {
     async function fetchAll() {
       try {
@@ -68,8 +67,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     return () => clearInterval(id);
   }, [onError]);
 
-  /* ---------------- collect label groups ------------------------- */
-  // Map displayKey → array of { value, fullKey }
+  /* collect label groups (displayKey → [{ value, fullKey }]) */
   const labelGroups = useMemo(() => {
     const g = {};
     items.forEach((wf) => {
@@ -90,7 +88,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     );
   }, [items]);
 
-  /* ---------------- filter helpers ------------------------------- */
+  /* filter helpers */
   const toggleFilter = (pair) =>
     setFilters((f) => ({ ...f, [pair]: !f[pair] }));
 
@@ -108,7 +106,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           })
         );
 
-  /* ---------------- selection logic ------------------------------ */
+  /* selection logic */
   const isRunning = (wf) => wf.status.phase === "Running";
   const nonRunning = filteredItems.filter((wf) => !isRunning(wf));
   const allSel =
@@ -133,7 +131,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       return c;
     });
 
-  /* ---------------- delete handlers ------------------------------ */
+  /* delete handlers */
   const handleSingleDelete = async (name) => {
     if (!window.confirm(`Delete workflow “${name}”?`)) return;
     try {
@@ -155,7 +153,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     }
   };
 
-  /* ---------------- group workflows by template ------------------ */
+  /* group workflows by template */
   const grouped = filteredItems.reduce((acc, wf) => {
     const key =
       wf.spec?.workflowTemplateRef?.name ||
@@ -168,12 +166,12 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     a.localeCompare(b)
   );
 
-  /* ---------------- render --------------------------------------- */
+  /* render */
   return (
     <div className="wf-container">
       <h2 style={{ paddingLeft: "1rem" }}>Workflows</h2>
 
-      {/* ------------ narrowed & restyled filter panel -------------- */}
+      {/* full-width, limited-height filter panel */}
       <div className="label-filters">
         {Object.entries(labelGroups)
           .sort(([a], [b]) => a.localeCompare(b))
@@ -201,7 +199,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           ))}
       </div>
 
-      {/* ------------ bulk-delete button -------------------------- */}
+      {/* bulk-delete button */}
       {Object.values(selected).filter(Boolean).length > 0 && (
         <div style={{ margin: "0.5rem 1rem" }}>
           <button
@@ -217,7 +215,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       )}
 
-      {/* ------------ workflow tables ---------------------------- */}
+      {/* workflow tables */}
       {groups.map(([groupName, list]) => (
         <section key={groupName} style={{ marginBottom: "1rem" }}>
           <h3 className="wf-group-title">{groupName}</h3>
@@ -286,7 +284,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </section>
       ))}
 
-      {/* ------------ batch-delete confirmation modal ------------ */}
+      {/* batch-delete confirmation */}
       {confirmNames && (
         <DeleteConfirmModal
           names={confirmNames}
