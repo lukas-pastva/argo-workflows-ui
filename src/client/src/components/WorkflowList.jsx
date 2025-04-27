@@ -1,3 +1,4 @@
+// src/client/src/components/WorkflowList.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import {
   listWorkflows,
@@ -13,13 +14,6 @@ const rawSkip = (env.skipLabels || "")
   .split(",")
   .map((p) => p.trim())
   .filter(Boolean);
-
-const collapsedSet = new Set(
-  (env.collapsedLabelGroups || "")
-    .split(",")
-    .map((k) => k.trim())
-    .filter(Boolean)
-);
 
 const trimPrefixes = (env.labelPrefixTrim || "")
   .split(",")
@@ -43,9 +37,9 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [selected, setSelected] = useState({});
   const [confirmNames, setConfirmNames] = useState(null);
   const [filters, setFilters] = useState({});
-  const [mode, setMode] = useState("and"); // AND vs OR logic
+  const [mode, setMode] = useState("or"); // default to "match any" (OR)
 
-  // fetch + auto-refresh
+  /* fetch + auto-refresh */
   useEffect(() => {
     async function fetchAll() {
       try {
@@ -63,7 +57,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     return () => clearInterval(id);
   }, [onError]);
 
-  // group labels by trimmed key
+  /* collect label groups (displayKey → [{ value, fullKey }]) */
   const labelGroups = useMemo(() => {
     const g = {};
     items.forEach((wf) => {
@@ -84,7 +78,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     );
   }, [items]);
 
-  // toggle a filter
+  /* toggle a filter */
   const toggleFilter = (pair) =>
     setFilters((f) => ({ ...f, [pair]: !f[pair] }));
 
@@ -92,7 +86,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     .filter(([, on]) => on)
     .map(([p]) => p);
 
-  // apply AND/or OR logic
+  /* apply AND/OR logic */
   const filteredItems = useMemo(() => {
     if (active.length === 0) return items;
     return items.filter((wf) =>
@@ -108,7 +102,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     );
   }, [items, active, mode]);
 
-  // selection logic
+  /* selection logic */
   const isRunning = (wf) => wf.status.phase === "Running";
   const nonRunning = filteredItems.filter((wf) => !isRunning(wf));
   const allSel =
@@ -133,7 +127,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       return c;
     });
 
-  // delete handlers
+  /* delete handlers */
   const handleSingleDelete = async (name) => {
     if (!window.confirm(`Delete workflow “${name}”?`)) return;
     try {
@@ -155,7 +149,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     }
   };
 
-  // group by template
+  /* group by template */
   const groups = useMemo(() => {
     const m = {};
     filteredItems.forEach((wf) => {
@@ -172,7 +166,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     <div className="wf-container">
       <h2 style={{ paddingLeft: "1rem" }}>Workflows</h2>
 
-      <details className="filter-panel" open>
+      {/* entire filter panel, collapsed by default */}
+      <details className="filter-panel">
         <summary className="filter-title">Filters</summary>
 
         <div className="filter-mode">
@@ -200,7 +195,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
         <div className="label-filters">
           {Object.entries(labelGroups).map(([dk, entries]) => (
-            <details key={dk} open={!collapsedSet.has(dk)}>
+            // each group also collapsed by default
+            <details key={dk}>
               <summary>{dk}</summary>
               <div className="label-values">
                 {entries.map(({ value, fullKey }) => {

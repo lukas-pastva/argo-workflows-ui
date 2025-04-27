@@ -226,6 +226,32 @@ table.wf-table tbody tr:hover          { background: #eef4ff; }
   content: "[-]";
 }
 
+.label-filters details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.label-filters details summary {
+  /* make summary sit inline and give it a bit of spacing */
+  display: inline-block;
+  margin-right: 1rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.label-filters .label-values {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* tighten up pill margins a bit */
+.label-filters .label-values span {
+  margin: 0 0.5rem 0.3rem 0;
+}
+
 .label-values {
   padding-left: 1rem;
   margin-top: 0.25rem;
