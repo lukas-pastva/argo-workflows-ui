@@ -29,9 +29,7 @@ const trimPrefixes = (import.meta.env.VITE_LABEL_PREFIX_TRIM || "events.argoproj
 /* — helpers — */
 const shouldSkip = (k, v) =>
   rawSkip.some((p) =>
-    p.includes("=") 
-      ? p === `${k}=${v}` 
-      : p === k
+    p.includes("=") ? p === `${k}=${v}` : p === k
   );
 
 const trimKey = (k) => {
@@ -171,7 +169,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     <div className="wf-container">
       <h2 style={{ paddingLeft: "1rem" }}>Workflows</h2>
 
-      {/* full-width, limited-height filter panel */}
+      {/* full-width, capped-height filter panel */}
       <div className="label-filters">
         {Object.entries(labelGroups)
           .sort(([a], [b]) => a.localeCompare(b))
@@ -188,6 +186,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                   return (
                     <span
                       key={pair}
+                      className={on ? "selected" : ""}
                       onClick={() => toggleFilter(pair)}
                     >
                       {value}

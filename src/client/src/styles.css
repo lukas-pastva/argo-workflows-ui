@@ -170,7 +170,6 @@ table.wf-table tbody tr:hover          { background: #eef4ff; }
 /* ----------------------------------------- */
 .label-filters {
   width: 100%;
-  max-width: none;
   padding: 0.75rem 1rem;
   background: #fff;
   border: 1px solid #cbd5e1;
@@ -210,5 +209,13 @@ table.wf-table tbody tr:hover          { background: #eef4ff; }
   border-radius: 4px;
   cursor: pointer;
   background: var(--bg);
-  transition: opacity 0.2s;
+  opacity: 0.6;
+  transition: background 0.2s, opacity 0.2s, color 0.2s;
+}
+
+/* Selected state: dark background, white text */
+.label-filters .label-values span.selected {
+  background: var(--primary-dark);
+  color: #fff;
+  opacity: 1;
 }
