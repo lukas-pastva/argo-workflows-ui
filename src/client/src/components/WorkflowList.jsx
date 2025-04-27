@@ -6,20 +6,22 @@ import {
 } from "../api";
 import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
 
-// build‐time env (import.meta.env) only works at compile time!
-const rawSkip = (import.meta.env.VITE_SKIP_LABELS || "")
+// ─── Runtime config from window.__ENV__ ────────────────────────────
+const env = window.__ENV__ || {};
+
+const rawSkip = (env.skipLabels || "")
   .split(",")
   .map((p) => p.trim())
   .filter(Boolean);
 
 const collapsedSet = new Set(
-  (import.meta.env.VITE_COLLAPSED_LABEL_GROUPS || "")
+  (env.collapsedLabelGroups || "")
     .split(",")
     .map((k) => k.trim())
     .filter(Boolean)
 );
 
-const trimPrefixes = (import.meta.env.VITE_LABEL_PREFIX_TRIM || "events.argoproj.io/")
+const trimPrefixes = (env.labelPrefixTrim || "")
   .split(",")
   .map((p) => p.trim())
   .filter(Boolean);
@@ -41,7 +43,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [selected, setSelected] = useState({});
   const [confirmNames, setConfirmNames] = useState(null);
   const [filters, setFilters] = useState({});
-  const [mode, setMode] = useState("and"); // "and" vs "or" filter logic
+  const [mode, setMode] = useState("and"); // AND vs OR logic
 
   // fetch + auto-refresh
   useEffect(() => {
@@ -61,7 +63,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     return () => clearInterval(id);
   }, [onError]);
 
-  // collect labels: displayKey → [{ value, fullKey }]
+  // group labels by trimmed key
   const labelGroups = useMemo(() => {
     const g = {};
     items.forEach((wf) => {
@@ -82,7 +84,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     );
   }, [items]);
 
-  // toggle one filter pair
+  // toggle a filter
   const toggleFilter = (pair) =>
     setFilters((f) => ({ ...f, [pair]: !f[pair] }));
 
@@ -90,24 +92,20 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     .filter(([, on]) => on)
     .map(([p]) => p);
 
-  // AND vs OR logic
+  // apply AND/or OR logic
   const filteredItems = useMemo(() => {
     if (active.length === 0) return items;
-    if (mode === "and") {
-      return items.filter((wf) =>
-        active.every((pair) => {
-          const [k, v] = pair.split("=");
-          return wf.metadata.labels?.[k] === v;
-        })
-      );
-    } else {
-      return items.filter((wf) =>
-        active.some((pair) => {
-          const [k, v] = pair.split("=");
-          return wf.metadata.labels?.[k] === v;
-        })
-      );
-    }
+    return items.filter((wf) =>
+      mode === "and"
+        ? active.every((pair) => {
+            const [k, v] = pair.split("=");
+            return wf.metadata.labels?.[k] === v;
+          })
+        : active.some((pair) => {
+            const [k, v] = pair.split("=");
+            return wf.metadata.labels?.[k] === v;
+          })
+    );
   }, [items, active, mode]);
 
   // selection logic
@@ -174,7 +172,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     <div className="wf-container">
       <h2 style={{ paddingLeft: "1rem" }}>Workflows</h2>
 
-      {/* entire filter panel collapsible */}
       <details className="filter-panel" open>
         <summary className="filter-title">Filters</summary>
 
@@ -224,7 +221,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       </details>
 
-      {/* bulk-delete */}
       {Object.values(selected).some(Boolean) && (
         <div style={{ margin: "0.5rem 1rem" }}>
           <button
@@ -240,7 +236,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       )}
 
-      {/* workflows */}
       {groups.map(([groupName, list]) => (
         <section key={groupName} style={{ marginBottom: "1rem" }}>
           <h3 className="wf-group-title">{groupName}</h3>
