@@ -3,20 +3,20 @@ import React, { useEffect, useState, useMemo } from "react";
 import { listWorkflows, deleteWorkflow, deleteWorkflows } from "../api";
 import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
 
-// Read comma-separated skip-labels from Vite env (set via VITE_SKIP_LABELS)
-const skipLabelsEnv = import.meta.env.VITE_SKIP_LABELS || "";
-const skipLabels = skipLabelsEnv
+// read comma-separated skip-keys from Vite env
+const skipKeysEnv = import.meta.env.VITE_SKIP_LABELS || "";
+const skipKeys = skipKeysEnv
   .split(",")
-  .map((l) => l.trim())
-  .filter((l) => l);
+  .map((k) => k.trim())
+  .filter(Boolean);
 
 export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [items, setItems] = useState([]);
   const [selected, setSelected] = useState({});
   const [confirmNames, setConfirmNames] = useState(null);
-  const [labelFilters, setLabelFilters] = useState({});
+  const [filters, setFilters] = useState({});
 
-  /* -------------- fetch / auto-refresh ---------------------------- */
+  /* fetch + auto-refresh */
   useEffect(() => {
     async function fetchAll() {
       try {
@@ -24,7 +24,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       } catch (e) {
         onError(
           e.status === 403
-            ? "Access denied – this service-account isn’t authorised to list workflows (HTTP 403)."
+            ? "Access denied (HTTP 403)."
             : `Error loading workflows: ${e.message}`
         );
       }
@@ -34,97 +34,85 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     return () => clearInterval(id);
   }, [onError]);
 
-  /* -------------- compute all non-skipped labels ------------------ */
-  const allLabels = useMemo(() => {
-    const setLabels = new Set();
+  /* collect all key=value pairs, skipping unwanted keys */
+  const allLabelPairs = useMemo(() => {
+    const s = new Set();
     items.forEach((wf) => {
-      const labels = wf.metadata.labels || {};
-      Object.keys(labels).forEach((key) => {
-        if (!skipLabels.includes(key)) {
-          setLabels.add(key);
+      Object.entries(wf.metadata.labels || {}).forEach(([k, v]) => {
+        if (!skipKeys.includes(k)) {
+          s.add(`${k}=${v}`);
         }
       });
     });
-    return Array.from(setLabels).sort();
+    return Array.from(s).sort();
   }, [items]);
 
-  const toggleLabel = (label) => {
-    setLabelFilters((prev) => ({
-      ...prev,
-      [label]: !prev[label],
-    }));
-  };
+  const toggleFilter = (pair) =>
+    setFilters((f) => ({ ...f, [pair]: !f[pair] }));
 
-  /* -------------- filter items by selected labels --------------- */
-  const activeFilters = Object.entries(labelFilters)
-    .filter(([, v]) => v)
-    .map(([k]) => k);
+  /* apply filters: must have every selected key=value */
+  const active = Object.entries(filters)
+    .filter(([, on]) => on)
+    .map(([pair]) => pair);
 
   const filteredItems =
-    activeFilters.length > 0
-      ? items.filter((wf) => {
-          const wfLabels = wf.metadata.labels || {};
-          // require *all* selected filters to be present
-          return activeFilters.every((f) => wfLabels[f] !== undefined);
-        })
-      : items;
+    active.length === 0
+      ? items
+      : items.filter((wf) =>
+          active.every((pair) => {
+            const [k, v] = pair.split("=");
+            return wf.metadata.labels?.[k] === v;
+          })
+        );
 
-  /* -------------- selection / deletion logic --------------------- */
+  /* selection logic (unchanged) */
   const isRunning = (wf) => wf.status.phase === "Running";
-  const isSelected = (name) => selected[name];
   const nonRunning = filteredItems.filter((wf) => !isRunning(wf));
-  const allSelected =
-    nonRunning.length &&
-    nonRunning.every((wf) => isSelected(wf.metadata.name));
+  const allSel =
+    nonRunning.length > 0 &&
+    nonRunning.every((wf) => selected[wf.metadata.name]);
 
   const toggleRow = (wf) => {
     if (isRunning(wf)) return;
-    setSelected((p) => ({
-      ...p,
-      [wf.metadata.name]: !p[wf.metadata.name],
+    setSelected((s) => ({
+      ...s,
+      [wf.metadata.name]: !s[wf.metadata.name],
     }));
   };
-
-  const toggleSelectAll = () => {
-    setSelected((prev) => {
-      const copy = { ...prev };
-      if (allSelected) {
-        nonRunning.forEach((wf) => delete copy[wf.metadata.name]);
+  const toggleSelectAll = () =>
+    setSelected((s) => {
+      const c = { ...s };
+      if (allSel) {
+        nonRunning.forEach((wf) => delete c[wf.metadata.name]);
       } else {
-        nonRunning.forEach((wf) => (copy[wf.metadata.name] = true));
+        nonRunning.forEach((wf) => (c[wf.metadata.name] = true));
       }
-      return copy;
+      return c;
     });
-  };
 
+  /* delete handlers (unchanged) */
   const handleSingleDelete = async (name) => {
     if (!window.confirm(`Delete workflow “${name}”?`)) return;
     try {
       await deleteWorkflow(name);
-      setItems((p) => p.filter((w) => w.metadata.name !== name));
+      setItems((it) => it.filter((w) => w.metadata.name !== name));
     } catch (e) {
-      onError(`Failed to delete workflow: ${e.message}`);
+      onError(`Failed to delete: ${e.message}`);
     }
   };
-
   const handleBatchDelete = async () => {
+    const names = Object.keys(selected).filter((n) => selected[n]);
     try {
-      await deleteWorkflows(confirmNames);
-      setItems((p) =>
-        p.filter((w) => !confirmNames.includes(w.metadata.name))
-      );
+      await deleteWorkflows(names);
+      setItems((it) => it.filter((w) => !names.includes(w.metadata.name)));
       setConfirmNames(null);
-      setSelected((p) => {
-        const copy = { ...p };
-        confirmNames.forEach((n) => delete copy[n]);
-        return copy;
-      });
+      setSelected({});
     } catch (e) {
-      onError(`Failed to delete workflows: ${e.message}`);
+      onError(`Batch delete failed: ${e.message}`);
     }
   };
 
-  /* -------------------- grouping by templateRef ------------------- */
+  /* group by template (unchanged) */
   const grouped = filteredItems.reduce((acc, wf) => {
     const key =
       wf.spec?.workflowTemplateRef?.name ||
@@ -133,72 +121,70 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     (acc[key] = acc[key] || []).push(wf);
     return acc;
   }, {});
-  const groupEntries = Object.entries(grouped).sort(([a], [b]) =>
+  const groups = Object.entries(grouped).sort(([a], [b]) =>
     a.localeCompare(b)
   );
-  const selectedNames = Object.keys(selected).filter((k) => selected[k]);
 
-  /* -------------------- render ------------------------------------ */
   return (
     <div className="wf-container">
       <h2 style={{ paddingLeft: "1rem" }}>Workflows</h2>
 
-      {/* Label-based filter UI */}
+      {/* label=value filter bar */}
       <div style={{ padding: "0 1rem", marginBottom: "1rem" }}>
-        {allLabels.map((label) => {
-          const on = !!labelFilters[label];
+        {allLabelPairs.map((pair) => {
+          const on = !!filters[pair];
           return (
             <span
-              key={label}
-              onClick={() => toggleLabel(label)}
+              key={pair}
+              onClick={() => toggleFilter(pair)}
               style={{
                 display: "inline-block",
-                marginRight: "0.5rem",
-                marginBottom: "0.5rem",
-                padding: "0.25rem 0.5rem",
+                margin: "0 .5rem .5rem 0",
+                padding: "0.25rem .5rem",
                 borderRadius: "4px",
-                background: "var(--bg)",
                 cursor: "pointer",
-                opacity: on ? 1 : 0.5,
-                transition: "opacity 0.2s ease",
+                background: "var(--bg)",
+                opacity: on ? 1 : 0.4,
+                transition: "opacity .2s",
               }}
             >
-              {label}
+              {pair}
             </span>
           );
         })}
       </div>
 
-      {selectedNames.length > 0 && (
+      {/* bulk-delete button */}
+      {Object.values(selected).filter(Boolean).length > 0 && (
         <div style={{ margin: "0.5rem 1rem" }}>
           <button
             className="btn-danger"
-            onClick={() => setConfirmNames(selectedNames)}
+            onClick={() => setConfirmNames(
+              Object.keys(selected).filter((n) => selected[n])
+            )}
           >
-            Delete selected ({selectedNames.length})
+            Delete selected
           </button>
         </div>
       )}
 
-      {groupEntries.map(([groupName, list]) => (
+      {groups.map(([groupName, list]) => (
         <section key={groupName} style={{ marginBottom: "1rem" }}>
           <h3 className="wf-group-title">{groupName}</h3>
-
           <table className="wf-table">
             <thead>
               <tr>
                 <th style={{ width: "4rem" }}>
                   <input
                     type="checkbox"
-                    checked={allSelected}
+                    checked={allSel}
                     onChange={toggleSelectAll}
-                    aria-label="select all deletable"
                   />
                 </th>
                 <th>Name</th>
-                <th style={{ width: "18rem" }}>Start Time</th>
-                <th style={{ width: "9rem" }}>Status</th>
-                <th style={{ width: "11rem" }} />
+                <th>Start Time</th>
+                <th>Status</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -209,20 +195,19 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     new Date(a.status.startedAt)
                 )
                 .map((wf) => {
-                  const name = wf.metadata.name;
-                  const deletable = !isRunning(wf);
+                  const nm = wf.metadata.name;
+                  const del = !isRunning(wf);
                   return (
-                    <tr key={name}>
+                    <tr key={nm}>
                       <td>
                         <input
                           type="checkbox"
-                          checked={!!selected[name]}
-                          disabled={!deletable}
+                          checked={!!selected[nm]}
+                          disabled={!del}
                           onChange={() => toggleRow(wf)}
-                          aria-label={`select ${name}`}
                         />
                       </td>
-                      <td>{name}</td>
+                      <td>{nm}</td>
                       <td>
                         {new Date(wf.status.startedAt).toLocaleString()}
                       </td>
@@ -230,15 +215,14 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                       <td style={{ whiteSpace: "nowrap" }}>
                         <button
                           className="btn"
-                          style={{ marginRight: "0.5rem" }}
-                          onClick={() => onShowLogs(name)}
+                          onClick={() => onShowLogs(nm)}
                         >
                           Logs
                         </button>
-                        {deletable && (
+                        {del && (
                           <button
                             className="btn-danger"
-                            onClick={() => handleSingleDelete(name)}
+                            onClick={() => handleSingleDelete(nm)}
                           >
                             Delete
                           </button>
