@@ -1,4 +1,3 @@
-// src/client/src/components/WorkflowList.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import {
   listWorkflows,
@@ -7,7 +6,7 @@ import {
 } from "../api";
 import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
 
-// ─── Runtime config from window.__ENV__ ────────────────────────────
+// ─── Runtime config pulled from env.js at runtime ──────────────────
 const env = window.__ENV__ || {};
 
 const rawSkip = (env.skipLabels || "")
@@ -37,9 +36,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [selected, setSelected] = useState({});
   const [confirmNames, setConfirmNames] = useState(null);
   const [filters, setFilters] = useState({});
-  const [mode, setMode] = useState("or"); // default to "match any" (OR)
 
-  /* fetch + auto-refresh */
+  // fetch + auto-refresh
   useEffect(() => {
     async function fetchAll() {
       try {
@@ -57,7 +55,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     return () => clearInterval(id);
   }, [onError]);
 
-  /* collect label groups (displayKey → [{ value, fullKey }]) */
+  // collect and group labels by trimmed key
   const labelGroups = useMemo(() => {
     const g = {};
     items.forEach((wf) => {
@@ -78,31 +76,25 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     );
   }, [items]);
 
-  /* toggle a filter */
+  // toggle a single filter
   const toggleFilter = (pair) =>
     setFilters((f) => ({ ...f, [pair]: !f[pair] }));
-
   const active = Object.entries(filters)
     .filter(([, on]) => on)
     .map(([p]) => p);
 
-  /* apply AND/OR logic */
+  // always OR (match any)
   const filteredItems = useMemo(() => {
     if (active.length === 0) return items;
     return items.filter((wf) =>
-      mode === "and"
-        ? active.every((pair) => {
-            const [k, v] = pair.split("=");
-            return wf.metadata.labels?.[k] === v;
-          })
-        : active.some((pair) => {
-            const [k, v] = pair.split("=");
-            return wf.metadata.labels?.[k] === v;
-          })
+      active.some((pair) => {
+        const [k, v] = pair.split("=");
+        return wf.metadata.labels?.[k] === v;
+      })
     );
-  }, [items, active, mode]);
+  }, [items, active]);
 
-  /* selection logic */
+  // selection logic
   const isRunning = (wf) => wf.status.phase === "Running";
   const nonRunning = filteredItems.filter((wf) => !isRunning(wf));
   const allSel =
@@ -127,7 +119,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       return c;
     });
 
-  /* delete handlers */
+  // delete handlers
   const handleSingleDelete = async (name) => {
     if (!window.confirm(`Delete workflow “${name}”?`)) return;
     try {
@@ -149,7 +141,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     }
   };
 
-  /* group by template */
+  // group workflows by template
   const groups = useMemo(() => {
     const m = {};
     filteredItems.forEach((wf) => {
@@ -169,33 +161,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       {/* entire filter panel, collapsed by default */}
       <details className="filter-panel">
         <summary className="filter-title">Filters</summary>
-
-        <div className="filter-mode">
-          <label>
-            <input
-              type="radio"
-              name="mode"
-              value="and"
-              checked={mode === "and"}
-              onChange={() => setMode("and")}
-            />{" "}
-            Match all
-          </label>
-          <label style={{ marginLeft: "1rem" }}>
-            <input
-              type="radio"
-              name="mode"
-              value="or"
-              checked={mode === "or"}
-              onChange={() => setMode("or")}
-            />{" "}
-            Match any
-          </label>
-        </div>
-
         <div className="label-filters">
           {Object.entries(labelGroups).map(([dk, entries]) => (
-            // each group also collapsed by default
             <details key={dk}>
               <summary>{dk}</summary>
               <div className="label-values">
@@ -217,6 +184,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       </details>
 
+      {/* bulk-delete button */}
       {Object.values(selected).some(Boolean) && (
         <div style={{ margin: "0.5rem 1rem" }}>
           <button
@@ -232,6 +200,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       )}
 
+      {/* grouped workflow tables */}
       {groups.map(([groupName, list]) => (
         <section key={groupName} style={{ marginBottom: "1rem" }}>
           <h3 className="wf-group-title">{groupName}</h3>
@@ -300,6 +269,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </section>
       ))}
 
+      {/* delete confirmation modal */}
       {confirmNames && (
         <DeleteConfirmModal
           names={confirmNames}

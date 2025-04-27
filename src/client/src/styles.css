@@ -93,6 +93,16 @@ table.wf-table thead th { border-bottom: 2px solid #e5e7eb; }
 
 table.wf-table tbody tr:nth-child(odd) { background: #fafafa; }
 table.wf-table tbody tr:hover          { background: #eef4ff; }
+/* ─── Right-align action buttons in the last column ───────────────── */
+table.wf-table {
+  width: 100%;
+}
+
+table.wf-table th:last-child,
+table.wf-table td:last-child {
+  text-align: right;
+  white-space: nowrap; /* keep buttons together */
+}
 
 /* ---------------- Group headings ------------------------------- */
 .wf-group-title {
