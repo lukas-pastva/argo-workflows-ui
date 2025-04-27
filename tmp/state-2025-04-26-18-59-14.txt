@@ -1,0 +1,1099 @@
+ehen submitting a workflow i get: {"code":3,"message":"resource name may not be empty"}/
+
+argo-workflows-ui/
+    LICENSE
+    README.md
+.github/
+    workflows/
+        build.yaml
+src/
+    Dockerfile
+    client/
+        package.json
+        vite.config.js
+        public/
+        src/
+            api.js
+            App.jsx
+            index.html
+            index.jsx
+            styles.css
+            components/
+                ErrorBanner.jsx
+                HelpModal.jsx
+                LogViewer.jsx
+                WorkflowList.jsx
+                WorkflowTrigger.jsx
+    server/
+        package.json
+        src/
+            argo-workflows.js
+            index.js
+
+
+------------------ Start of README.md ------------------
+
+# Argo Workflows UI
+
+A lightweight, single-container web interface for Kubernetes **Argo Workflows**.
+
+## Features
+- **Workflow list** – live table of all runs in the selected namespace (name, start time, phase).  
+- **Full-screen log viewer** – follows pod logs in real time while a workflow is still running; opens with one click.  
+- **Trigger workflows** – automatically loads available workflow templates, builds a parameter form on the fly, and submits new runs.  
+- **Auto-refresh** – list refreshes every 10 seconds; log stream keeps scrolling as new lines arrive.  
+- **Self-contained image** – React 18 + Vite front-end and Express proxy back-end packaged together; just drop it into the cluster – no external services needed.
+
+Use it when you want a clean, minimal alternative to the full Argo console.
+
+---
+
+## Configuration (environment variables)
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| **`ARGO_WORKFLOWS_URL`** | Base URL of the Argo Workflows API server. | `http://argo-workflows-server:2746` |
+| **`ARGO_WORKFLOWS_TOKEN`** | Bearer token for the API. Leave **unset** to make the server automatically read the in-cluster service-account token from `/var/run/secrets/kubernetes.io/serviceaccount/token`. | *(auto-detected)* |
+| **`ARGO_WORKFLOWS_NAMESPACE`** | Namespace to operate in. | value of the pod’s `$POD_NAMESPACE` env var, else `default` |
+| `DEBUG_LOGS` | Set to `true` for verbose logging. | `false` |
+
+The image therefore runs out-of-the-box in the same namespace as the Argo controller and server – no secrets, no additional config.
+
+
+### Running with my helm-chartie
+```yaml
+deployments:
+
+  argo-workflows-ui:
+    image: lukaspastva/argo-workflows-ui:latest
+    resources:
+      limits:
+        memory: 400Mi
+      requests:
+        cpu: 100m
+        memory: 100Mi
+    serviceAccountExternal: argo-workflows-workflow-controller
+    ports:
+      - name: http
+        port: 8080
+        domains:
+          - "deploy.example.com"
+        paths:
+          - "/"
+    env:
+      - name: DEBUG_LOGS
+        value: "true"
+      - name: POD_NAMESPACE
+        value: "argo-workflows"
+```
+
+------------------ End of README.md ------------------
+
+
+
+------------------ Start of .github\workflows\build.yaml ------------------
+
+name: build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
+      - name: build
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          docker login registry.hub.docker.com -u "${{ secrets.DOCKER_HUB_USERNAME }}" -p "${{ secrets.DOCKER_HUB_PASSWORD }}"
+          docker build -f ./src/Dockerfile -t registry.hub.docker.com/lukaspastva/${{ github.event.repository.name }}:latest ./src
+          docker tag registry.hub.docker.com/lukaspastva/${{ github.event.repository.name }}:latest registry.hub.docker.com/lukaspastva/${{ github.event.repository.name }}:${GITHUB_SHA}
+          docker push registry.hub.docker.com/lukaspastva/${{ github.event.repository.name }}:latest
+          docker push registry.hub.docker.com/lukaspastva/${{ github.event.repository.name }}:${GITHUB_SHA}
+
+
+------------------ End of .github\workflows\build.yaml ------------------
+
+
+
+------------------ Start of src\Dockerfile ------------------
+
+# ---------- 1. Build the React front-end ---------- #
+FROM node:20-alpine AS client-build
+
+WORKDIR /app/client
+
+# copy manifests first for better layer caching
+COPY client/package*.json ./
+COPY client/vite.config.js ./
+
+# then the actual sources / public assets
+COPY client/src    ./src
+COPY client/public ./public
+
+RUN npm install
+RUN npm run build          # → creates /app/client/dist
+
+
+# ---------- 2. Build the server image ---------- #
+FROM node:20-alpine AS server
+
+WORKDIR /app/server
+
+# -- add curl so you can run the debug commands printed in the logs --
+RUN apk add --no-cache curl
+
+COPY server/package*.json ./
+RUN npm install
+COPY server .
+
+# ship the compiled front-end with the server
+COPY --from=client-build /app/client/dist ./public
+
+ENV PORT=8080
+EXPOSE 8080
+CMD ["node", "src/index.js"]
+
+
+------------------ End of src\Dockerfile ------------------
+
+
+
+------------------ Start of src\client\package.json ------------------
+
+{
+  "name": "argo-workflows-ui-client",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .js,.jsx"
+  },
+  "dependencies": {
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.0",
+    "eslint": "^9.1.0",
+    "vite": "^5.2.8"
+  }
+}
+
+
+------------------ End of src\client\package.json ------------------
+
+
+
+------------------ Start of src\client\vite.config.js ------------------
+
+// Vite configuration
+//
+// • root: "src"   → index.html is in client/src/
+// • build.outDir  → emit build into   client/dist/   (Docker copies this)
+
+const path  = require("path");
+const react = require("@vitejs/plugin-react");
+const { defineConfig } = require("vite");
+
+module.exports = defineConfig({
+  root: path.resolve(__dirname, "src"),
+
+  plugins: [
+    react({
+      // Also run Babel on every *.js file so JSX parses correctly
+      include: [/\.[jt]sx?$/, /\.js$/]
+    })
+  ],
+
+  build: {
+    outDir: path.resolve(__dirname, "dist"),
+    emptyOutDir: true
+  }
+});
+
+
+------------------ End of src\client\vite.config.js ------------------
+
+
+
+------------------ Start of src\client\src\api.js ------------------
+
+// Very thin wrapper around our own backend – now throws on non-2xx status
+const base = "/api";
+
+async function jsonOrThrow(resp) {
+  if (!resp.ok) {
+    const err = new Error(`HTTP ${resp.status}`);
+    err.status = resp.status;
+    throw err;
+  }
+  return resp.json();
+}
+
+export async function listWorkflows()      { return jsonOrThrow(await fetch(`${base}/workflows`)); }
+export async function listTemplates()      { return jsonOrThrow(await fetch(`${base}/templates`)); }
+
+export async function submitWorkflow(body) {
+  const r = await fetch(`${base}/workflows`, {
+    method : "POST",
+    headers: { "Content-Type": "application/json" },
+    body   : JSON.stringify(body)
+  });
+  return jsonOrThrow(r);
+}
+
+export async function getWorkflowLogs(name) {
+  const r = await fetch(`${base}/workflows/${name}/logs?follow=true`);
+  if (!r.ok) {
+    const err = new Error(`HTTP ${r.status}`);
+    err.status = r.status;
+    throw err;
+  }
+  return r;                                 // streaming Response
+}
+
+
+------------------ End of src\client\src\api.js ------------------
+
+
+
+------------------ Start of src\client\src\App.jsx ------------------
+
+import React, { useState } from "react";
+import ErrorBanner      from "./components/ErrorBanner.jsx";
+import WorkflowList     from "./components/WorkflowList.jsx";
+import LogViewer        from "./components/LogViewer.jsx";
+import WorkflowTrigger  from "./components/WorkflowTrigger.jsx";
+import HelpModal        from "./components/HelpModal.jsx";
+
+export default function App() {
+  const [error   , setError]   = useState("");
+  const [logWf   , setLogWf]   = useState(null);
+  const [showHelp, setShowHelp] = useState(false);
+
+  return (
+    <>
+      <header className="header">
+        <h1>Argo Workflows</h1>
+        <button className="btn-light" onClick={() => setShowHelp(true)}>
+          Help
+        </button>
+      </header>
+
+      <ErrorBanner message={error} onClose={() => setError("")} />
+
+      <div className="container">
+        <div className="card">
+          <WorkflowTrigger onError={setError} />
+        </div>
+
+        <div className="card">
+          <WorkflowList onShowLogs={setLogWf} onError={setError} />
+        </div>
+      </div>
+
+      {logWf && (
+        <LogViewer workflowName={logWf} onClose={() => setLogWf(null)} />
+      )}
+
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+    </>
+  );
+}
+
+
+------------------ End of src\client\src\App.jsx ------------------
+
+
+
+------------------ Start of src\client\src\index.html ------------------
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Argo Workflows – Lightweight UI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- entry file renamed from index.js → index.jsx -->
+    <script type="module" src="./index.jsx"></script>
+  </body>
+</html>
+
+
+------------------ End of src\client\src\index.html ------------------
+
+
+
+------------------ Start of src\client\src\index.jsx ------------------
+
+import "./styles.css";          // ⬅️  global CSS
+import React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App.jsx";
+
+const root = createRoot(document.getElementById("root"));
+root.render(<App />);
+
+
+------------------ End of src\client\src\index.jsx ------------------
+
+
+
+------------------ Start of src\client\src\styles.css ------------------
+
+/* ------------- Global palette & font ---------------------------- */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --bg: #f3f4f6;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  background: var(--bg);
+}
+
+/* ------------- Layout ------------------------------------------- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--primary);
+  color: #fff;
+  padding: 0.75rem 1rem;
+}
+
+.header h1 { margin: 0; font-size: 1.4rem; }
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.card {
+  background: #fff;
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  margin-top: 1.5rem;
+}
+
+/* ------------- Buttons ------------------------------------------ */
+.btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out, transform 0.1s ease-in-out;
+}
+
+.btn:hover   { background: var(--primary-dark); }
+.btn:active  { transform: scale(0.97); }
+
+.btn-light {
+  background: transparent;
+  color: #fff;
+  border: 1px solid #fff;
+}
+
+.btn-light:hover { background: rgba(255,255,255,0.15); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.btn-secondary:hover { background: #eef2ff; }
+
+/* ------------- Workflow tables ---------------------------------- */
+table.wf-table { width: 100%; border-collapse: collapse; }
+
+table.wf-table th,
+table.wf-table td { padding: 0.75rem 1rem; text-align: left; }
+
+table.wf-table thead th { border-bottom: 2px solid #e5e7eb; }
+
+table.wf-table tbody tr:nth-child(odd) { background: #fafafa; }
+table.wf-table tbody tr:hover          { background: #f0f8ff; }
+
+/* ------------- Trigger-workflow form ---------------------------- */
+.trigger-select {
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+}
+
+.trigger-form { margin-top: 1rem; }
+
+.field       { margin-bottom: 0.75rem; }
+.field label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.field input,
+.field textarea,
+.trigger-select {
+  width: 100%;
+  max-width: 26rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+/* ------------- Modal -------------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-dialog {
+  background: #fff;
+  border-radius: 8px;
+  padding: 1.8rem 2rem;
+  width: min(90vw, 600px);
+  position: relative;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.modal-dialog h2 { margin-top: 0; }
+
+.modal-close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.8rem;
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+
+------------------ End of src\client\src\styles.css ------------------
+
+
+
+------------------ Start of src\client\src\components\ErrorBanner.jsx ------------------
+
+import React from "react";
+
+export default function ErrorBanner({ message, onClose }) {
+  if (!message) return null;
+  return (
+    <div
+      style={{
+        background: "#fee",
+        color: "#a00",
+        padding: "0.75rem 1rem",
+        borderBottom: "1px solid #d88"
+      }}
+    >
+      {message}
+      <button
+        style={{
+          marginLeft: "1rem",
+          background: "transparent",
+          border: "none",
+          fontSize: "1.2rem",
+          cursor: "pointer",
+          color: "#a00"
+        }}
+        onClick={onClose}
+        aria-label="close"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+
+------------------ End of src\client\src\components\ErrorBanner.jsx ------------------
+
+
+
+------------------ Start of src\client\src\components\HelpModal.jsx ------------------
+
+import React from "react";
+
+export default function HelpModal({ onClose }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose} aria-label="close">
+          ×
+        </button>
+
+        <h2>How to use Argo Workflows UI</h2>
+
+        <p>
+          <strong>Trigger a workflow :</strong> Pick a template, fill in the
+          parameters and hit <em>Submit</em>. The special{" "}
+          <code>event-data</code> parameter is pre-filled with a JSON
+          placeholder for convenience.
+        </p>
+
+        <p>
+          <strong>Follow runs :</strong> New or running workflows appear in the
+          list below, grouped by their template reference. The list refreshes
+          every 10 seconds.
+        </p>
+
+        <p>
+          <strong>Logs :</strong> Click&nbsp;<em>Logs</em>&nbsp;to open a
+          full-screen, auto-scrolling viewer for a workflow run.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
+------------------ End of src\client\src\components\HelpModal.jsx ------------------
+
+
+
+------------------ Start of src\client\src\components\LogViewer.jsx ------------------
+
+import React, { useEffect, useRef, useState } from "react";
+import { getWorkflowLogs } from "../api";
+
+export default function LogViewer({ workflowName, onClose }) {
+  const [lines, setLines] = useState([]);
+  const box = useRef();
+
+  /* ---------- stream log lines ---------- */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const resp   = await getWorkflowLogs(workflowName);   // text/event-stream
+      const reader = resp.body.getReader();
+      const dec    = new TextDecoder();
+      while (!cancelled) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = dec.decode(value);
+        setLines(prev => [...prev, ...chunk.split("\n")]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [workflowName]);
+
+  /* ---------- auto-scroll ---------- */
+  useEffect(() => {
+    if (box.current) box.current.scrollTop = box.current.scrollHeight;
+  }, [lines]);
+
+  /* ---------- close on Escape ---------- */
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  /* ---------- render ---------- */
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "#111",
+        color: "#0f0",
+        padding: "1rem",
+        overflow: "auto",
+        fontFamily: "monospace",
+        whiteSpace: "pre-wrap",
+        zIndex: 2000
+      }}
+      ref={box}
+    >
+      <button className="btn-secondary" style={{ float: "right" }} onClick={onClose}>
+        ✕ Close
+      </button>
+      <h3 style={{ marginTop: 0 }}>Logs – {workflowName}</h3>
+      {lines.map((l, i) => (
+        <div key={i}>{l}</div>
+      ))}
+    </div>
+  );
+}
+
+
+------------------ End of src\client\src\components\LogViewer.jsx ------------------
+
+
+
+------------------ Start of src\client\src\components\WorkflowList.jsx ------------------
+
+import React, { useEffect, useState } from "react";
+import { listWorkflows } from "../api";
+
+export default function WorkflowList({ onShowLogs, onError = () => {} }) {
+  const [items, setItems] = useState([]);
+
+  /* ------------------ fetch / refresh ------------------ */
+  useEffect(() => {
+    async function fetchAll() {
+      try {
+        setItems(await listWorkflows());
+      } catch (e) {
+        if (e.status === 403) {
+          onError(
+            "Access denied – this service-account isn’t authorised to list workflows (HTTP 403)."
+          );
+        } else {
+          onError(`Error loading workflows: ${e.message}`);
+        }
+      }
+    }
+    fetchAll();
+    const id = setInterval(fetchAll, 10_000); // auto-refresh
+    return () => clearInterval(id);
+  }, [onError]);
+
+  /* ------------------ group by templateRef / generateName ------------------ */
+  const grouped = items.reduce((acc, wf) => {
+    const key =
+      wf.spec?.workflowTemplateRef?.name ||      // primary key
+      wf.metadata.generateName ||               // fallback
+      "Unlabelled";
+    (acc[key] = acc[key] || []).push(wf);
+    return acc;
+  }, {});
+
+  const groupEntries = Object.entries(grouped).sort(([a], [b]) =>
+    a.localeCompare(b)
+  );
+
+  /* ------------------ render ------------------ */
+  return (
+    <div className="container">
+      <h2>Workflows</h2>
+
+      {groupEntries.map(([groupName, list]) => (
+        <section key={groupName} style={{ marginBottom: "2rem" }}>
+          <h3 style={{ marginTop: "1.5rem" }}>{groupName}</h3>
+
+          <table className="wf-table">
+            <thead>
+              <tr>
+                <th style={{ width: "45%" }}>Name</th>
+                <th style={{ width: "30%" }}>Start Time</th>
+                <th style={{ width: "15%" }}>Status</th>
+                <th style={{ width: "10%" }} />
+              </tr>
+            </thead>
+            <tbody>
+              {list
+                .sort(
+                  (a, b) =>
+                    new Date(b.status.startedAt) - new Date(a.status.startedAt)
+                )
+                .map((wf) => (
+                  <tr key={wf.metadata.name}>
+                    <td>{wf.metadata.name}</td>
+                    <td>{new Date(wf.status.startedAt).toLocaleString()}</td>
+                    <td>{wf.status.phase}</td>
+                    <td>
+                      <button
+                        className="btn"
+                        onClick={() => onShowLogs(wf.metadata.name)}
+                      >
+                        Logs
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+
+------------------ End of src\client\src\components\WorkflowList.jsx ------------------
+
+
+
+------------------ Start of src\client\src\components\WorkflowTrigger.jsx ------------------
+
+import React, { useEffect, useState } from "react";
+import { listTemplates, submitWorkflow } from "../api";
+
+export default function WorkflowTrigger({ onError = () => {} }) {
+  const [templates, setTemplates] = useState([]);
+  const [selected , setSelected]  = useState("");
+  const [params   , setParams]    = useState({});
+  const [infoMsg  , setInfoMsg]   = useState("");
+
+  /* ---------- load templates ---------- */
+  useEffect(() => {
+    listTemplates()
+      .then(setTemplates)
+      .catch((e) =>
+        onError(
+          e.status === 403
+            ? "Access denied – not allowed to list workflow-templates (HTTP 403)."
+            : `Error loading templates: ${e.message}`
+        )
+      );
+  }, [onError]);
+
+  /* ---------- when template changes ---------- */
+  useEffect(() => {
+    if (!selected) return;
+    const tmpl = templates.find((t) => t.metadata.name === selected);
+    if (!tmpl) return;
+
+    const p = {};
+    (tmpl.spec?.arguments?.parameters || []).forEach((par) => {
+      let defVal = par.value || "";
+      if (par.name === "event-data" && !defVal) {
+        defVal = JSON.stringify({ key: "value" }, null, 2);
+      }
+      p[par.name] = defVal;
+    });
+    setParams(p);
+  }, [selected, templates]);
+
+  /* ---------- helpers ---------- */
+  const handleChange = (k, v) => setParams((o) => ({ ...o, [k]: v }));
+  const handleSubmit = async () => {
+    try {
+      await submitWorkflow({ template: selected, parameters: params });
+      setInfoMsg("✅ Workflow submitted!");
+      setTimeout(() => setInfoMsg(""), 4000);
+    } catch (e) {
+      onError(
+        e.status === 403
+          ? "Access denied – can’t submit workflows (HTTP 403)."
+          : `Error submitting workflow: ${e.message}`
+      );
+    }
+  };
+
+  /* ---------- render ---------- */
+  return (
+    <>
+      <h2>Trigger Workflow</h2>
+
+      <select
+        className="trigger-select"
+        onChange={(e) => setSelected(e.target.value)}
+        value={selected}
+      >
+        <option value="">-- choose template --</option>
+        {templates.map((t) => (
+          <option key={t.metadata.name} value={t.metadata.name}>
+            {t.metadata.name}
+          </option>
+        ))}
+      </select>
+
+      {selected && (
+        <div className="trigger-form">
+          {Object.keys(params).map((name) => (
+            <div key={name} className="field">
+              <label>{name}</label>
+              {name === "event-data" ? (
+                <textarea
+                  rows={4}
+                  value={params[name]}
+                  onChange={(e) => handleChange(name, e.target.value)}
+                />
+              ) : (
+                <input
+                  value={params[name]}
+                  onChange={(e) => handleChange(name, e.target.value)}
+                />
+              )}
+            </div>
+          ))}
+
+          <button className="btn" onClick={handleSubmit}>
+            Submit
+          </button>
+          <span style={{ marginLeft: "0.75rem" }}>{infoMsg}</span>
+        </div>
+      )}
+    </>
+  );
+}
+
+
+------------------ End of src\client\src\components\WorkflowTrigger.jsx ------------------
+
+
+
+------------------ Start of src\server\package.json ------------------
+
+{
+  "name": "argo-ui-server",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.0",
+    "express": "^4.19.0",
+    "node-fetch": "^3.3.2"
+  }
+}
+
+------------------ End of src\server\package.json ------------------
+
+
+
+------------------ Start of src\server\src\argo-workflows.js ------------------
+
+import fetch from "node-fetch";
+import fs    from "fs";
+
+const {
+  ARGO_WORKFLOWS_URL = "http://argo-workflows-server:2746",
+  ARGO_WORKFLOWS_TOKEN,
+  ARGO_WORKFLOWS_NAMESPACE = process.env.POD_NAMESPACE || "default",
+  DEBUG_LOGS = "false"
+} = process.env;
+
+const debug = DEBUG_LOGS === "true";
+
+/* ------------------------------------------------------------------ */
+/*  Helper: obtain the Bearer token                                    */
+/* ------------------------------------------------------------------ */
+let saToken = ARGO_WORKFLOWS_TOKEN;
+if (!saToken) {
+  try {
+    saToken = fs.readFileSync(
+      "/var/run/secrets/kubernetes.io/serviceaccount/token",
+      "utf8"
+    ).trim();
+    if (debug) console.log("[DEBUG] Loaded SA token from file system");
+  } catch (e) {
+    if (debug) console.log("[DEBUG] No SA token file found:", e.message);
+  }
+}
+
+function headers() {
+  return {
+    "Content-Type": "application/json",
+    ...(saToken ? { Authorization: `Bearer ${saToken}` } : {})
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helper: print a ready-to-copy curl                                 */
+/* ------------------------------------------------------------------ */
+function debugCurl(url, method = "GET", body = null) {
+  if (!debug) return;
+  const tokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token";
+  const dataPart  = body ? `--data '${JSON.stringify(body)}' ` : "";
+  console.log(
+    `[DEBUG] testing curl:\n` +
+    `curl -k -H "Authorization: Bearer $(cat ${tokenPath})" ` +
+    `-H "Content-Type: application/json" -X ${method} ${dataPart}"${url}"`
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Public API                                                         */
+/* ------------------------------------------------------------------ */
+export async function listWorkflows() {
+  const url =
+    `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
+    `${ARGO_WORKFLOWS_NAMESPACE}?listOptions.fieldSelector=`;
+  if (debug) console.log("[DEBUG] Fetching workflows from", url);
+  debugCurl(url);
+
+  const r = await fetch(url, { headers: headers() });
+  if (!r.ok) throw new Error(`Argo ${r.status}`);
+
+  const j = await r.json();
+  if (debug) console.log(`[DEBUG] Retrieved ${j.items?.length || 0} workflows`);
+  return j.items || [];
+}
+
+export async function listTemplates() {
+  const url =
+    `${ARGO_WORKFLOWS_URL}/api/v1/workflow-templates/${ARGO_WORKFLOWS_NAMESPACE}`;
+  if (debug) console.log("[DEBUG] Fetching templates from", url);
+  debugCurl(url);
+
+  const r = await fetch(url, { headers: headers() });
+  if (!r.ok) throw new Error(`Argo ${r.status}`);
+
+  const j = await r.json();
+  if (debug) console.log(`[DEBUG] Retrieved ${j.items?.length || 0} templates`);
+  return j.items || [];
+}
+
+/* ------------------------------------------------------------------ */
+/*  Submit workflow from a template                                   */
+/* ------------------------------------------------------------------ */
+export async function submitWorkflow({ template, parameters }) {
+  /* Body expected by POST …/workflows/{ns}/submit                      */
+  const body = {
+    namespace       : ARGO_WORKFLOWS_NAMESPACE,
+    resourceKind    : "WorkflowTemplate",
+    workflowTemplateRef: { name: template },
+    submitOptions   : {},
+    parameters      : Object.entries(parameters).map(([name, value]) => ({
+      name, value
+    }))
+  };
+
+  const url =
+    `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
+    `${ARGO_WORKFLOWS_NAMESPACE}/submit`;
+
+  if (debug) {
+    console.log(
+      `[DEBUG] Submitting workflowTemplate ${template} with parameters`, parameters
+    );
+  }
+  debugCurl(url, "POST", body);
+
+  const r = await fetch(url, {
+    method : "POST",
+    headers: headers(),
+    body   : JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(`Argo ${r.status}`);
+
+  const result = await r.json();
+  if (debug) console.log("[DEBUG] Workflow-submit response:", result);
+  return result;
+}
+
+export async function streamLogs(name, res, follow = true) {
+  const url =
+    `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
+    `${ARGO_WORKFLOWS_NAMESPACE}/${name}/log?follow=${follow}`;
+  if (debug) console.log("[DEBUG] Streaming logs for", name, "from", url);
+  debugCurl(url);
+
+  const upstream = await fetch(url, { headers: headers() });
+  if (!upstream.ok) {
+    res.status(upstream.status).end();
+    return;
+  }
+  res.setHeader("Content-Type", upstream.headers.get("content-type"));
+  upstream.body.pipe(res);
+}
+
+
+------------------ End of src\server\src\argo-workflows.js ------------------
+
+
+
+------------------ Start of src\server\src\index.js ------------------
+
+import express  from "express";
+import dotenv   from "dotenv";
+import path     from "path";
+import { fileURLToPath } from "url";
+
+import {
+  listWorkflows,
+  listTemplates,
+  submitWorkflow,
+  streamLogs
+} from "./argo-workflows.js";   //  ← renamed import
+
+dotenv.config();
+
+const app        = express();
+const DEBUG_LOGS = process.env.DEBUG_LOGS === "true";
+
+app.use(express.json());
+
+/* ------------ optional request logging ---------------------------- */
+if (DEBUG_LOGS) {
+  app.use((req, _res, next) => {
+    console.log(
+      `[DEBUG] ${new Date().toISOString()} ${req.method} ${req.originalUrl}`
+    );
+    next();
+  });
+}
+
+/* ---------------------- API routes -------------------------------- */
+app.get("/api/workflows", async (_req, res, next) => {
+  try { res.json(await listWorkflows()); } catch (e) { next(e); }
+});
+
+app.get("/api/workflows/:name/logs", async (req, res) => {
+  streamLogs(req.params.name, res, req.query.follow !== "false");
+});
+
+app.get("/api/templates", async (_req, res, next) => {
+  try { res.json(await listTemplates()); } catch (e) { next(e); }
+});
+
+app.post("/api/workflows", async (req, res, next) => {
+  try { res.json(await submitWorkflow(req.body)); } catch (e) { next(e); }
+});
+
+/* -------------------- static React build -------------------------- */
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+app.use(express.static(path.join(__dirname, "../public")));
+
+app.get("*", (_req, res) =>
+  res.sendFile(path.join(__dirname, "../public/index.html"))
+);
+
+/* ----------------------- error handler ---------------------------- */
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  res.status(500).json({ error: err.message });
+});
+
+/* ---------------------- start server ------------------------------ */
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
+
+
+------------------ End of src\server\src\index.js ------------------
+
