@@ -307,3 +307,20 @@ table.wf-table.intimate tbody tr:hover {
 table.wf-table.intimate td.group-col {
   width: 10%;
 }
+
+/* ---------------- Status pills --------------------------------- */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-failed {
+  background: #ffe5e5;
+  color: #d64543;
+  border: 1px solid #f5a8a8;
+}
