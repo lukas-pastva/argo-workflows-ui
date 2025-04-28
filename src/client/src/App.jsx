@@ -11,7 +11,8 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
 
   /* ---------- configurable header background --------------------- */
-  const headerBg = import.meta.env.VITE_HEADER_BG;
+  const runtime = window.__ENV__ || {};
+  const headerBg = runtime.headerBg || import.meta.env.VITE_HEADER_BG;
   const headerStyle = headerBg ? { background: headerBg } : {};
 
   return (
