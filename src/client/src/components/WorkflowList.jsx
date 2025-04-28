@@ -1,4 +1,3 @@
-// src/client/src/components/WorkflowList.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   listWorkflows,
@@ -8,7 +7,7 @@ import {
 import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
 
 /* ------------------------------------------------------------------ */
-/*  Runtime env                                                        */
+/*  Runtime env                                                       */
 /* ------------------------------------------------------------------ */
 const env = window.__ENV__ || {};
 
@@ -33,13 +32,12 @@ const shouldSkip = (k, v) => {
   const displayKey = trimKey(k);
   return rawSkip.some((p) => {
     if (p.includes("=")) return p === `${k}=${v}`;
-    // skip if raw key or trimmed key matches
     return p === k || p === displayKey;
   });
 };
 
 /* ------------------------------------------------------------------ */
-/*  UTC helper – “YYYY-MM-DD HH:MM:SS”                                 */
+/*  UTC helper – “YYYY-MM-DD HH:MM:SS”                                */
 /* ------------------------------------------------------------------ */
 function fmtUtc(ts) {
   const d = new Date(ts);
@@ -50,15 +48,31 @@ function fmtUtc(ts) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Component                                                          */
-/* ------------------------------------------------------------------ */
 export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [items, setItems]               = useState([]);
   const [selected, setSelected]         = useState({});
   const [confirmNames, setConfirmNames] = useState(null);
-  const [filters, setFilters]           = useState({});
-  const [sort, setSort]                 = useState({ column: "template", dir: "asc" });
+
+  /* ---- load persisted filters from localStorage ---- */
+  const [filters, setFilters] = useState(() => {
+    try {
+      const saved = localStorage.getItem("workflowFilters");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [sort, setSort] = useState({ column: "template", dir: "asc" });
+
+  /* ---- persist filters whenever they change ---- */
+  useEffect(() => {
+    try {
+      localStorage.setItem("workflowFilters", JSON.stringify(filters));
+    } catch {
+      /* ignore storage errors */
+    }
+  }, [filters]);
 
   /* ---------------- fetch + auto-refresh ------------------------- */
   useEffect(() => {
@@ -138,10 +152,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const comparator = (a, b) => {
     const { column, dir } = sort;
     const mul = dir === "asc" ? 1 : -1;
-
-    /* helpers */
-    const tKey = (r) =>
-      r.group; // template key already prepared
+    const tKey = (r) => r.group;
     const sTime = (r) => new Date(r.wf.status.startedAt).getTime();
 
     switch (column) {
@@ -151,10 +162,9 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         return mul * (sTime(a) - sTime(b));
       case "status":
         return mul * (a.wf.status.phase.localeCompare(b.wf.status.phase));
-      /* template: tie-break by start time DESC                       */
       default:
         if (tKey(a) !== tKey(b)) return mul * tKey(a).localeCompare(tKey(b));
-        return -sTime(a) + sTime(b); // newest first
+        return -sTime(a) + sTime(b);
     }
   };
 

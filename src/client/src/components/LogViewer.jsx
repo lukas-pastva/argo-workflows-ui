@@ -25,7 +25,16 @@ export default function LogViewer({ workflowName, onClose }) {
   const [lines, setLines] = useState([]);
   const box = useRef();
 
-  /* ---------- stream log lines ---------- */
+  /* ---------------- disable body scroll while logs are open ---------------- */
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  /* ---------------- stream log lines ---------------- */
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -51,19 +60,19 @@ export default function LogViewer({ workflowName, onClose }) {
     return () => { cancelled = true; };
   }, [workflowName]);
 
-  /* ---------- auto-scroll ---------- */
+  /* ---------------- auto-scroll ---------------- */
   useEffect(() => {
     if (box.current) box.current.scrollTop = box.current.scrollHeight;
   }, [lines]);
 
-  /* ---------- close on Escape ---------- */
+  /* ---------------- close on Escape ---------------- */
   useEffect(() => {
     function handleKey(e) { if (e.key === "Escape") onClose(); }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
-  /* ---------- render ---------- */
+  /* ---------------- render ---------------- */
   return (
     <div
       style={{
