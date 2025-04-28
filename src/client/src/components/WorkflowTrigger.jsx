@@ -1,14 +1,15 @@
+// src/client/src/components/WorkflowTrigger.jsx
 import React, { useEffect, useState } from "react";
 import { listTemplates, submitWorkflow } from "../api";
 
 export default function WorkflowTrigger({ onError = () => {} }) {
   const [templates, setTemplates] = useState([]);
-  const [selected, setSelected] = useState("");
-  const [params, setParams] = useState({});
-  const [infoMsg, setInfoMsg] = useState("");
-  const [hideTemp, setHideTemp] = useState(true);
+  const [selected, setSelected]   = useState("");
+  const [params, setParams]       = useState({});
+  const [infoMsg, setInfoMsg]     = useState("");
+  const [hideTemp, setHideTemp]   = useState(true);
 
-  // load templates
+  /* ------------- load templates -------------------------------- */
   useEffect(() => {
     listTemplates()
       .then(setTemplates)
@@ -21,11 +22,12 @@ export default function WorkflowTrigger({ onError = () => {} }) {
       );
   }, [onError]);
 
-  // when template changes: build params
+  /* ------------- rebuild parameter form on template change ------ */
   useEffect(() => {
     if (!selected) return;
     const tmpl = templates.find((t) => t.metadata.name === selected);
     if (!tmpl) return;
+
     const p = {};
     (tmpl.spec?.arguments?.parameters || []).forEach((par) => {
       let defVal = par.value || "";
@@ -37,7 +39,9 @@ export default function WorkflowTrigger({ onError = () => {} }) {
     setParams(p);
   }, [selected, templates]);
 
+  /* ------------- handlers -------------------------------------- */
   const handleChange = (k, v) => setParams((o) => ({ ...o, [k]: v }));
+
   const handleSubmit = async () => {
     try {
       await submitWorkflow({ template: selected, parameters: params });
@@ -52,16 +56,17 @@ export default function WorkflowTrigger({ onError = () => {} }) {
     }
   };
 
-  // optionally hide prefix-template workflows
+  /* ------------- visible template list ------------------------- */
   const visibleTemplates = templates.filter(
     (t) => !(hideTemp && t.metadata.name.startsWith("template-"))
   );
 
+  /* ------------- render ---------------------------------------- */
   return (
     <>
       <h2>Trigger Workflow</h2>
 
-      {/* dropdown + hide-template checkbox side by side */}
+      {/* dropdown + hide-template checkbox */}
       <div
         style={{
           display: "flex",
@@ -87,15 +92,18 @@ export default function WorkflowTrigger({ onError = () => {} }) {
             display: "flex",
             alignItems: "center",
             marginLeft: "1rem",
+            gap: "0.4rem",              /* ⇐ adds extra breathing room */
           }}
         >
           <input
             type="checkbox"
             checked={hideTemp}
             onChange={(e) => setHideTemp(e.target.checked)}
-            style={{ marginRight: "0.4rem" }}
           />
-          Hide templates prefixed with <code>template-</code>
+          <span style={{ marginRight: "0.25rem" }}>
+            Hide templates prefixed with
+          </span>
+          <code>template-</code>
         </label>
       </div>
 
