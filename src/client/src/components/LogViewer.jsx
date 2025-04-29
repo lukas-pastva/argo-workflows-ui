@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import Ansi from "ansi-to-react";
 import { getWorkflowLogs } from "../api";
 
 /* ------------------------------------------------------------------ */
@@ -99,7 +100,9 @@ export default function LogViewer({ workflowName, onClose }) {
       <h3 style={{ marginTop: 0 }}>Logs – {workflowName}</h3>
 
       {lines.map((l, i) => (
-        <div key={i}>{l}</div>
+        <div key={i}>
+          <Ansi>{l}</Ansi>
+        </div>
       ))}
     </div>
   );

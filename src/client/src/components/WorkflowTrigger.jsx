@@ -1,4 +1,5 @@
 // src/client/src/components/WorkflowTrigger.jsx
+
 import React, { useEffect, useState } from "react";
 import { listTemplates, submitWorkflow } from "../api";
 
@@ -63,76 +64,78 @@ export default function WorkflowTrigger({ onError = () => {} }) {
 
   /* ------------- render ---------------------------------------- */
   return (
-    <>
-      <h2>Trigger Workflow</h2>
+    <details className="filter-panel">
+      <summary className="filter-title">Trigger Workflow</summary>
 
-      {/* dropdown + hide-template checkbox */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          marginBottom: "0.75rem",
-        }}
-      >
-        <select
-          className="trigger-select"
-          onChange={(e) => setSelected(e.target.value)}
-          value={selected}
-        >
-          <option value="">-- choose template --</option>
-          {visibleTemplates.map((t) => (
-            <option key={t.metadata.name} value={t.metadata.name}>
-              {t.metadata.name}
-            </option>
-          ))}
-        </select>
-
-        <label
+      <div style={{ padding: "0.75rem 1rem" }}>
+        {/* dropdown + hide-template checkbox */}
+        <div
           style={{
             display: "flex",
             alignItems: "center",
-            marginLeft: "1rem",
-            gap: "0.4rem",              /* ⇐ adds extra breathing room */
+            marginBottom: "0.75rem",
           }}
         >
-          <input
-            type="checkbox"
-            checked={hideTemp}
-            onChange={(e) => setHideTemp(e.target.checked)}
-          />
-          <span style={{ marginRight: "0.25rem" }}>
-            Hide templates prefixed with
-          </span>
-          <code>template-</code>
-        </label>
-      </div>
+          <select
+            className="trigger-select"
+            onChange={(e) => setSelected(e.target.value)}
+            value={selected}
+          >
+            <option value="">-- choose template --</option>
+            {visibleTemplates.map((t) => (
+              <option key={t.metadata.name} value={t.metadata.name}>
+                {t.metadata.name}
+              </option>
+            ))}
+          </select>
 
-      {selected && (
-        <div className="trigger-form">
-          {Object.keys(params).map((name) => (
-            <div key={name} className="field">
-              <label>{name}</label>
-              {name === "event-data" ? (
-                <textarea
-                  rows={4}
-                  value={params[name]}
-                  onChange={(e) => handleChange(name, e.target.value)}
-                />
-              ) : (
-                <input
-                  value={params[name]}
-                  onChange={(e) => handleChange(name, e.target.value)}
-                />
-              )}
-            </div>
-          ))}
-
-          <button className="btn" onClick={handleSubmit}>
-            Submit
-          </button>
-          <span style={{ marginLeft: "0.75rem" }}>{infoMsg}</span>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              marginLeft: "1rem",
+              gap: "0.4rem",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={hideTemp}
+              onChange={(e) => setHideTemp(e.target.checked)}
+            />
+            <span style={{ marginRight: "0.25rem" }}>
+              Hide templates prefixed with
+            </span>
+            <code>template-</code>
+          </label>
         </div>
-      )}
-    </>
+
+        {selected && (
+          <div className="trigger-form">
+            {Object.keys(params).map((name) => (
+              <div key={name} className="field">
+                <label>{name}</label>
+                {name === "event-data" ? (
+                  <textarea
+                    rows={4}
+                    value={params[name]}
+                    onChange={(e) => handleChange(name, e.target.value)}
+                  />
+                ) : (
+                  <input
+                    value={params[name]}
+                    onChange={(e) => handleChange(name, e.target.value)}
+                  />
+                )}
+              </div>
+            ))}
+
+            <button className="btn" onClick={handleSubmit}>
+              Submit
+            </button>
+            <span style={{ marginLeft: "0.75rem" }}>{infoMsg}</span>
+          </div>
+        )}
+      </div>
+    </details>
   );
 }
