@@ -23,6 +23,7 @@ const trimKey = (k) => {
   }
   return k;
 };
+
 const shouldSkip = (k, v) => {
   const displayKey = trimKey(k);
   return rawSkip.some((p) => {
@@ -35,7 +36,7 @@ const shouldSkip = (k, v) => {
 /*  UTC helper – “YYYY-MM-DD HH:MM:SS”                                */
 /* ------------------------------------------------------------------ */
 function fmtUtc(ts) {
-  const d = new Date(ts);
+  const d   = new Date(ts);
   const pad = (n) => String(n).padStart(2, "0");
   return (
     `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ` +
@@ -108,7 +109,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     return groups;
   }, [items]);
 
-  /* ---------------- flatten rows & apply filters ---------------- */
+  /* ---------------- flatten rows -------------------------------- */
   const rows = useMemo(
     () => items.map((wf) => ({
       wf,
@@ -120,13 +121,16 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     [items]
   );
 
+  /* ---------------- label filtering (★★ AND logic ★★) ----------- */
   const activePairs      = Object.entries(filters).filter(([, v]) => v).map(([p]) => p);
   const hasActiveFilters = activePairs.length > 0;
 
   const filteredRows = useMemo(() => {
     if (!hasActiveFilters) return rows;
+
+    /* keep a row only if it matches *all* selected label pairs */
     return rows.filter(({ wf }) =>
-      activePairs.some((pair) => {
+      activePairs.every((pair) => {
         const [k, v] = pair.split("=");
         return wf.metadata.labels?.[k] === v;
       })
@@ -144,9 +148,9 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       case "name":   return mul * a.wf.metadata.name.localeCompare(b.wf.metadata.name);
       case "start":  return mul * (sTime(a) - sTime(b));
       case "status": return mul * a.wf.status.phase.localeCompare(b.wf.status.phase);
-      default:       // template name ASC, then newest first
+      default:
         if (gKey(a) !== gKey(b)) return mul * gKey(a).localeCompare(gKey(b));
-        return -sTime(a) + sTime(b);
+        return -sTime(a) + sTime(b);          // newest first within template
     }
   };
   const sortedRows = useMemo(
@@ -295,8 +299,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
         <tbody>
           {sortedRows.map(({ wf, group }) => {
-            const nm     = wf.metadata.name;
-            const delOk  = !isRunning(wf);
+            const nm    = wf.metadata.name;
+            const delOk = !isRunning(wf);
             return (
               <tr
                 key={nm}
