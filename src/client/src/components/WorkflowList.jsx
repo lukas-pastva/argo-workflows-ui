@@ -93,7 +93,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         groups.get(dk).push({ fullKey: k, value: v });
       });
     });
-    /* de-duplicate */
+    /* de-duplicate values */
     for (const [dk, entries] of groups) {
       const seen = new Set();
       groups.set(
@@ -121,21 +121,43 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     [items]
   );
 
-  /* ---------------- label filtering (★★ AND logic ★★) ----------- */
+  /* ------------------------------------------------------------------
+     Label filtering
+
+     • Collect active pairs into a map:  key  -> Set(values)
+       (multiple selections under the same key form the OR set)
+
+     • A row passes if, for every key represented in that map,
+       the workflow has *one of* the selected values.  This gives:
+
+            (key1 = v1 OR v2)  AND  (key2 = v3)  AND ...
+
+     ----------------------------------------------------------------- */
   const activePairs      = Object.entries(filters).filter(([, v]) => v).map(([p]) => p);
   const hasActiveFilters = activePairs.length > 0;
+
+  const keyToValues = useMemo(() => {
+    const m = new Map();
+    activePairs.forEach((pair) => {
+      const [k, v] = pair.split("=");
+      if (!m.has(k)) m.set(k, new Set());
+      m.get(k).add(v);
+    });
+    return m;
+  }, [activePairs]);
 
   const filteredRows = useMemo(() => {
     if (!hasActiveFilters) return rows;
 
-    /* keep a row only if it matches *all* selected label pairs */
-    return rows.filter(({ wf }) =>
-      activePairs.every((pair) => {
-        const [k, v] = pair.split("=");
-        return wf.metadata.labels?.[k] === v;
-      })
-    );
-  }, [rows, activePairs, hasActiveFilters]);
+    return rows.filter(({ wf }) => {
+      const labels = wf.metadata.labels || {};
+      for (const [k, values] of keyToValues) {
+        const labelVal = labels[k];
+        if (!values.has(labelVal)) return false;   // fails this AND-key
+      }
+      return true;
+    });
+  }, [rows, keyToValues, hasActiveFilters]);
 
   /* ---------------- sorting ------------------------------------- */
   const comparator = (a, b) => {
@@ -150,7 +172,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       case "status": return mul * a.wf.status.phase.localeCompare(b.wf.status.phase);
       default:
         if (gKey(a) !== gKey(b)) return mul * gKey(a).localeCompare(gKey(b));
-        return -sTime(a) + sTime(b);          // newest first within template
+        return -sTime(a) + sTime(b);      // newest first within template
     }
   };
   const sortedRows = useMemo(
