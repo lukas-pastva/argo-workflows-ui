@@ -2,6 +2,7 @@
 FROM node:20-alpine AS client-build
 
 WORKDIR /app/client
+ENV NPM_CONFIG_LEGACY_PEER_DEPS=true
 
 # copy manifests first for better layer caching
 COPY client/package*.json ./
