@@ -22,29 +22,45 @@ function extractContent(line) {
   return trimmed;
 }
 
+const MAX_RETRIES    = 10;       // total attempts = 1 + (MAX_RETRIES-1)
+const RETRY_DELAY_MS = 3000;     // 3 s between attempts
+
 export default function LogViewer({ workflowName, onClose }) {
-  const [lines, setLines] = useState(["Loading.."]);
+  const [lines, setLines] = useState(["Loading …"]);
   const box = useRef();
 
   /* ---------------- disable body scroll while logs are open ---------------- */
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
+    return () => { document.body.style.overflow = originalOverflow; };
   }, []);
 
-  /* ---------------- stream log lines ---------------- */
+  /* ---------------- stream log lines (with retries) ------------------------ */
   useEffect(() => {
     let cancelled = false;
-    setLines(["Loading.."]);
 
-    (async () => {
+    async function openStream(attempt = 1) {
       try {
+        if (attempt > 1) {
+          setLines((prev) => [
+            ...prev,
+            `⟳ Retry ${attempt}/${MAX_RETRIES} – connecting …`,
+          ]);
+        } else {
+          setLines(["Loading …"]);
+        }
+
         const resp   = await getWorkflowLogs(workflowName, "main");
         const reader = resp.body.getReader();
         const dec    = new TextDecoder();
+
+        /* clear placeholder if still present */
+        setLines((prev) =>
+          prev.length === 1 && prev[0].startsWith("Loading")
+            ? []
+            : prev
+        );
 
         while (!cancelled) {
           const { value, done } = await reader.read();
@@ -57,19 +73,29 @@ export default function LogViewer({ workflowName, onClose }) {
             .map(extractContent)
             .filter(Boolean);               // remove null / empty
           if (newLines.length) {
-            setLines(prev => {
-              // drop "Loading.." placeholder if it is still present
-              const base = prev.length === 1 && prev[0] === "Loading.." ? [] : prev;
-              return [...base, ...newLines];
-            });
+            setLines((prev) => [...prev, ...newLines]);
           }
         }
       } catch (e) {
-        if (!cancelled) {
-          setLines(["Failed to load logs."]);
+        if (cancelled) return;
+
+        if (attempt < MAX_RETRIES) {
+          setLines((prev) => [
+            ...prev,
+            `⚠️ ${e.message || "Failed to load logs"}. Retrying in ${RETRY_DELAY_MS / 1000}s …`,
+          ]);
+          setTimeout(() => openStream(attempt + 1), RETRY_DELAY_MS);
+        } else {
+          setLines((prev) => [
+            ...prev,
+            `❌ Failed after ${MAX_RETRIES} attempts: ${e.message || "unknown error"}`,
+          ]);
         }
       }
-    })();
+    }
+
+    openStream();
+
     return () => { cancelled = true; };
   }, [workflowName]);
 
@@ -89,15 +115,15 @@ export default function LogViewer({ workflowName, onClose }) {
   return (
     <div
       style={{
-        position: "fixed",
-        inset: 0,
+        position  : "fixed",
+        inset     : 0,
         background: "#fff",
-        color: "#000",
-        padding: "1rem",
-        overflow: "auto",
+        color     : "#000",
+        padding   : "1rem",
+        overflow  : "auto",
         fontFamily: "monospace",
         whiteSpace: "pre-wrap",
-        zIndex: 2000
+        zIndex    : 2000,
       }}
       ref={box}
     >

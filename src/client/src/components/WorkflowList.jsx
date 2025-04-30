@@ -164,7 +164,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       case "status": return mul * a.wf.status.phase.localeCompare(b.wf.status.phase);
       default:
         if (gKey(a) !== gKey(b)) return mul * gKey(a).localeCompare(gKey(b));
-        return -sTime(a) + sTime(b);      // newest first within template
+        return -sTime(a) + sTime(b);      /* newest-first inside each template */
     }
   };
   const sortedRows = useMemo(
@@ -215,7 +215,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
   /* ---------------- expanded-row helpers ------------------------ */
   const toggleExpanded = (name, e) => {
-    e.stopPropagation();               // keep row click (logs) untouched
+    e.stopPropagation();               /* keep row click (logs) untouched */
     setExpanded((ex) => ({ ...ex, [name]: !ex[name] }));
   };
 
@@ -245,26 +245,36 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </button>
 
         <div className="label-filters">
-          {Array.from(labelGroups.entries()).map(([dk, entries]) => (
-            <details key={dk}>
-              <summary>{dk}</summary>
-              <div className="label-values">
-                {entries.map(({ fullKey, value }) => {
-                  const pair = `${fullKey}=${value}`;
-                  return (
-                    <span
-                      key={pair}
-                      className={filters[pair] ? "selected" : ""}
-                      onClick={() =>
-                        setFilters((f) => ({ ...f, [pair]: !f[pair] }))}
-                    >
-                      {value}
-                    </span>
-                  );
-                })}
-              </div>
-            </details>
-          ))}
+          {Array.from(labelGroups.entries()).map(([dk, entries]) => {
+            const hasSelected = entries.some(
+              ({ fullKey, value }) => filters[`${fullKey}=${value}`]
+            );
+
+            return (
+              <details key={dk}>
+                <summary className={hasSelected ? "selected" : ""}>
+                  {dk}
+                </summary>
+
+                <div className="label-values">
+                  {entries.map(({ fullKey, value }) => {
+                    const pair = `${fullKey}=${value}`;
+                    return (
+                      <span
+                        key={pair}
+                        className={filters[pair] ? "selected" : ""}
+                        onClick={() =>
+                          setFilters((f) => ({ ...f, [pair]: !f[pair] }))
+                        }
+                      >
+                        {value}
+                      </span>
+                    );
+                  })}
+                </div>
+              </details>
+            );
+          })}
         </div>
       </details>
 
@@ -274,7 +284,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           <button
             className="btn-danger"
             onClick={() =>
-              setConfirmNames(Object.keys(selected).filter((n) => selected[n]))}
+              setConfirmNames(Object.keys(selected).filter((n) => selected[n]))
+            }
           >
             Delete selected
           </button>
