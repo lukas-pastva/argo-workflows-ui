@@ -281,6 +281,12 @@ table.wf-table td:last-child {
   color: #fff;
   opacity: 1;
 }
+/* ✓ checkmark for active label filters */
+.label-values span.selected::before {
+  content: "✓ ";
+  margin-right: 0.15rem;
+}
+
 /* ─── Intimate single-table styling ───────────────────────────── */
 table.wf-table.intimate th,
 table.wf-table.intimate td {

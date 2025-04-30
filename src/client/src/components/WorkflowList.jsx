@@ -386,7 +386,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                       className="btn-light"
                       onClick={(e) => toggleExpanded(nm, e)}
                     >
-                      {expanded[nm] ? "Hide Labels" : "Labels"}
+                      Labels
                     </button>
 
                     {delOk && (
