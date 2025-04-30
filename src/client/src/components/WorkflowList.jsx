@@ -48,6 +48,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [items, setItems]               = useState([]);
   const [selected, setSelected]         = useState({});
   const [confirmNames, setConfirmNames] = useState(null);
+  const [expanded, setExpanded]         = useState({});
 
   /* ---- load & persist label filters ---------------------------- */
   const [filters, setFilters] = useState(() => {
@@ -123,15 +124,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
   /* ------------------------------------------------------------------
      Label filtering
-
-     • Collect active pairs into a map:  key  -> Set(values)
-       (multiple selections under the same key form the OR set)
-
-     • A row passes if, for every key represented in that map,
-       the workflow has *one of* the selected values.  This gives:
-
-            (key1 = v1 OR v2)  AND  (key2 = v3)  AND ...
-
      ----------------------------------------------------------------- */
   const activePairs      = Object.entries(filters).filter(([, v]) => v).map(([p]) => p);
   const hasActiveFilters = activePairs.length > 0;
@@ -153,7 +145,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       const labels = wf.metadata.labels || {};
       for (const [k, values] of keyToValues) {
         const labelVal = labels[k];
-        if (!values.has(labelVal)) return false;   // fails this AND-key
+        if (!values.has(labelVal)) return false;
       }
       return true;
     });
@@ -219,6 +211,12 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       setConfirmNames(null);
       setSelected({});
     } catch (e) { onError(`Batch delete failed: ${e.message}`); }
+  };
+
+  /* ---------------- expanded-row helpers ------------------------ */
+  const toggleExpanded = (name, e) => {
+    e.stopPropagation();               // keep row click (logs) untouched
+    setExpanded((ex) => ({ ...ex, [name]: !ex[name] }));
   };
 
   /* ---------------- render -------------------------------------- */
@@ -323,76 +321,106 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           {sortedRows.map(({ wf, group }) => {
             const nm    = wf.metadata.name;
             const delOk = !isRunning(wf);
+            const labels = wf.metadata.labels || {};
+
             return (
-              <tr
-                key={nm}
-                onClick={() => onShowLogs(nm)}
-                style={{ cursor: "pointer" }}
-              >
-                <td className="group-col" style={{
-                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
-                }}>
-                  {group}
-                </td>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={!!selected[nm]}
-                    disabled={!delOk}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleRow(wf);
-                    }}
-                  />
-                </td>
-                <td style={{
-                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
-                }}>
-                  {nm}
-                </td>
-                <td>{fmtUtc(wf.status.startedAt)}</td>
-                <td>
-                  {wf.status.phase === "Failed" ? (
-                    <span className="status-pill status-failed">
-                      <svg
-                        width="12" height="12" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" strokeWidth="2"
-                        strokeLinecap="round" strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                        <line x1="12" y1="9"  x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                      </svg>
-                      {wf.status.phase}
-                    </span>
-                  ) : (
-                    wf.status.phase
-                  )}
-                </td>
-                <td>
-                  <button
-                    className="btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onShowLogs(nm);
-                    }}
-                  >
-                    Logs
-                  </button>
-                  {delOk && (
-                    <button
-                      className="btn-danger"
+              /* ──────────────── Main workflow row ──────────────── */
+              <React.Fragment key={nm}>
+                <tr
+                  onClick={() => onShowLogs(nm)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <td className="group-col" style={{
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
+                  }}>
+                    {group}
+                  </td>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={!!selected[nm]}
+                      disabled={!delOk}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleSingleDelete(nm);
+                        toggleRow(wf);
+                      }}
+                    />
+                  </td>
+                  <td style={{
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
+                  }}>
+                    {nm}
+                  </td>
+                  <td>{fmtUtc(wf.status.startedAt)}</td>
+                  <td>
+                    {wf.status.phase === "Failed" ? (
+                      <span className="status-pill status-failed">
+                        <svg
+                          width="12" height="12" viewBox="0 0 24 24"
+                          fill="none" stroke="currentColor" strokeWidth="2"
+                          strokeLinecap="round" strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                          <line x1="12" y1="9"  x2="12" y2="13" />
+                          <line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                        {wf.status.phase}
+                      </span>
+                    ) : (
+                      wf.status.phase
+                    )}
+                  </td>
+                  <td>
+                    <button
+                      className="btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onShowLogs(nm);
                       }}
                     >
-                      Delete
+                      Logs
                     </button>
-                  )}
-                </td>
-              </tr>
+
+                    <button
+                      className="btn-light"
+                      onClick={(e) => toggleExpanded(nm, e)}
+                    >
+                      {expanded[nm] ? "Hide Labels" : "Labels"}
+                    </button>
+
+                    {delOk && (
+                      <button
+                        className="btn-danger"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSingleDelete(nm);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </td>
+                </tr>
+
+                {/* ──────────────── Expanded label row ─────────────── */}
+                {expanded[nm] && (
+                  <tr className="tr-labels">
+                    <td colSpan={6}>
+                      <div className="wf-labels-list">
+                        {Object.entries(labels).map(([k, v]) => (
+                          <code key={k} title={k}>
+                            <strong>{trimKey(k)}</strong>=<span>{v}</span>
+                          </code>
+                        ))}
+                        {Object.keys(labels).length === 0 && (
+                          <em>No labels</em>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             );
           })}
         </tbody>
