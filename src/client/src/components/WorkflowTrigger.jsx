@@ -34,11 +34,32 @@ export default function WorkflowTrigger({ onError = () => {} }) {
     const tmpl = templates.find((t) => t.metadata.name === selected);
     if (!tmpl) return;
 
-    // Rebuild parameters
+    // --- parse default-values annotation (JSON) ---
+    const defaultsAnn =
+      tmpl.metadata.annotations?.["ui.argoproj.io/default-values"] ||
+      tmpl.metadata.annotations?.defaultValues ||
+      "";
+    let defaultValues = {};
+    if (defaultsAnn) {
+      try {
+        defaultValues = JSON.parse(defaultsAnn);
+      } catch {
+        console.warn(
+          "[WorkflowTrigger] failed to parse default-values annotation",
+          defaultsAnn
+        );
+      }
+    }
+
+    // Rebuild parameters, applying default-values first, then fallback to spec or event-data
     const p = {};
     (tmpl.spec?.arguments?.parameters || []).forEach((par) => {
-      let defVal = par.value || "";
-      if (par.name === "event-data" && !defVal) {
+      let defVal = "";
+      if (defaultValues[par.name] !== undefined) {
+        defVal = defaultValues[par.name];
+      } else if (par.value) {
+        defVal = par.value;
+      } else if (par.name === "event-data") {
         defVal = JSON.stringify({ key: "value" }, null, 2);
       }
       p[par.name] = defVal;

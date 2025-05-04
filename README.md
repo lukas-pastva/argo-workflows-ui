@@ -1,4 +1,3 @@
-<!-- README.md -->
 # Argo Workflows UI
 
 ![{0DBCE6CC-B8F1-487C-B30B-E3185C90DAB5}](https://github.com/user-attachments/assets/59f169c0-d842-425c-9dbe-d03eeb9762f5)
@@ -18,32 +17,57 @@ A lightweight, single-container web interface for Kubernetes **Argo Workflows**.
 
 ## Configuration (environment variables)
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| **`ARGO_WORKFLOWS_URL`** | Base URL of the Argo Workflows API server. | `http://argo-workflows-server:2746` |
-| **`ARGO_WORKFLOWS_TOKEN`** | Bearer token; omit to use the pod’s service-account token automatically. | *(auto)* |
-| **`ARGO_WORKFLOWS_NAMESPACE`** | Namespace to operate in. | `$POD_NAMESPACE` or `default` |
-| `DEBUG_LOGS` | Verbose server logging. | `false` |
-| **Front-end build-time vars (`VITE_*`)** | | |
-| `VITE_SKIP_LABELS` | Comma-separated list of **label keys** *or* exact `key=value` pairs to hide completely. | `events.argoproj.io/action-timestamp` |
-| `VITE_COLLAPSED_LABEL_GROUPS` | Comma-separated list of label *keys* that should start *collapsed* in the UI. | *(none – everything expanded)* |
-| `VITE_LABEL_PREFIX_TRIM` | Comma-separated list of prefixes to strip from label keys when shown (purely cosmetic). | `events.argoproj.io/` |
+| Variable                      | Purpose                                                  | Default                                               |
+|-------------------------------|----------------------------------------------------------|-------------------------------------------------------|
+| **`ARGO_WORKFLOWS_URL`**      | Base URL of the Argo Workflows API server.               | `http://argo-workflows-server:2746`                   |
+| **`ARGO_WORKFLOWS_TOKEN`**    | Bearer token; omit to use the pod’s service-account token automatically. | *(auto)*                                 |
+| **`ARGO_WORKFLOWS_NAMESPACE`**| Namespace to operate in.                                 | `$POD_NAMESPACE` or `default`                         |
+| `DEBUG_LOGS`                  | Verbose server logging.                                  | `false`                                               |
+| **Front-end build-time vars (`VITE_*`)** |                                                  |                                                       |
+| `VITE_SKIP_LABELS`            | Comma-separated list of **label keys** or exact `key=value` pairs to hide completely. | `events.argoproj.io/action-timestamp` |
+| `VITE_COLLAPSED_LABEL_GROUPS` | Comma-separated list of label keys that should start collapsed in the UI. | *(none – everything expanded)*       |
+| `VITE_LABEL_PREFIX_TRIM`      | Comma-separated list of prefixes to strip from label keys when shown (purely cosmetic). | `events.argoproj.io/`            |
 
-> **Important:** all `VITE_*` variables are read by Vite at *build time* – set them before running `npm run build` (or bake them into the Docker layer that performs the build).
+> **Important:** all `VITE_*` variables are read by Vite at build time – set them before running `npm run build` (or bake them into the Docker layer that performs the build).
+
+### Template Annotations
+
+You can augment each WorkflowTemplate with these annotations:
+
+- **Help text** (`ui.argoproj.io/help` or `help`):
+
+    metadata:
+        annotations:
+            ui.argoproj.io/help: |
+                This template performs X, Y, and Z. Fill in the parameters below to customize.
+
+    This shows up under **Template Help** in the Trigger form.
+
+- **Default values** (`ui.argoproj.io/default-values`):
+
+    metadata:
+        annotations:
+            ui.argoproj.io/default-values: |
+                {
+                    "name": "my-app",
+                    "version": "1.2.3"
+                }
+
+    Any parameters listed in that JSON will be pre-filled in the form. Other parameters fall back to their `.spec.arguments.parameters[].value` or, for the special `event-data` field, to a simple JSON placeholder.
 
 ### Example helm-values
 ```yaml
-env:
-  - name: VITE_HEADER_BG
-    value: "#0f2733s"
-  - name: DEBUG_LOGS
-    value: "true"
-  - name: POD_NAMESPACE
-    value: "argo-workflows"
-  - name: VITE_SKIP_LABELS
-    value: "events.argoproj.io/action-timestamp,git-commit"
-  - name: VITE_COLLAPSED_LABEL_GROUPS
-    value: "git-revision"
-  - name: VITE_LABEL_PREFIX_TRIM
-    value: "events.argoproj.io/,tekton.dev/"
+    env:
+      - name: VITE_HEADER_BG
+        value: "#0f2733s"
+      - name: DEBUG_LOGS
+        value: "true"
+      - name: POD_NAMESPACE
+        value: "argo-workflows"
+      - name: VITE_SKIP_LABELS
+        value: "events.argoproj.io/action-timestamp,git-commit"
+      - name: VITE_COLLAPSED_LABEL_GROUPS
+        value: "git-revision"
+      - name: VITE_LABEL_PREFIX_TRIM
+        value: "events.argoproj.io/,tekton.dev/"
 ```
