@@ -1,5 +1,3 @@
-// src/client/src/components/WorkflowTrigger.jsx
-
 import React, { useEffect, useState } from "react";
 import { listTemplates, submitWorkflow } from "../api";
 
@@ -51,17 +49,31 @@ export default function WorkflowTrigger({ onError = () => {} }) {
       }
     }
 
-    // Rebuild parameters, applying default-values first, then fallback to spec or event-data
+    // --- build parameters, injecting default-values into event-data ---
     const p = {};
     (tmpl.spec?.arguments?.parameters || []).forEach((par) => {
       let defVal = "";
-      if (defaultValues[par.name] !== undefined) {
-        defVal = defaultValues[par.name];
-      } else if (par.value) {
+
+      // 1) If this is event-data and we have ANY default-values, inject them wholesale
+      if (par.name === "event-data" && Object.keys(defaultValues).length > 0) {
+        defVal = JSON.stringify(defaultValues, null, 2);
+      }
+      // 2) Otherwise, if there's a per-param default annotation, use that
+      else if (defaultValues[par.name] !== undefined) {
+        const v = defaultValues[par.name];
+        defVal = typeof v === "object"
+          ? JSON.stringify(v, null, 2)
+          : v;
+      }
+      // 3) Otherwise fall back to the `.spec.arguments.parameters[].value`
+      else if (par.value) {
         defVal = par.value;
-      } else if (par.name === "event-data") {
+      }
+      // 4) And if it's event-data with no defaults at all, use the generic placeholder
+      else if (par.name === "event-data") {
         defVal = JSON.stringify({ key: "value" }, null, 2);
       }
+
       p[par.name] = defVal;
     });
     setParams(p);
@@ -101,16 +113,8 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   return (
     <details className="filter-panel">
       <summary className="filter-title">Trigger Workflow</summary>
-
       <div style={{ padding: "0.75rem 1rem" }}>
-        {/* dropdown + hide-template checkbox */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            marginBottom: "0.75rem",
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", marginBottom: "0.75rem" }}>
           <select
             className="trigger-select"
             onChange={(e) => setSelected(e.target.value)}
@@ -123,28 +127,17 @@ export default function WorkflowTrigger({ onError = () => {} }) {
               </option>
             ))}
           </select>
-
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              marginLeft: "1rem",
-              gap: "0.4rem",
-            }}
-          >
+          <label style={{ display: "flex", alignItems: "center", marginLeft: "1rem", gap: "0.4rem" }}>
             <input
               type="checkbox"
               checked={hideTemp}
               onChange={(e) => setHideTemp(e.target.checked)}
             />
-            <span style={{ marginRight: "0.25rem" }}>
-              Hide templates prefixed with
-            </span>
+            <span style={{ marginRight: "0.25rem" }}>Hide templates prefixed with</span>
             <code>template-</code>
           </label>
         </div>
 
-        {/* parameter form */}
         {selected && (
           <div className="trigger-form">
             {Object.keys(params).map((name) => (
@@ -165,14 +158,11 @@ export default function WorkflowTrigger({ onError = () => {} }) {
               </div>
             ))}
 
-            <button className="btn" onClick={handleSubmit}>
-              Submit
-            </button>
+            <button className="btn" onClick={handleSubmit}>Submit</button>
             <span style={{ marginLeft: "0.75rem" }}>{infoMsg}</span>
           </div>
         )}
 
-        {/* INLINE HELP SECTION */}
         {selected && helpText && (
           <div className="help-section" style={{ marginTop: "1.5rem" }}>
             <h3>Template Help</h3>
