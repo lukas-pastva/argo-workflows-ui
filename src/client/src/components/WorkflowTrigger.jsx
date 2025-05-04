@@ -2,44 +2,48 @@ import React, { useEffect, useState } from "react";
 import { listTemplates, submitWorkflow } from "../api";
 
 /* ------------------------------------------------------------------ */
-/*  Helpers: parse annotation and derive defaults for event-data       */
+/*  Helpers                                                           */
 /* ------------------------------------------------------------------ */
-function parseParameterAnnotation(ann) {
+/**
+ * Parse the YAML‑style list stored in the `ui.argoproj.io/parameters`
+ * annotation and return an object of { key: defaultValue } pairs.
+ *   - "var_" prefixes are stripped so that `var_name` → `name`.
+ */
+function parseParameterAnnotation(ann = "") {
   const defaults = {};
-  if (!ann) return defaults;
-  // Split into blocks by '- name:' marker
-  const blocks = ann.split(/^- name:/m).map(b => b.trim()).filter(Boolean);
-  blocks.forEach(block => {
-    // Extract name and defaultValue
+  if (!ann.trim()) return defaults;
+
+  // The annotation is a YAML list – split on "- name:" markers.
+  const blocks = ann.split(/^- name:/m).map((b) => b.trim()).filter(Boolean);
+  blocks.forEach((block) => {
     const nameMatch = block.match(/^name:\s*(\S+)/m);
     const defMatch  = block.match(/defaultValue:\s*(\S+)/m);
-    if (nameMatch) {
-      const key = nameMatch[1];
-      const dv  = defMatch ? defMatch[1] : "";
-      defaults[key] = dv;
-    }
+    if (!nameMatch) return;
+
+    // Strip leading "var_" if present so UI shows cleaner keys.
+    let key = nameMatch[1];
+    if (key.startsWith("var_")) key = key.slice(4);
+
+    const val = defMatch ? defMatch[1] : "";
+    defaults[key] = val;
   });
   return defaults;
 }
 
-function deriveEventDefaults(tmpl) {
-  // First, try annotation-based defaults
-  const ann = tmpl.metadata.annotations?.["ui.argoproj.io/parameters"];
-  const annDefaults = parseParameterAnnotation(ann);
-  if (Object.keys(annDefaults).length > 0) {
-    return annDefaults;
-  }
-
-  // Otherwise, fall back to var_* parameters in primary template
+/**
+ * Fallback: inspect the primary template's steps and collect parameter
+ * names that start with "var_" → becomes empty‑string defaults.
+ */
+function deriveVarParameterDefaults(tmpl) {
   if (!tmpl?.spec?.templates?.length) return {};
   const primary =
-    tmpl.spec.templates.find(t => t.name === tmpl.metadata.name) ||
+    tmpl.spec.templates.find((t) => t.name === tmpl.metadata.name) ||
     tmpl.spec.templates[0];
   if (!primary?.steps) return {};
-  const steps = primary.steps.flat();
+
   const derived = {};
-  steps.forEach(s => {
-    s.arguments?.parameters?.forEach(p => {
+  primary.steps.flat().forEach((s) => {
+    s.arguments?.parameters?.forEach((p) => {
       if (typeof p.name === "string" && p.name.startsWith("var_")) {
         const key = p.name.slice(4);
         if (key) derived[key] = "";
@@ -61,7 +65,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   useEffect(() => {
     listTemplates()
       .then(setTemplates)
-      .catch(e =>
+      .catch((e) =>
         onError(
           e.status === 403
             ? "Access denied – cannot list workflow‑templates (HTTP 403)."
@@ -77,13 +81,19 @@ export default function WorkflowTrigger({ onError = () => {} }) {
       setDescription("");
       return;
     }
-    const tmpl = templates.find(t => t.metadata.name === selected);
+    const tmpl = templates.find((t) => t.metadata.name === selected);
     if (!tmpl) return;
 
-    /* ---- build defaults --------------------------------------- */
-    const eventDefaults = deriveEventDefaults(tmpl);
+    /* ---- determine defaults for `event-data` ------------------ */
+    const annText = tmpl.metadata.annotations?.["ui.argoproj.io/parameters"];
+    let eventDefaults = parseParameterAnnotation(annText);
+    if (Object.keys(eventDefaults).length === 0) {
+      eventDefaults = deriveVarParameterDefaults(tmpl);
+    }
+
+    /* ---- build form parameter map ----------------------------- */
     const p = {};
-    (tmpl.spec?.arguments?.parameters || []).forEach(par => {
+    (tmpl.spec?.arguments?.parameters || []).forEach((par) => {
       if (par.name === "event-data") {
         p[par.name] = JSON.stringify(
           Object.keys(eventDefaults).length > 0
@@ -110,7 +120,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   }, [selected, templates]);
 
   /* ------------- handlers -------------------------------------- */
-  const handleChange = (k, v) => setParams(o => ({ ...o, [k]: v }));
+  const handleChange = (k, v) => setParams((o) => ({ ...o, [k]: v }));
 
   const handleSubmit = async () => {
     try {
@@ -128,7 +138,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
 
   /* ------------- visible template list ------------------------- */
   const visibleTemplates = templates.filter(
-    t => !(hideTemp && t.metadata.name.startsWith("template-"))
+    (t) => !(hideTemp && t.metadata.name.startsWith("template-"))
   );
 
   /* ------------- render ---------------------------------------- */
@@ -136,20 +146,19 @@ export default function WorkflowTrigger({ onError = () => {} }) {
     <details className="filter-panel">
       <summary className="filter-title">Trigger Workflow</summary>
       <div style={{ padding: "0.75rem 1rem" }}>
+        {/* Template picker */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             marginBottom: "0.75rem",
-          }}
-        >
+          }}>
           <select
             className="trigger-select"
-            onChange={e => setSelected(e.target.value)}
-            value={selected}
-          >
+            onChange={(e) => setSelected(e.target.value)}
+            value={selected}>
             <option value="">-- choose template --</option>
-            {visibleTemplates.map(t => (
+            {visibleTemplates.map((t) => (
               <option key={t.metadata.name} value={t.metadata.name}>
                 {t.metadata.name}
               </option>
@@ -161,13 +170,11 @@ export default function WorkflowTrigger({ onError = () => {} }) {
               alignItems: "center",
               marginLeft: "1rem",
               gap: "0.4rem",
-            }}
-          >
+            }}>
             <input
               type="checkbox"
               checked={hideTemp}
-              onChange={e => setHideTemp(e.target.checked)}
-            />
+              onChange={(e) => setHideTemp(e.target.checked)} />
             <span style={{ marginRight: "0.25rem" }}>
               Hide templates prefixed with
             </span>
@@ -175,33 +182,31 @@ export default function WorkflowTrigger({ onError = () => {} }) {
           </label>
         </div>
 
+        {/* Dynamic parameter fields */}
         {selected && (
           <div className="trigger-form">
-            {Object.keys(params).map(name => (
+            {Object.keys(params).map((name) => (
               <div key={name} className="field">
                 <label>{name}</label>
                 {name === "event-data" ? (
                   <textarea
                     rows={4}
                     value={params[name]}
-                    onChange={e => handleChange(name, e.target.value)}
-                  />
+                    onChange={(e) => handleChange(name, e.target.value)} />
                 ) : (
                   <input
                     value={params[name]}
-                    onChange={e => handleChange(name, e.target.value)}
-                  />
+                    onChange={(e) => handleChange(name, e.target.value)} />
                 )}
               </div>
             ))}
 
-            <button className="btn" onClick={handleSubmit}>
-              Submit
-            </button>
+            <button className="btn" onClick={handleSubmit}>Submit</button>
             <span style={{ marginLeft: "0.75rem" }}>{infoMsg}</span>
           </div>
         )}
 
+        {/* Description section */}
         {selected && description && (
           <div className="help-section" style={{ marginTop: "1.5rem" }}>
             <h3>Template Description</h3>
