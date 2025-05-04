@@ -5,10 +5,10 @@ import fs    from "fs";
 /*  Environment & debug flag                                          */
 /* ------------------------------------------------------------------ */
 const {
-  ARGO_WORKFLOWS_URL = "http://argo-workflows-server:2746",
+  ARGO_WORKFLOWS_URL        = "http://argo-workflows-server:2746",
   ARGO_WORKFLOWS_TOKEN,
-  ARGO_WORKFLOWS_NAMESPACE = process.env.POD_NAMESPACE || "default",
-  DEBUG_LOGS = "false"
+  ARGO_WORKFLOWS_NAMESPACE  = process.env.POD_NAMESPACE || "default",
+  DEBUG_LOGS                = "false"
 } = process.env;
 
 const debug = DEBUG_LOGS === "true";
@@ -79,7 +79,9 @@ export async function listWorkflows() {
     return new Date(b.status.startedAt) - new Date(a.status.startedAt);
   });
 
-  if (debug) console.log(`[DEBUG] Sorted ${items.length} workflows by template and start time`);
+  if (debug) console.log(
+    `[DEBUG] Sorted ${items.length} workflows by template and start time`
+  );
   return items;
 }
 
@@ -98,7 +100,9 @@ export async function listTemplates() {
   if (!r.ok) throw new Error(`Argo ${r.status}`);
 
   const j = await r.json();
-  if (debug) console.log(`[DEBUG] Retrieved ${j.items?.length || 0} templates`);
+  if (debug) console.log(
+    `[DEBUG] Retrieved ${j.items?.length || 0} templates`
+  );
   return j.items || [];
 }
 
@@ -106,17 +110,18 @@ export async function listTemplates() {
 /*  Submit workflow from a template                                   */
 /* ------------------------------------------------------------------ */
 export async function submitWorkflow({ template, parameters }) {
-  const paramList = Object.entries(parameters || {}).map(([n, v]) => ({
-    name : n,
-    value: v
-  }));
+  // Turn { key: value } pairs into ["key=value", ...]
+  const paramStrings = Object.entries(parameters || {}).map(
+    ([n, v]) => `${n}=${v}`
+  );
 
   const body = {
-    resourceKind       : "WorkflowTemplate",
-    resourceName       : template,
-    workflowTemplateRef: { name: template },
-    submitOptions      : { generateName: `${template}-` },
-    ...(paramList.length ? { parameters: paramList } : {})
+    resourceKind : "WorkflowTemplate",
+    resourceName : template,
+    submitOptions: {
+      generateName: `${template}-`,
+      ...(paramStrings.length ? { parameters: paramStrings } : {})
+    }
   };
 
   const url =
@@ -126,9 +131,9 @@ export async function submitWorkflow({ template, parameters }) {
   if (debug) {
     console.log(
       `[DEBUG] Submitting workflowTemplate ${template}` +
-        (paramList.length
-          ? ` with ${paramList.length} parameters`
-          : " (no parameters)")
+      (paramStrings.length
+        ? ` with ${paramStrings.length} parameters`
+        : " (no parameters)")
     );
   }
   curlHint(url, "POST", body);
