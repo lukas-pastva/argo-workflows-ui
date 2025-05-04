@@ -6,33 +6,57 @@ import { listTemplates, submitWorkflow } from "../api";
 /* ------------------------------------------------------------------ */
 /**
  * Parse the YAML‑style list stored in the `ui.argoproj.io/parameters`
- * annotation and return an object of { key: defaultValue } pairs.
- *   - "var_" prefixes are stripped so that `var_name` → `name`.
+ * annotation and return an object mapping <cleanName> → <defaultValue>.
+ *
+ *  - Lines may be indented – we tolerate leading whitespace.
+ *  - The list looks like:
+ *        - name: var_name
+ *          base64: false
+ *          defaultValue: sys-drefko
+ *
+ *  - `var_` prefixes are stripped so the UI shows nicer keys.
  */
 function parseParameterAnnotation(ann = "") {
   const defaults = {};
   if (!ann.trim()) return defaults;
 
-  // The annotation is a YAML list – split on "- name:" markers.
-  const blocks = ann.split(/^- name:/m).map((b) => b.trim()).filter(Boolean);
-  blocks.forEach((block) => {
-    const nameMatch = block.match(/^name:\s*(\S+)/m);
-    const defMatch  = block.match(/defaultValue:\s*(\S+)/m);
-    if (!nameMatch) return;
+  const lines = ann.split(/\r?\n/);
+  let currentKey = null;
 
-    // Strip leading "var_" if present so UI shows cleaner keys.
-    let key = nameMatch[1];
-    if (key.startsWith("var_")) key = key.slice(4);
+  lines.forEach((ln) => {
+    // Capture "- name: foo" (allow leading spaces and optional dash)
+    const nameMatch = ln.match(/^\s*-\s*name:\s*(\S+)/);
+    if (nameMatch) {
+      currentKey = nameMatch[1];
+      if (currentKey.startsWith("var_")) currentKey = currentKey.slice(4);
+      defaults[currentKey] = "";          // ensure key exists even if no defaultValue later
+      return;
+    }
 
-    const val = defMatch ? defMatch[1] : "";
-    defaults[key] = val;
+    // Capture "defaultValue: bar" for the *current* param
+    if (currentKey) {
+      const defMatch = ln.match(/^\s*defaultValue:\s*(.+)$/);
+      if (defMatch) {
+        // Trim surrounding quotes if any
+        let val = defMatch[1].trim();
+        val = val.replace(/^['"]|['"]$/g, "");
+        defaults[currentKey] = val;
+        currentKey = null;                // reset until next "- name:"
+      }
+    }
+  });
+
+  // Remove entries whose default remained empty (no defaultValue line)
+  Object.keys(defaults).forEach((k) => {
+    if (defaults[k] === "") delete defaults[k];
   });
   return defaults;
 }
 
 /**
- * Fallback: inspect the primary template's steps and collect parameter
- * names that start with "var_" → becomes empty‑string defaults.
+ * Inspect the primary template's steps and collect parameter names that
+ * start with "var_". These become empty‑string defaults and serve as a
+ * fallback when the annotation omits some parameters.
  */
 function deriveVarParameterDefaults(tmpl) {
   if (!tmpl?.spec?.templates?.length) return {};
@@ -84,14 +108,13 @@ export default function WorkflowTrigger({ onError = () => {} }) {
     const tmpl = templates.find((t) => t.metadata.name === selected);
     if (!tmpl) return;
 
-    /* ---- determine defaults for `event-data` ------------------ */
+    /* ---- build defaults for `event-data` ---------------------- */
+    const derived = deriveVarParameterDefaults(tmpl);
     const annText = tmpl.metadata.annotations?.["ui.argoproj.io/parameters"];
-    let eventDefaults = parseParameterAnnotation(annText);
-    if (Object.keys(eventDefaults).length === 0) {
-      eventDefaults = deriveVarParameterDefaults(tmpl);
-    }
+    const annDefaults = parseParameterAnnotation(annText);
+    const eventDefaults = { ...derived, ...annDefaults }; // annotation overrides
 
-    /* ---- build form parameter map ----------------------------- */
+    /* ---- build parameter state map ---------------------------- */
     const p = {};
     (tmpl.spec?.arguments?.parameters || []).forEach((par) => {
       if (par.name === "event-data") {
@@ -102,7 +125,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
           null,
           2
         );
-      } else if (par.value) {
+      } else if (par.value !== undefined) {
         p[par.name] = par.value;
       } else {
         p[par.name] = "";
