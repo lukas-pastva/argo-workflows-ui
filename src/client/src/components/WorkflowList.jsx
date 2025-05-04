@@ -403,6 +403,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     {delOk && (
                       <button
                         className="btn-danger"
+                        disabled={!delOk}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleSingleDelete(nm);
