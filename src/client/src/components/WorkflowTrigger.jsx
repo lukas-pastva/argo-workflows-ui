@@ -2,26 +2,46 @@ import React, { useEffect, useState } from "react";
 import { listTemplates, submitWorkflow } from "../api";
 
 /* ------------------------------------------------------------------ */
-/*  Helper: derive default JSON for event‑data                        */
+/*  Helpers: parse annotation and derive defaults for event-data       */
 /* ------------------------------------------------------------------ */
+function parseParameterAnnotation(ann) {
+  const defaults = {};
+  if (!ann) return defaults;
+  // Split into blocks by '- name:' marker
+  const blocks = ann.split(/^- name:/m).map(b => b.trim()).filter(Boolean);
+  blocks.forEach(block => {
+    // Extract name and defaultValue
+    const nameMatch = block.match(/^name:\s*(\S+)/m);
+    const defMatch  = block.match(/defaultValue:\s*(\S+)/m);
+    if (nameMatch) {
+      const key = nameMatch[1];
+      const dv  = defMatch ? defMatch[1] : "";
+      defaults[key] = dv;
+    }
+  });
+  return defaults;
+}
+
 function deriveEventDefaults(tmpl) {
+  // First, try annotation-based defaults
+  const ann = tmpl.metadata.annotations?.["ui.argoproj.io/parameters"];
+  const annDefaults = parseParameterAnnotation(ann);
+  if (Object.keys(annDefaults).length > 0) {
+    return annDefaults;
+  }
+
+  // Otherwise, fall back to var_* parameters in primary template
   if (!tmpl?.spec?.templates?.length) return {};
-
-  // Find the template whose name matches the WorkflowTemplate name
   const primary =
-    tmpl.spec.templates.find((t) => t.name === tmpl.metadata.name) ||
+    tmpl.spec.templates.find(t => t.name === tmpl.metadata.name) ||
     tmpl.spec.templates[0];
-
   if (!primary?.steps) return {};
-
-  // steps is an array‑of‑arrays → flatten
   const steps = primary.steps.flat();
-
   const derived = {};
-  steps.forEach((s) => {
-    s.arguments?.parameters?.forEach((p) => {
+  steps.forEach(s => {
+    s.arguments?.parameters?.forEach(p => {
       if (typeof p.name === "string" && p.name.startsWith("var_")) {
-        const key = p.name.slice(4);              // drop "var_"
+        const key = p.name.slice(4);
         if (key) derived[key] = "";
       }
     });
@@ -41,7 +61,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   useEffect(() => {
     listTemplates()
       .then(setTemplates)
-      .catch((e) =>
+      .catch(e =>
         onError(
           e.status === 403
             ? "Access denied – cannot list workflow‑templates (HTTP 403)."
@@ -57,15 +77,13 @@ export default function WorkflowTrigger({ onError = () => {} }) {
       setDescription("");
       return;
     }
-    const tmpl = templates.find((t) => t.metadata.name === selected);
+    const tmpl = templates.find(t => t.metadata.name === selected);
     if (!tmpl) return;
 
     /* ---- build defaults --------------------------------------- */
     const eventDefaults = deriveEventDefaults(tmpl);
-
     const p = {};
-    (tmpl.spec?.arguments?.parameters || []).forEach((par) => {
-      /* event‑data gets the derived JSON (or generic placeholder) */
+    (tmpl.spec?.arguments?.parameters || []).forEach(par => {
       if (par.name === "event-data") {
         p[par.name] = JSON.stringify(
           Object.keys(eventDefaults).length > 0
@@ -74,9 +92,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
           null,
           2
         );
-      }
-      /* every other param → fall back to .value, if any */
-      else if (par.value) {
+      } else if (par.value) {
         p[par.name] = par.value;
       } else {
         p[par.name] = "";
@@ -94,7 +110,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   }, [selected, templates]);
 
   /* ------------- handlers -------------------------------------- */
-  const handleChange = (k, v) => setParams((o) => ({ ...o, [k]: v }));
+  const handleChange = (k, v) => setParams(o => ({ ...o, [k]: v }));
 
   const handleSubmit = async () => {
     try {
@@ -112,7 +128,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
 
   /* ------------- visible template list ------------------------- */
   const visibleTemplates = templates.filter(
-    (t) => !(hideTemp && t.metadata.name.startsWith("template-"))
+    t => !(hideTemp && t.metadata.name.startsWith("template-"))
   );
 
   /* ------------- render ---------------------------------------- */
@@ -129,11 +145,11 @@ export default function WorkflowTrigger({ onError = () => {} }) {
         >
           <select
             className="trigger-select"
-            onChange={(e) => setSelected(e.target.value)}
+            onChange={e => setSelected(e.target.value)}
             value={selected}
           >
             <option value="">-- choose template --</option>
-            {visibleTemplates.map((t) => (
+            {visibleTemplates.map(t => (
               <option key={t.metadata.name} value={t.metadata.name}>
                 {t.metadata.name}
               </option>
@@ -150,7 +166,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
             <input
               type="checkbox"
               checked={hideTemp}
-              onChange={(e) => setHideTemp(e.target.checked)}
+              onChange={e => setHideTemp(e.target.checked)}
             />
             <span style={{ marginRight: "0.25rem" }}>
               Hide templates prefixed with
@@ -161,19 +177,19 @@ export default function WorkflowTrigger({ onError = () => {} }) {
 
         {selected && (
           <div className="trigger-form">
-            {Object.keys(params).map((name) => (
+            {Object.keys(params).map(name => (
               <div key={name} className="field">
                 <label>{name}</label>
                 {name === "event-data" ? (
                   <textarea
                     rows={4}
                     value={params[name]}
-                    onChange={(e) => handleChange(name, e.target.value)}
+                    onChange={e => handleChange(name, e.target.value)}
                   />
                 ) : (
                   <input
                     value={params[name]}
-                    onChange={(e) => handleChange(name, e.target.value)}
+                    onChange={e => handleChange(name, e.target.value)}
                   />
                 )}
               </div>
