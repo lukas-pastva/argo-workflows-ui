@@ -9,6 +9,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   const [params, setParams]       = useState({});
   const [infoMsg, setInfoMsg]     = useState("");
   const [hideTemp, setHideTemp]   = useState(true);
+  const [helpText, setHelpText]   = useState("");
 
   /* ------------- load templates -------------------------------- */
   useEffect(() => {
@@ -23,12 +24,17 @@ export default function WorkflowTrigger({ onError = () => {} }) {
       );
   }, [onError]);
 
-  /* ------------- rebuild parameter form on template change ------ */
+  /* ------------- rebuild parameter form & help on template change */
   useEffect(() => {
-    if (!selected) return;
+    if (!selected) {
+      setParams({});
+      setHelpText("");
+      return;
+    }
     const tmpl = templates.find((t) => t.metadata.name === selected);
     if (!tmpl) return;
 
+    // Rebuild parameters
     const p = {};
     (tmpl.spec?.arguments?.parameters || []).forEach((par) => {
       let defVal = par.value || "";
@@ -38,6 +44,14 @@ export default function WorkflowTrigger({ onError = () => {} }) {
       p[par.name] = defVal;
     });
     setParams(p);
+
+    // Extract help text from annotation or label
+    const help =
+      tmpl.metadata.annotations?.help ||
+      tmpl.metadata.annotations?.["ui.argoproj.io/help"] ||
+      tmpl.metadata.labels?.help ||
+      "";
+    setHelpText(help);
   }, [selected, templates]);
 
   /* ------------- handlers -------------------------------------- */
@@ -109,6 +123,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
           </label>
         </div>
 
+        {/* parameter form */}
         {selected && (
           <div className="trigger-form">
             {Object.keys(params).map((name) => (
@@ -133,6 +148,14 @@ export default function WorkflowTrigger({ onError = () => {} }) {
               Submit
             </button>
             <span style={{ marginLeft: "0.75rem" }}>{infoMsg}</span>
+          </div>
+        )}
+
+        {/* INLINE HELP SECTION */}
+        {selected && helpText && (
+          <div className="help-section" style={{ marginTop: "1.5rem" }}>
+            <h3>Template Help</h3>
+            <p>{helpText}</p>
           </div>
         )}
       </div>
