@@ -1,13 +1,41 @@
 import React, { useEffect, useState } from "react";
 import { listTemplates, submitWorkflow } from "../api";
 
+/* ------------------------------------------------------------------ */
+/*  Helper: derive default JSON for event‑data                        */
+/* ------------------------------------------------------------------ */
+function deriveEventDefaults(tmpl) {
+  if (!tmpl?.spec?.templates?.length) return {};
+
+  // Find the template whose name matches the WorkflowTemplate name
+  const primary =
+    tmpl.spec.templates.find((t) => t.name === tmpl.metadata.name) ||
+    tmpl.spec.templates[0];
+
+  if (!primary?.steps) return {};
+
+  // steps is an array‑of‑arrays → flatten
+  const steps = primary.steps.flat();
+
+  const derived = {};
+  steps.forEach((s) => {
+    s.arguments?.parameters?.forEach((p) => {
+      if (typeof p.name === "string" && p.name.startsWith("var_")) {
+        const key = p.name.slice(4);              // drop "var_"
+        if (key) derived[key] = "";
+      }
+    });
+  });
+  return derived;
+}
+
 export default function WorkflowTrigger({ onError = () => {} }) {
   const [templates, setTemplates] = useState([]);
   const [selected, setSelected]   = useState("");
   const [params, setParams]       = useState({});
   const [infoMsg, setInfoMsg]     = useState("");
   const [hideTemp, setHideTemp]   = useState(true);
-  const [helpText, setHelpText]   = useState("");
+  const [description, setDescription] = useState("");
 
   /* ------------- load templates -------------------------------- */
   useEffect(() => {
@@ -16,75 +44,53 @@ export default function WorkflowTrigger({ onError = () => {} }) {
       .catch((e) =>
         onError(
           e.status === 403
-            ? "Access denied – cannot list workflow-templates (HTTP 403)."
+            ? "Access denied – cannot list workflow‑templates (HTTP 403)."
             : `Error loading templates: ${e.message}`
         )
       );
   }, [onError]);
 
-  /* ------------- rebuild parameter form & help on template change */
+  /* ------------- rebuild parameter form & description ----------- */
   useEffect(() => {
     if (!selected) {
       setParams({});
-      setHelpText("");
+      setDescription("");
       return;
     }
     const tmpl = templates.find((t) => t.metadata.name === selected);
     if (!tmpl) return;
 
-    // --- parse default-values annotation (JSON) ---
-    const defaultsAnn =
-      tmpl.metadata.annotations?.["ui.argoproj.io/default-values"] ||
-      tmpl.metadata.annotations?.defaultValues ||
-      "";
-    let defaultValues = {};
-    if (defaultsAnn) {
-      try {
-        defaultValues = JSON.parse(defaultsAnn);
-      } catch {
-        console.warn(
-          "[WorkflowTrigger] failed to parse default-values annotation",
-          defaultsAnn
-        );
-      }
-    }
+    /* ---- build defaults --------------------------------------- */
+    const eventDefaults = deriveEventDefaults(tmpl);
 
-    // --- build parameters, injecting default-values into event-data ---
     const p = {};
     (tmpl.spec?.arguments?.parameters || []).forEach((par) => {
-      let defVal = "";
-
-      // 1) If this is event-data and we have ANY default-values, inject them wholesale
-      if (par.name === "event-data" && Object.keys(defaultValues).length > 0) {
-        defVal = JSON.stringify(defaultValues, null, 2);
+      /* event‑data gets the derived JSON (or generic placeholder) */
+      if (par.name === "event-data") {
+        p[par.name] = JSON.stringify(
+          Object.keys(eventDefaults).length > 0
+            ? eventDefaults
+            : { key: "value" },
+          null,
+          2
+        );
       }
-      // 2) Otherwise, if there's a per-param default annotation, use that
-      else if (defaultValues[par.name] !== undefined) {
-        const v = defaultValues[par.name];
-        defVal = typeof v === "object"
-          ? JSON.stringify(v, null, 2)
-          : v;
-      }
-      // 3) Otherwise fall back to the `.spec.arguments.parameters[].value`
+      /* every other param → fall back to .value, if any */
       else if (par.value) {
-        defVal = par.value;
+        p[par.name] = par.value;
+      } else {
+        p[par.name] = "";
       }
-      // 4) And if it's event-data with no defaults at all, use the generic placeholder
-      else if (par.name === "event-data") {
-        defVal = JSON.stringify({ key: "value" }, null, 2);
-      }
-
-      p[par.name] = defVal;
     });
     setParams(p);
 
-    // Extract help text from annotation or label
-    const help =
-      tmpl.metadata.annotations?.help ||
-      tmpl.metadata.annotations?.["ui.argoproj.io/help"] ||
-      tmpl.metadata.labels?.help ||
+    /* ---- description ------------------------------------------ */
+    const desc =
+      tmpl.metadata.annotations?.description ||
+      tmpl.metadata.annotations?.["ui.argoproj.io/description"] ||
+      tmpl.metadata.labels?.description ||
       "";
-    setHelpText(help);
+    setDescription(desc);
   }, [selected, templates]);
 
   /* ------------- handlers -------------------------------------- */
@@ -114,7 +120,13 @@ export default function WorkflowTrigger({ onError = () => {} }) {
     <details className="filter-panel">
       <summary className="filter-title">Trigger Workflow</summary>
       <div style={{ padding: "0.75rem 1rem" }}>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: "0.75rem" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            marginBottom: "0.75rem",
+          }}
+        >
           <select
             className="trigger-select"
             onChange={(e) => setSelected(e.target.value)}
@@ -127,13 +139,22 @@ export default function WorkflowTrigger({ onError = () => {} }) {
               </option>
             ))}
           </select>
-          <label style={{ display: "flex", alignItems: "center", marginLeft: "1rem", gap: "0.4rem" }}>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              marginLeft: "1rem",
+              gap: "0.4rem",
+            }}
+          >
             <input
               type="checkbox"
               checked={hideTemp}
               onChange={(e) => setHideTemp(e.target.checked)}
             />
-            <span style={{ marginRight: "0.25rem" }}>Hide templates prefixed with</span>
+            <span style={{ marginRight: "0.25rem" }}>
+              Hide templates prefixed with
+            </span>
             <code>template-</code>
           </label>
         </div>
@@ -158,15 +179,17 @@ export default function WorkflowTrigger({ onError = () => {} }) {
               </div>
             ))}
 
-            <button className="btn" onClick={handleSubmit}>Submit</button>
+            <button className="btn" onClick={handleSubmit}>
+              Submit
+            </button>
             <span style={{ marginLeft: "0.75rem" }}>{infoMsg}</span>
           </div>
         )}
 
-        {selected && helpText && (
+        {selected && description && (
           <div className="help-section" style={{ marginTop: "1.5rem" }}>
-            <h3>Template Help</h3>
-            <p>{helpText}</p>
+            <h3>Template Description</h3>
+            <p>{description}</p>
           </div>
         )}
       </div>
