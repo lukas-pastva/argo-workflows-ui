@@ -75,7 +75,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
 
   /* -------- styles ------------------------------------------- */
   const panel = { width: "50%", minWidth: 320, maxWidth: "50vw", marginLeft: 0 };
-  const formCard = { border: "1px solid #cbd5e1", borderRadius: 6, padding: "1rem", marginBottom: "0.75rem", width: "60vw", maxWidth: "60%" };
+  const formCard = { border: "1px solid #cbd5e1", borderRadius: 6, padding: "1rem", marginBottom: "0.75rem", width: "60vw", maxWidth: "90%" };
   const kvRow = { display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" };
   const labelStyle = { width: 120, fontWeight: 500 };
 
@@ -122,7 +122,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                 </div>
               </div>
             )}
-
+            <br />
             <button className="btn" onClick={handleSubmit}>Submit</button>
             <span style={{ marginLeft: "0.75rem" }}>{infoMsg}</span>
           </div>

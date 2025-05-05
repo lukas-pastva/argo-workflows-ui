@@ -399,19 +399,16 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     >
                       Labels
                     </button>
-
-                    {delOk && (
-                      <button
-                        className="btn-danger"
-                        disabled={!delOk}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSingleDelete(nm);
-                        }}
-                      >
-                        Delete
-                      </button>
-                    )}
+                    <button
+                      className="btn-danger"
+                      disabled={!delOk}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSingleDelete(nm);
+                      }}
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
 
