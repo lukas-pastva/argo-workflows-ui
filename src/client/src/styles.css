@@ -2,7 +2,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
 /* ↓ 20 % smaller baseline for everything that uses rem/em */
-html { font-size: 85%; }
+html { font-size: 90%; }
 
 :root {
   --primary      : rgb(24, 190, 148);
