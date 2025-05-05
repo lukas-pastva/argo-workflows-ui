@@ -138,8 +138,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   );
 
   /* ------------------------------------------------------------------
-     Label filtering
-     ----------------------------------------------------------------- */
+      Label filtering
+      ----------------------------------------------------------------- */
   const activePairs = Object.entries(filters)
     .filter(([, v]) => v)
     .map(([p]) => p);
@@ -244,7 +244,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     e.stopPropagation(); /* keep row click (logs) untouched */
     setExpanded((ex) => ({ ...ex, [name]: !ex[name] }));
   };
-
+  
   /* ---------------- render -------------------------------------- */
   const clearFilters = () => setFilters({});
   const nextDir = (col) =>
@@ -252,7 +252,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
   return (
     <div className="wf-container">
-      <h2 style={{ paddingLeft: "1rem" }}>Workflows</h2>
+      <h3 className="wf-title">List</h3>
 
       {/* ─── Global spinner while fetching first list ───────────── */}
       {loading && items.length === 0 && (

@@ -30,6 +30,14 @@ body {
 
 .header h1 { margin: 0; font-size: 1.4rem; }
 
+/* new compact page titles */
+.wf-title {
+  padding-left: 1rem;
+  margin: 0.5rem 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
 .container {
   max-width: 1280px;
   margin: 0 auto;
@@ -50,6 +58,7 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   margin-top: 1.5rem;
 }
+
 
 /* ---------------- Buttons -------------------------------------- */
 .btn,
@@ -196,19 +205,22 @@ table.wf-table td:last-child {
 }
 
 .filter-panel summary.filter-title {
-  padding     : 0.75rem 1rem;
+  padding     : 0.75rem 1.75rem 0.75rem 2rem;   /* extra left‑pad for arrow */
   font-weight : 600;
   cursor      : pointer;
   list-style  : none;
   position    : relative;
 }
+
 .filter-panel summary.filter-title::-webkit-details-marker { display: none; }
-.filter-panel summary.filter-title::after {
-  content : "[+]";
+
+/* ───── prettier caret icon on the **left** ───── */
+.filter-panel summary.filter-title::before {
+  content : "▶";
   position: absolute;
-  right   : 1rem;
+  left    : 0.75rem;
 }
-.filter-panel[open] summary.filter-title::after { content: "[-]"; }
+.filter-panel[open] summary.filter-title::before { content: "▼"; }
 
 /* AND/OR toggle */
 .filter-mode {
@@ -225,68 +237,31 @@ table.wf-table td:last-child {
 }
 
 .label-filters details summary {
-  list-style: none;
+  list-style : none;
   font-weight: 600;
-  cursor: pointer;
-  padding: 0.25rem 0;
+  cursor     : pointer;
+  padding    : 0.25rem 0 0.25rem 1.25rem;   /* left‑pad for caret */
+  position   : relative;
 }
 .label-filters details summary::-webkit-details-marker { display: none; }
-.label-filters details summary::after  { content: "[+]"; float: right; }
-.label-filters details[open] summary::after { content: "[-]"; }
 
-.label-filters details {
-  display      : flex;
-  flex-wrap    : wrap;
-  align-items  : center;
-  margin-bottom: 0.5rem;
+/* caret icon */
+.label-filters details summary::before {
+  content : "▶";
+  position: absolute;
+  left    : 0;
 }
+.label-filters details[open] summary::before { content: "▼"; }
 
-.label-filters details summary {
-  display     : inline-block;
-  margin-right: 1rem;
-  cursor      : pointer;
-  font-weight : 600;
-}
-
-.label-filters .label-values {
-  display    : inline-flex;
-  flex-wrap  : wrap;
-  align-items: center;
+/* ✓ mark when any value inside group is selected */
+.label-filters details summary.selected::after {
+  content     : "✓";
+  margin-left : 0.25rem;
+  color       : var(--primary-dark);
 }
 
-/* tighten up pill margins a bit */
-.label-filters .label-values span {
-  margin: 0 0.5rem 0.3rem 0;
-}
-
-.label-values {
-  padding-left: 1rem;
-  margin-top  : 0.25rem;
-}
-.label-values span {
-  display       : inline-block;
-  margin        : 0 0.5rem 0.5rem 0;
-  padding       : 0.25rem 0.5rem;
-  border-radius : 4px;
-  cursor        : pointer;
-  background    : var(--bg);
-  opacity       : 0.6;
-  transition    : background 0.2s, color 0.2s, opacity 0.2s;
-}
-.label-values span.selected {
-  background: var(--primary-dark);
-  color     : #fff;
-  opacity   : 1;
-}
-
-/* ✓  moved from values to names  -------------------------------- */
-.label-values span.selected::before { content: none; }
-
-.label-filters details summary.selected::before {
-  content     : "✓ ";
-  margin-right: 0.15rem;
-}
 .label-filters details summary.selected { color: var(--primary-dark); }
+
 
 /* ---------------- “intimate” table variant --------------------- */
 table.wf-table.intimate th,

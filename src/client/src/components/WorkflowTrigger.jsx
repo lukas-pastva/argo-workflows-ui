@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { listTemplates, submitWorkflow } from "../api";
 import Spinner from "./Spinner.jsx";
+import InsertConfirmModal from "./InsertConfirmModal.jsx";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
@@ -45,6 +46,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   const [description, setDescription] = useState("");
   const [rawView, setRawView]         = useState(false);
   const [submitting, setSubmitting]   = useState(false);
+  const [confirming, setConfirming]   = useState(false);
 
   /* -------- fetch templates ---------------------------------- */
   useEffect(() => {
@@ -106,8 +108,14 @@ export default function WorkflowTrigger({ onError = () => {} }) {
     updateObj(o);
   };
 
-  const handleSubmit = async () => {
-    setSubmitting(true);                      // ⬅️ NEW
+  /* -------- submission flow ---------------------------------- */
+  const handleSubmitClick = () => {
+    setConfirming(true);
+  };
+
+  const doSubmit = async () => {
+    setConfirming(false);
+    setSubmitting(true);
     try {
       await submitWorkflow({ template: selected, parameters: params });
       setInfoMsg("✅ Submitted!");
@@ -115,7 +123,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
     } catch (e) {
       onError(e.message);
     } finally {
-      setSubmitting(false);                   // ⬅️ NEW
+      setSubmitting(false);
     }
   };
 
@@ -140,143 +148,153 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   const labelStyle = { width: 120, fontWeight: 500 };
 
   return (
-    <details className="filter-panel" style={panel}>
-      <summary className="filter-title">Trigger Workflow</summary>
+    <>
+      <details className="filter-panel" style={panel}>
+        <summary className="filter-title">Insert</summary>
 
-      <div style={{ padding: "0.75rem 1rem" }}>
-        {/* picker */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.75rem",
-            marginBottom: "0.75rem",
-          }}
-        >
-          <select
-            className="trigger-select"
-            value={selected}
-            onChange={(e) => setSelected(e.target.value)}
+        <div style={{ padding: "0.75rem 1rem" }}>
+          {/* picker */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              marginBottom: "0.75rem",
+            }}
           >
-            <option value="">-- choose template --</option>
-            {visible.map((t) => (
-              <option key={t.metadata.name}>{t.metadata.name}</option>
-            ))}
-          </select>
-
-          {selected && description && (
-            <span style={{ fontStyle: "italic", opacity: 0.7 }}>
-              {description}
-            </span>
-          )}
-        </div>
-
-        {/* form */}
-        {selected && (
-          <div className="trigger-form" style={formCard}>
-            {Object.keys(params)
-              .filter((n) => n !== "event-data")
-              .map((name) => (
-                <div key={name} style={kvRow}>
-                  <label style={labelStyle}>{name}</label>
-                  <input
-                    style={{ flex: 1 }}
-                    value={params[name]}
-                    onChange={(e) =>
-                      setParams((p) => ({ ...p, [name]: e.target.value }))
-                    }
-                  />
-                </div>
+            <select
+              className="trigger-select"
+              value={selected}
+              onChange={(e) => setSelected(e.target.value)}
+            >
+              <option value="">-- choose template --</option>
+              {visible.map((t) => (
+                <option key={t.metadata.name}>{t.metadata.name}</option>
               ))}
+            </select>
 
-            {params["event-data"] !== undefined && (
-              <div
-                style={{
-                  border: "1px solid #e2e8f0",
-                  borderRadius: 4,
-                  padding: "0.75rem",
-                  marginTop: "0.75rem",
-                  marginBottom: "0.75rem",
-                }}
-              >
-                <label
-                  style={{
-                    ...labelStyle,
-                    borderBottom: "1px solid #e2e8f0",
-                    paddingBottom: 4,
-                  }}
-                >
-                  event-data
-                </label>
-                <button
-                  className="btn-light"
-                  style={{
-                    float: "right",
-                    marginTop: -4,
-                    fontSize: "0.8rem",
-                    padding: "0.15rem 0.5rem",
-                  }}
-                  onClick={() => setRawView((r) => !r)}
-                >
-                  {rawView ? "Form" : "Raw"}
-                </button>
+            {selected && description && (
+              <span style={{ fontStyle: "italic", opacity: 0.7 }}>
+                {description}
+              </span>
+            )}
+          </div>
 
-                <div style={{ clear: "both", marginTop: rawView ? 6 : 10 }}>
-                  {rawView ? (
-                    <textarea
-                      rows={4}
-                      style={{ width: "100%" }}
-                      value={params["event-data"]}
+          {/* form */}
+          {selected && (
+            <div className="trigger-form" style={formCard}>
+              {Object.keys(params)
+                .filter((n) => n !== "event-data")
+                .map((name) => (
+                  <div key={name} style={kvRow}>
+                    <label style={labelStyle}>{name}</label>
+                    <input
+                      style={{ flex: 1 }}
+                      value={params[name]}
                       onChange={(e) =>
-                        setParams((p) => ({
-                          ...p,
-                          "event-data": e.target.value,
-                        }))
+                        setParams((p) => ({ ...p, [name]: e.target.value }))
                       }
                     />
-                  ) : (
-                    Object.entries(parsedObj()).map(([k, v]) => (
-                      <div key={k} style={kvRow}>
-                        <label style={labelStyle}>{k}</label>
-                        <input
-                          style={{ flex: 1 }}
-                          value={v}
-                          onChange={(e) =>
-                            handleFieldChange(k, e.target.value)
-                          }
-                        />
-                      </div>
-                    ))
-                  )}
+                  </div>
+                ))}
+
+              {params["event-data"] !== undefined && (
+                <div
+                  style={{
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 4,
+                    padding: "0.75rem",
+                    marginTop: "0.75rem",
+                    marginBottom: "0.75rem",
+                  }}
+                >
+                  <label
+                    style={{
+                      ...labelStyle,
+                      borderBottom: "1px solid #e2e8f0",
+                      paddingBottom: 4,
+                    }}
+                  >
+                    event-data
+                  </label>
+                  <button
+                    className="btn-light"
+                    style={{
+                      float: "right",
+                      marginTop: -4,
+                      fontSize: "0.8rem",
+                      padding: "0.15rem 0.5rem",
+                    }}
+                    onClick={() => setRawView((r) => !r)}
+                  >
+                    {rawView ? "Form" : "Raw"}
+                  </button>
+
+                  <div style={{ clear: "both", marginTop: rawView ? 6 : 10 }}>
+                    {rawView ? (
+                      <textarea
+                        rows={4}
+                        style={{ width: "100%" }}
+                        value={params["event-data"]}
+                        onChange={(e) =>
+                          setParams((p) => ({
+                            ...p,
+                            "event-data": e.target.value,
+                          }))
+                        }
+                      />
+                    ) : (
+                      Object.entries(parsedObj()).map(([k, v]) => (
+                        <div key={k} style={kvRow}>
+                          <label style={labelStyle}>{k}</label>
+                          <input
+                            style={{ flex: 1 }}
+                            value={v}
+                            onChange={(e) =>
+                              handleFieldChange(k, e.target.value)
+                            }
+                          />
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <button
-              className="btn"
-              disabled={submitting}                 // ⬅️ NEW
-              onClick={handleSubmit}
+              <button
+                className="btn"
+                disabled={submitting}
+                onClick={handleSubmitClick}
+              >
+                {submitting ? <Spinner small /> : "Insert"}
+              </button>
+              <span style={{ marginLeft: "0.75rem" }}>{infoMsg}</span>
+            </div>
+          )}
+
+          {/* toggle */}
+          <div style={{ fontSize: "0.85rem" }}>
+            <label
+              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
             >
-              {submitting ? <Spinner small /> : "Submit"}  {/* ⬅️ NEW */}
-            </button>
-            <span style={{ marginLeft: "0.75rem" }}>{infoMsg}</span>
+              <input
+                type="checkbox"
+                checked={hideTemp}
+                onChange={(e) => setHideTemp(e.target.checked)}
+              />
+              Hide <code>template-*</code> templates
+            </label>
           </div>
-        )}
-
-        {/* toggle */}
-        <div style={{ fontSize: "0.85rem" }}>
-          <label
-            style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-          >
-            <input
-              type="checkbox"
-              checked={hideTemp}
-              onChange={(e) => setHideTemp(e.target.checked)}
-            />
-            Hide <code>template-*</code> templates
-          </label>
         </div>
-      </div>
-    </details>
+      </details>
+
+      {confirming && (
+        <InsertConfirmModal
+          template={selected}
+          onConfirm={doSubmit}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
+    </>
   );
 }
