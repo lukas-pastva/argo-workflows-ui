@@ -1,6 +1,9 @@
 /* ---------------- Argo CD‑like palette & font ------------------- */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
+/* ↓ 20 % smaller baseline for everything that uses rem/em */
+html { font-size: 80%; }
+
 :root {
   --primary      : rgb(24, 190, 148);
   --primary-dark : #3c6cd4;
@@ -28,7 +31,6 @@ body {
 }
 .header h1 { margin: 0; font-size: 1.4rem; }
 
-/* compact page titles */
 .wf-title {
   padding-left: 1rem;
   margin: 0.5rem 0;
@@ -42,11 +44,10 @@ body {
   padding: 0 1rem;
 }
 
-/* full‑screen variant for the workflow list */
 .wf-container {
   width: 100%;
   max-width: none;
-  padding: 0;          /* flush with viewport edges */
+  padding: 0;
 }
 
 .card {
@@ -64,7 +65,7 @@ body {
   display        : inline-block;
   border         : none;
   padding        : 0.4rem 1.2rem;
-  margin-right   : .4rem;
+  margin-right   : 0.4rem;
   font-size      : 0.9rem;
   font-weight    : 500;
   line-height    : 1.1;
@@ -96,7 +97,7 @@ table.wf-table th,
 table.wf-table td {
   padding   : 0.25rem 0.6rem;
   text-align: left;
-  font-size : .9rem;
+  font-size : 0.9rem;
 }
 
 table.wf-table thead th { border-bottom: 2px solid #e5e7eb; }
@@ -106,8 +107,8 @@ table.wf-table tbody tr:hover          { background: #eef4ff; }
 
 table.wf-table th:last-child,
 table.wf-table td:last-child {
-  text-align   : right;
-  white-space  : nowrap;        /* keep buttons together */
+  text-align: right;
+  white-space: nowrap;
 }
 
 /* ---------------- Group headings ------------------------------- */
@@ -195,7 +196,7 @@ table.wf-table td:last-child {
 }
 
 .filter-panel summary.filter-title {
-  padding: 0.75rem 2.5rem 0.75rem 3.25rem;  /* space for pill */
+  padding: 0.75rem 2.5rem 0.75rem 4.25rem; /* extra left space */
   font-weight: 600;
   cursor: pointer;
   list-style: none;
@@ -221,14 +222,14 @@ table.wf-table td:last-child {
 }
 .filter-panel[open] summary.filter-title::before { content: "Collapse"; }
 
-/* AND/OR toggle inside panel */
+/* AND/OR toggle */
 .filter-mode {
-  padding : 0 1rem;
+  padding: 0 1rem;
   font-size: 0.9rem;
 }
 
 /* -----------------------------------------------------------------
-   Label‑filter groups – same “Expand | Collapse” pills
+   Label‑filter groups
    ----------------------------------------------------------------- */
 .label-filters {
   width      : 100%;
@@ -241,7 +242,7 @@ table.wf-table td:last-child {
   list-style : none;
   font-weight: 600;
   cursor     : pointer;
-  padding    : 0.25rem 0 0.25rem 3.25rem;  /* room for pill */
+  padding    : 0.25rem 0 0.25rem 4rem; /* extra space for pill */
   position   : relative;
 }
 .label-filters details summary::-webkit-details-marker { display: none; }
@@ -280,7 +281,6 @@ table.wf-table td:last-child {
   align-items: center;
 }
 
-/* value pills */
 .label-filters .label-values span,
 .label-values span {
   display       : inline-block;
@@ -292,8 +292,8 @@ table.wf-table td:last-child {
   opacity       : 0.6;
   transition    : background 0.2s, color 0.2s, opacity 0.2s;
 }
-.label-values span.selected,
-.label-filters .label-values span.selected {
+.label-filters .label-values span.selected,
+.label-values span.selected {
   background: var(--primary-dark);
   color     : #fff;
   opacity   : 1;
