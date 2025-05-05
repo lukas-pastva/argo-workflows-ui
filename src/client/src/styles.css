@@ -129,22 +129,15 @@ table.wf-table td:last-child {
 
 .trigger-form { margin-top: 1rem; }
 
-/* smaller font for trigger workflow labels */
 .trigger-form label {
   font-size: 0.85rem;
-  padding-right: 0.5rem; /* spacing between label and input */
+  padding-right: 0.5rem;
 }
 
 .field {
   margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
-}
-
-.field label  {
-  display: inline-block;
-  font-weight: 500;
-  margin-bottom: 0;
 }
 
 .field input,
@@ -190,99 +183,105 @@ table.wf-table td:last-child {
   cursor     : pointer;
 }
 
-/* ------------------------------------- */
-/* Entire filter panel collapsible       */
-/* ------------------------------------- */
+/* -----------------------------------------------------------------
+   Collapsible panels – “Expand | Collapse” pills
+   ----------------------------------------------------------------- */
 .filter-panel {
-  width        : 100%;
-  margin       : 1rem 0;
-  border       : 1px solid #cbd5e1;
+  width : 100%;
+  margin: 1rem 0;
+  border: 1px solid #cbd5e1;
   border-radius: 6px;
-  background   : #fff;
+  background: #fff;
 }
 
 .filter-panel summary.filter-title {
-  padding     : 0.75rem 1.75rem 0.75rem 2rem;   /* space for icon */
-  font-weight : 600;
-  cursor      : pointer;
-  list-style  : none;
-  position    : relative;
+  padding: 0.75rem 2.5rem 0.75rem 3.25rem;  /* space for pill */
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  position: relative;
 }
 .filter-panel summary.filter-title::-webkit-details-marker { display: none; }
 
-/* colourful ⊕ / ⊖ icon on the left */
+/* pill */
 .filter-panel summary.filter-title::before {
-  content : "⊕";
+  content: "Expand";
   position: absolute;
-  left    : 0.75rem;
-  color   : var(--primary-dark);
-  font-size: 1.1rem;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--primary);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 0.75rem;
   line-height: 1;
+  padding: 2px 6px;
+  font-weight: 500;
   pointer-events: none;
 }
-.filter-panel[open] summary.filter-title::before { content: "⊖"; }
+.filter-panel[open] summary.filter-title::before { content: "Collapse"; }
 
-/* AND/OR toggle */
+/* AND/OR toggle inside panel */
 .filter-mode {
   padding : 0 1rem;
   font-size: 0.9rem;
 }
 
-/* Label filters ------------------------------------------------- */
+/* -----------------------------------------------------------------
+   Label‑filter groups – same “Expand | Collapse” pills
+   ----------------------------------------------------------------- */
 .label-filters {
-  width       : 100%;
-  max-height  : 25vh;
-  overflow-y  : auto;
-  padding     : 0.5rem 1rem 1rem;
+  width      : 100%;
+  max-height : 25vh;
+  overflow-y : auto;
+  padding    : 0.5rem 1rem 1rem;
 }
 
 .label-filters details summary {
   list-style : none;
   font-weight: 600;
   cursor     : pointer;
-  padding    : 0.25rem 0 0.25rem 1.75rem;  /* space for icon */
+  padding    : 0.25rem 0 0.25rem 3.25rem;  /* room for pill */
   position   : relative;
 }
 .label-filters details summary::-webkit-details-marker { display: none; }
 
-/* icon on the left */
+/* pill */
 .label-filters details summary::before {
-  content : "⊕";
+  content: "Expand";
   position: absolute;
-  left    : 0;
-  color   : var(--primary-dark);
-  font-size: 1rem;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--primary);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 0.7rem;
   line-height: 1;
+  padding: 1px 6px 2px;
+  font-weight: 500;
   pointer-events: none;
 }
-.label-filters details[open] summary::before { content: "⊖"; }
+.label-filters details[open] summary::before { content: "Collapse"; }
 
 /* ✓ mark when any value inside group is selected */
 .label-filters details summary.selected::after {
-  content     : "✓";
-  margin-left : 0.25rem;
-  color       : var(--primary-dark);
+  content: "✓";
+  margin-left: 0.35rem;
+  color: var(--primary-dark);
   pointer-events: none;
 }
 .label-filters details summary.selected { color: var(--primary-dark); }
 
-/* container for value pills */
+/* value‑pill container */
 .label-filters .label-values {
   display    : inline-flex;
   flex-wrap  : wrap;
   align-items: center;
 }
 
-/* tighten pill spacing */
-.label-filters .label-values span {
-  margin: 0 0.5rem 0.3rem 0;
-}
-
-/* fallback class (old selector kept) */
-.label-values {
-  padding-left: 1rem;
-  margin-top  : 0.25rem;
-}
+/* value pills */
+.label-filters .label-values span,
 .label-values span {
   display       : inline-block;
   margin        : 0 0.5rem 0.5rem 0;
@@ -293,7 +292,8 @@ table.wf-table td:last-child {
   opacity       : 0.6;
   transition    : background 0.2s, color 0.2s, opacity 0.2s;
 }
-.label-values span.selected {
+.label-values span.selected,
+.label-filters .label-values span.selected {
   background: var(--primary-dark);
   color     : #fff;
   opacity   : 1;
@@ -303,7 +303,7 @@ table.wf-table td:last-child {
 /* ---------------- “intimate” table variant --------------------- */
 table.wf-table.intimate th,
 table.wf-table.intimate td {
-  padding  : 0.4rem 0.6rem;
+  padding: 0.4rem 0.6rem;
   font-size: 0.85rem;
 }
 
@@ -313,13 +313,12 @@ table.wf-table.intimate td.group-col {
   color      : var(--primary-dark);
 }
 
+table.wf-table.intimate td.group-col { width: 10%; }
+
 table.wf-table.intimate th:last-child,
 table.wf-table.intimate td:last-child { text-align: right; }
 
 table.wf-table.intimate tbody tr:hover { background: #f0f4fa; }
-
-/* reduce spacing of group column */
-table.wf-table.intimate td.group-col { width: 10%; }
 
 /* ---------------- Status pills --------------------------------- */
 .status-pill {
