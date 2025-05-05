@@ -53,7 +53,7 @@ function curlHint(url, method = "GET", body = null) {
 
 /* ------------------------------------------------------------------ */
 /*  List workflows                                                    */
-/*  (now sorted by template ASC, then start-time DESC)               */
+/*  (sorted by template ASC, then start‑time DESC)                     */
 /* ------------------------------------------------------------------ */
 export async function listWorkflows() {
   const url =
@@ -69,13 +69,12 @@ export async function listWorkflows() {
   const j = await r.json();
   const items = j.items || [];
 
-  // sort by [template name ASC, start time DESC]
+  // sort by [template name ASC, start‑time DESC]
   items.sort((a, b) => {
     const aKey = a.spec?.workflowTemplateRef?.name || a.metadata.generateName || "";
     const bKey = b.spec?.workflowTemplateRef?.name || b.metadata.generateName || "";
     if (aKey < bKey) return -1;
     if (aKey > bKey) return 1;
-    // same template → newest first
     return new Date(b.status.startedAt) - new Date(a.status.startedAt);
   });
 
@@ -109,11 +108,27 @@ export async function listTemplates() {
 /* ------------------------------------------------------------------ */
 /*  Submit workflow from a template                                   */
 /* ------------------------------------------------------------------ */
+
+/* --- NEW: compact JSON parameters (strips all whitespace/newlines) -- */
+function compactValue(val = "") {
+  if (typeof val !== "string") return val;
+
+  const trimmed = val.trim();
+  if (!/^[\[{]/.test(trimmed)) return val;      // fast‑exit for non‑JSON
+
+  try {
+    return JSON.stringify(JSON.parse(trimmed));
+  } catch {
+    return val;                                // keep original if not valid JSON
+  }
+}
+
 export async function submitWorkflow({ template, parameters }) {
-  // Turn { key: value } pairs into ["key=value", ...]
-  const paramStrings = Object.entries(parameters || {}).map(
-    ([n, v]) => `${n}=${v}`
-  );
+  // Turn { key: value } pairs into ["key=value", ...],
+  // while compacting any JSON‑looking values so Argo sees them without “\n”.
+  const paramStrings = Object
+    .entries(parameters || {})
+    .map(([n, v]) => `${n}=${compactValue(v)}`);
 
   const body = {
     resourceKind : "WorkflowTemplate",
@@ -146,7 +161,7 @@ export async function submitWorkflow({ template, parameters }) {
   if (!r.ok) throw new Error(`Argo ${r.status}`);
 
   const result = await r.json();
-  if (debug) console.log("[DEBUG] Workflow-submit response:", result);
+  if (debug) console.log("[DEBUG] Workflow‑submit response:", result);
   return result;
 }
 

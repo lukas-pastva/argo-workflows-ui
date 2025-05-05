@@ -103,7 +103,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
             ))}
 
             {params["event-data"] !== undefined && (
-              <div style={{ border: "1px solid #e2e8f0", borderRadius: 4, padding: "0.75rem", marginTop: "0.75rem" }}>
+              <div style={{ border: "1px solid #e2e8f0", borderRadius: 4, padding: "0.75rem", marginTop: "0.75rem", marginBottom: "0.75rem" }}>
                 <label style={{ ...labelStyle, borderBottom: "1px solid #e2e8f0", paddingBottom: 4 }}>event-data</label>
                 <button className="btn-light" style={{ float: "right", marginTop: -4, fontSize: "0.8rem", padding: "0.15rem 0.5rem" }} onClick={() => setRawView((r) => !r)}>
                   {rawView ? "Form" : "Raw"}
@@ -122,7 +122,6 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                 </div>
               </div>
             )}
-            <br />
             <button className="btn" onClick={handleSubmit}>Submit</button>
             <span style={{ marginLeft: "0.75rem" }}>{infoMsg}</span>
           </div>
