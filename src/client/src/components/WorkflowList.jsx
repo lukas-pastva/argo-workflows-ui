@@ -5,6 +5,7 @@ import {
   deleteWorkflows,
 } from "../api";
 import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
+import Spinner            from "./Spinner.jsx";
 
 /* ------------------------------------------------------------------ */
 /*  Runtime env                                                       */
@@ -12,10 +13,14 @@ import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
 const env = window.__ENV__ || {};
 
 const rawSkip = (env.skipLabels || "")
-  .split(",").map((s) => s.trim()).filter(Boolean);
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 const trimPrefixes = (env.labelPrefixTrim || "")
-  .split(",").map((p) => p.trim()).filter(Boolean);
+  .split(",")
+  .map((p) => p.trim())
+  .filter(Boolean);
 
 const trimKey = (k) => {
   for (const pref of trimPrefixes) {
@@ -46,6 +51,7 @@ function fmtUtc(ts) {
 
 export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [items, setItems]               = useState([]);
+  const [loading, setLoading]           = useState(true);
   const [selected, setSelected]         = useState({});
   const [confirmNames, setConfirmNames] = useState(null);
   const [expanded, setExpanded]         = useState({});
@@ -55,19 +61,25 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     try {
       const saved = localStorage.getItem("workflowFilters");
       return saved ? JSON.parse(saved) : {};
-    } catch { return {}; }
+    } catch {
+      return {};
+    }
   });
   useEffect(() => {
-    try { localStorage.setItem("workflowFilters", JSON.stringify(filters)); }
-    catch {/* ignore */ }
+    try {
+      localStorage.setItem("workflowFilters", JSON.stringify(filters));
+    } catch {
+      /* ignore */
+    }
   }, [filters]);
 
   const [sort, setSort] = useState({ column: "template", dir: "asc" });
 
-  /* ---------------- fetch list (auto-refresh) ------------------- */
+  /* ---------------- fetch list (auto‑refresh) ------------------- */
   useEffect(() => {
     async function fetchAll() {
       try {
+        setLoading(true);
         setItems(await listWorkflows());
       } catch (e) {
         onError(
@@ -75,6 +87,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             ? "Access denied (HTTP 403)."
             : `Error loading workflows: ${e.message}`
         );
+      } finally {
+        setLoading(false);
       }
     }
     fetchAll();
@@ -94,7 +108,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         groups.get(dk).push({ fullKey: k, value: v });
       });
     });
-    /* de-duplicate values */
+    /* de‑duplicate values */
     for (const [dk, entries] of groups) {
       const seen = new Set();
       groups.set(
@@ -112,20 +126,23 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
   /* ---------------- flatten rows -------------------------------- */
   const rows = useMemo(
-    () => items.map((wf) => ({
-      wf,
-      group:
-        wf.spec?.workflowTemplateRef?.name ||
-        wf.metadata.generateName ||
-        "Unlabelled",
-    })),
+    () =>
+      items.map((wf) => ({
+        wf,
+        group:
+          wf.spec?.workflowTemplateRef?.name ||
+          wf.metadata.generateName ||
+          "Unlabelled",
+      })),
     [items]
   );
 
   /* ------------------------------------------------------------------
      Label filtering
      ----------------------------------------------------------------- */
-  const activePairs      = Object.entries(filters).filter(([, v]) => v).map(([p]) => p);
+  const activePairs = Object.entries(filters)
+    .filter(([, v]) => v)
+    .map(([p]) => p);
   const hasActiveFilters = activePairs.length > 0;
 
   const keyToValues = useMemo(() => {
@@ -159,12 +176,15 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     const sTime= (r) => new Date(r.wf.status.startedAt).getTime();
 
     switch (column) {
-      case "name":   return mul * a.wf.metadata.name.localeCompare(b.wf.metadata.name);
-      case "start":  return mul * (sTime(a) - sTime(b));
-      case "status": return mul * a.wf.status.phase.localeCompare(b.wf.status.phase);
+      case "name":
+        return mul * a.wf.metadata.name.localeCompare(b.wf.metadata.name);
+      case "start":
+        return mul * (sTime(a) - sTime(b));
+      case "status":
+        return mul * a.wf.status.phase.localeCompare(b.wf.status.phase);
       default:
         if (gKey(a) !== gKey(b)) return mul * gKey(a).localeCompare(gKey(b));
-        return -sTime(a) + sTime(b);      /* newest-first inside each template */
+        return -sTime(a) + sTime(b); /* newest‑first inside each template */
     }
   };
   const sortedRows = useMemo(
@@ -172,7 +192,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     [filteredRows, sort]
   );
 
-  /* ---------------- bulk-selection helpers ---------------------- */
+  /* ---------------- bulk‑selection helpers ---------------------- */
   const isRunning  = (wf) => wf.status.phase === "Running";
   const nonRunning = sortedRows.map((r) => r.wf).filter((wf) => !isRunning(wf));
   const allSel =
@@ -189,7 +209,9 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       if (allSel) {
         nonRunning.forEach((wf) => delete c[wf.metadata.name]);
       } else {
-        nonRunning.forEach((wf) => { c[wf.metadata.name] = true; });
+        nonRunning.forEach((wf) => {
+          c[wf.metadata.name] = true;
+        });
       }
       return c;
     });
@@ -201,7 +223,9 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     try {
       await deleteWorkflow(name);
       setItems((it) => it.filter((w) => w.metadata.name !== name));
-    } catch (e) { onError(`Failed to delete: ${e.message}`); }
+    } catch (e) {
+      onError(`Failed to delete: ${e.message}`);
+    }
   };
   const handleBatchDelete = async () => {
     const names = Object.keys(selected).filter((n) => selected[n]);
@@ -210,23 +234,32 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       setItems((it) => it.filter((w) => !names.includes(w.metadata.name)));
       setConfirmNames(null);
       setSelected({});
-    } catch (e) { onError(`Batch delete failed: ${e.message}`); }
+    } catch (e) {
+      onError(`Batch delete failed: ${e.message}`);
+    }
   };
 
-  /* ---------------- expanded-row helpers ------------------------ */
+  /* ---------------- expanded‑row helpers ------------------------ */
   const toggleExpanded = (name, e) => {
-    e.stopPropagation();               /* keep row click (logs) untouched */
+    e.stopPropagation(); /* keep row click (logs) untouched */
     setExpanded((ex) => ({ ...ex, [name]: !ex[name] }));
   };
 
   /* ---------------- render -------------------------------------- */
   const clearFilters = () => setFilters({});
-  const nextDir      = (col) =>
+  const nextDir = (col) =>
     sort.column === col ? (sort.dir === "asc" ? "desc" : "asc") : "asc";
 
   return (
     <div className="wf-container">
       <h2 style={{ paddingLeft: "1rem" }}>Workflows</h2>
+
+      {/* ─── Global spinner while fetching first list ───────────── */}
+      {loading && items.length === 0 && (
+        <div style={{ textAlign: "center", padding: "2rem" }}>
+          <Spinner />
+        </div>
+      )}
 
       {/* ─── Filter panel ───────────────────────────────────────── */}
       <details className="filter-panel">
@@ -234,7 +267,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           Filters{hasActiveFilters ? " ✓" : ""}
         </summary>
 
-        {/* clear-filters button */}
+        {/* clear‑filters button */}
         <button
           className="btn-light"
           disabled={!hasActiveFilters}
@@ -252,9 +285,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
             return (
               <details key={dk}>
-                <summary className={hasSelected ? "selected" : ""}>
-                  {dk}
-                </summary>
+                <summary className={hasSelected ? "selected" : ""}>{dk}</summary>
 
                 <div className="label-values">
                   {entries.map(({ fullKey, value }) => {
@@ -278,7 +309,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       </details>
 
-      {/* ─── Bulk-delete button ─────────────────────────────────── */}
+      {/* ─── Bulk‑delete button ─────────────────────────────────── */}
       {Object.values(selected).some(Boolean) && (
         <div style={{ margin: "0.5rem 1rem" }}>
           <button
@@ -299,7 +330,9 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             <th
               style={{ cursor: "pointer" }}
               title="Sort by template name (A→Z), then newest start time"
-              onClick={() => setSort({ column: "template", dir: nextDir("template") })}
+              onClick={() =>
+                setSort({ column: "template", dir: nextDir("template") })
+              }
             >
               Template
             </th>
@@ -320,7 +353,9 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             </th>
             <th
               style={{ cursor: "pointer" }}
-              onClick={() => setSort({ column: "status", dir: nextDir("status") })}
+              onClick={() =>
+                setSort({ column: "status", dir: nextDir("status") })
+              }
             >
               Status
             </th>
@@ -330,20 +365,22 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
         <tbody>
           {sortedRows.map(({ wf, group }) => {
-            const nm    = wf.metadata.name;
-            const delOk = !isRunning(wf);
+            const nm     = wf.metadata.name;
+            const delOk  = !isRunning(wf);
             const labels = wf.metadata.labels || {};
 
             return (
               /* ──────────────── Main workflow row ──────────────── */
               <React.Fragment key={nm}>
-                <tr
-                  onClick={() => onShowLogs(nm)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <td className="group-col" style={{
-                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
-                  }}>
+                <tr onClick={() => onShowLogs(nm)} style={{ cursor: "pointer" }}>
+                  <td
+                    className="group-col"
+                    style={{
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
                     {group}
                   </td>
                   <td>
@@ -357,9 +394,13 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                       }}
                     />
                   </td>
-                  <td style={{
-                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
-                  }}>
+                  <td
+                    style={{
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
                     {nm}
                   </td>
                   <td>{fmtUtc(wf.status.startedAt)}</td>
@@ -367,13 +408,18 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     {wf.status.phase === "Failed" ? (
                       <span className="status-pill status-failed">
                         <svg
-                          width="12" height="12" viewBox="0 0 24 24"
-                          fill="none" stroke="currentColor" strokeWidth="2"
-                          strokeLinecap="round" strokeLinejoin="round"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
                           aria-hidden="true"
                         >
                           <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                          <line x1="12" y1="9"  x2="12" y2="13" />
+                          <line x1="12" y1="9" x2="12" y2="13" />
                           <line x1="12" y1="17" x2="12.01" y2="17" />
                         </svg>
                         {wf.status.phase}
@@ -435,7 +481,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </tbody>
       </table>
 
-      {/* ─── Confirm-delete modal ───────────────────────────────── */}
+      {/* ─── Confirm‑delete modal ───────────────────────────────── */}
       {confirmNames && (
         <DeleteConfirmModal
           names={confirmNames}
