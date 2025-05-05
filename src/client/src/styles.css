@@ -2,7 +2,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
 /* ↓ 20 % smaller baseline for everything that uses rem/em */
-html { font-size: 80%; }
+html { font-size: 85%; }
 
 :root {
   --primary      : rgb(24, 190, 148);
@@ -196,7 +196,7 @@ table.wf-table td:last-child {
 }
 
 .filter-panel summary.filter-title {
-  padding: 0.75rem 2.5rem 0.75rem 4.25rem; /* extra left space */
+  padding: 0.75rem 2.5rem 0.75rem 5.25rem; /* extra left space */
   font-weight: 600;
   cursor: pointer;
   list-style: none;
