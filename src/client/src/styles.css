@@ -1,10 +1,10 @@
-/* ---------------- Argo CD-like palette & font ------------------- */
+/* ---------------- Argo CD‑like palette & font ------------------- */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
 :root {
   --primary      : rgb(24, 190, 148);
   --primary-dark : #3c6cd4;
-  --danger       : #ef5654;        /* Argo CD delete red */
+  --danger       : #ef5654;        /* Argo CD delete red */
   --danger-dark  : #d64543;
   --bg           : #f4f6f8;
 }
@@ -22,15 +22,13 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  /* default bg - overridable via inline style from env */
   background: var(--primary);
   color: #fff;
   padding: 0.75rem 1rem;
 }
-
 .header h1 { margin: 0; font-size: 1.4rem; }
 
-/* new compact page titles */
+/* compact page titles */
 .wf-title {
   padding-left: 1rem;
   margin: 0.5rem 0;
@@ -44,7 +42,7 @@ body {
   padding: 0 1rem;
 }
 
-/* full-screen variant for the workflow list */
+/* full‑screen variant for the workflow list */
 .wf-container {
   width: 100%;
   max-width: none;
@@ -58,7 +56,6 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   margin-top: 1.5rem;
 }
-
 
 /* ---------------- Buttons -------------------------------------- */
 .btn,
@@ -122,7 +119,7 @@ table.wf-table td:last-child {
   border-left  : 3px solid var(--primary);
 }
 
-/* ---------------- Trigger-workflow form ------------------------ */
+/* ---------------- Trigger‑workflow form ------------------------ */
 .trigger-select {
   padding      : 0.5rem 0.75rem;
   font-size    : 1rem;
@@ -205,22 +202,25 @@ table.wf-table td:last-child {
 }
 
 .filter-panel summary.filter-title {
-  padding     : 0.75rem 1.75rem 0.75rem 2rem;   /* extra left‑pad for arrow */
+  padding     : 0.75rem 1.75rem 0.75rem 2rem;   /* space for icon */
   font-weight : 600;
   cursor      : pointer;
   list-style  : none;
   position    : relative;
 }
-
 .filter-panel summary.filter-title::-webkit-details-marker { display: none; }
 
-/* ───── prettier caret icon on the **left** ───── */
+/* colourful ⊕ / ⊖ icon on the left */
 .filter-panel summary.filter-title::before {
-  content : "▶";
+  content : "⊕";
   position: absolute;
   left    : 0.75rem;
+  color   : var(--primary-dark);
+  font-size: 1.1rem;
+  line-height: 1;
+  pointer-events: none;
 }
-.filter-panel[open] summary.filter-title::before { content: "▼"; }
+.filter-panel[open] summary.filter-title::before { content: "⊖"; }
 
 /* AND/OR toggle */
 .filter-mode {
@@ -240,28 +240,65 @@ table.wf-table td:last-child {
   list-style : none;
   font-weight: 600;
   cursor     : pointer;
-  padding    : 0.25rem 0 0.25rem 1.25rem;   /* left‑pad for caret */
+  padding    : 0.25rem 0 0.25rem 1.75rem;  /* space for icon */
   position   : relative;
 }
 .label-filters details summary::-webkit-details-marker { display: none; }
 
-/* caret icon */
+/* icon on the left */
 .label-filters details summary::before {
-  content : "▶";
+  content : "⊕";
   position: absolute;
   left    : 0;
+  color   : var(--primary-dark);
+  font-size: 1rem;
+  line-height: 1;
+  pointer-events: none;
 }
-.label-filters details[open] summary::before { content: "▼"; }
+.label-filters details[open] summary::before { content: "⊖"; }
 
 /* ✓ mark when any value inside group is selected */
 .label-filters details summary.selected::after {
   content     : "✓";
   margin-left : 0.25rem;
   color       : var(--primary-dark);
+  pointer-events: none;
 }
-
 .label-filters details summary.selected { color: var(--primary-dark); }
 
+/* container for value pills */
+.label-filters .label-values {
+  display    : inline-flex;
+  flex-wrap  : wrap;
+  align-items: center;
+}
+
+/* tighten pill spacing */
+.label-filters .label-values span {
+  margin: 0 0.5rem 0.3rem 0;
+}
+
+/* fallback class (old selector kept) */
+.label-values {
+  padding-left: 1rem;
+  margin-top  : 0.25rem;
+}
+.label-values span {
+  display       : inline-block;
+  margin        : 0 0.5rem 0.5rem 0;
+  padding       : 0.25rem 0.5rem;
+  border-radius : 4px;
+  cursor        : pointer;
+  background    : var(--bg);
+  opacity       : 0.6;
+  transition    : background 0.2s, color 0.2s, opacity 0.2s;
+}
+.label-values span.selected {
+  background: var(--primary-dark);
+  color     : #fff;
+  opacity   : 1;
+}
+.label-values span.selected::before { content: none; }
 
 /* ---------------- “intimate” table variant --------------------- */
 table.wf-table.intimate th,
@@ -301,9 +338,9 @@ table.wf-table.intimate td.group-col { width: 10%; }
   border    : 1px solid #f5a8a8;
 }
 
-/* ----------------------------------------------------------------- */
-/*  Labels expansion rows                                            */
-/* ----------------------------------------------------------------- */
+/* -----------------------------------------------------------------
+   Labels expansion rows
+   ----------------------------------------------------------------- */
 .tr-labels td {
   background: #f9fbff;
   padding   : 0.6rem 1rem;
@@ -322,10 +359,9 @@ table.wf-table.intimate td.group-col { width: 10%; }
   border-radius: 4px;
   font-family  : "Inter", monospace;
 }
-
 .wf-labels-list code strong { font-weight: 600; }
-
 .wf-labels-list em { opacity: 0.6; }
+
 /* ---------------- Spinner -------------------------------------- */
 @keyframes spin { to { transform: rotate(360deg); } }
 
