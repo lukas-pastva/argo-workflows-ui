@@ -113,7 +113,6 @@ table.wf-table td:last-child {
   border-left  : 3px solid var(--primary);
 }
 
-
 /* ---------------- Trigger-workflow form ------------------------ */
 .trigger-select {
   padding      : 0.5rem 0.75rem;
@@ -124,18 +123,28 @@ table.wf-table td:last-child {
 
 .trigger-form { margin-top: 1rem; }
 
-.field        { margin-bottom: 0.75rem; }
+/* smaller font for trigger workflow labels */
+.trigger-form label {
+  font-size: 0.85rem;
+  padding-right: 0.5rem; /* spacing between label and input */
+}
+
+.field {
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+}
+
 .field label  {
-  display    : block;
+  display: inline-block;
   font-weight: 500;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0;
 }
 
 .field input,
 .field textarea,
 .trigger-select {
-  width     : 100%;
-  max-width : 26rem;
+  flex: 1;
   padding   : 0.45rem 0.6rem;
   border    : 1px solid #cbd5e1;
   border-radius: 4px;
