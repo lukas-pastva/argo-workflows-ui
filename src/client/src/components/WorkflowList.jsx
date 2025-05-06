@@ -38,15 +38,11 @@ const shouldSkip = (k, v) => {
 };
 
 /* ------------------------------------------------------------------ */
-/*  UTC helper – “YYYY-MM-DD HH:MM:SS”                                */
+/*  Local‑time helper – browser TZ, locale‑aware                      */
 /* ------------------------------------------------------------------ */
-function fmtUtc(ts) {
-  const d   = new Date(ts);
-  const pad = (n) => String(n).padStart(2, "0");
-  return (
-    `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ` +
-    `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`
-  );
+function fmtLocal(ts) {
+  const d = new Date(ts);
+  return d.toLocaleString();
 }
 
 export default function WorkflowList({ onShowLogs, onError = () => {} }) {
@@ -73,7 +69,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     }
   }, [filters]);
 
-  const [sort, setSort] = useState({ column: "template", dir: "asc" });
+  /* --- DEFAULT SORT: by start‑time (most‑recent first) ----------- */
+  const [sort, setSort] = useState({ column: "start", dir: "desc" });
 
   /* ---------------- fetch list (auto‑refresh) ------------------- */
   useEffect(() => {
@@ -244,7 +241,11 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     e.stopPropagation(); /* keep row click (logs) untouched */
     setExpanded((ex) => ({ ...ex, [name]: !ex[name] }));
   };
-  
+
+  /* ---------------- sort‑indicator helper ----------------------- */
+  const sortIndicator = (col) =>
+    sort.column === col ? (sort.dir === "asc" ? " ▲" : " ▼") : "";
+
   /* ---------------- render -------------------------------------- */
   const clearFilters = () => setFilters({});
   const nextDir = (col) =>
@@ -329,12 +330,12 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           <tr>
             <th
               style={{ cursor: "pointer" }}
-              title="Sort by template name (A→Z), then newest start time"
+              title="Sort by template name"
               onClick={() =>
                 setSort({ column: "template", dir: nextDir("template") })
               }
             >
-              Template
+              {`Template${sortIndicator("template")}`}
             </th>
             <th style={{ width: "4rem" }}>
               <input type="checkbox" checked={allSel} onChange={toggleSelectAll} />
@@ -343,13 +344,13 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
               style={{ cursor: "pointer" }}
               onClick={() => setSort({ column: "name", dir: nextDir("name") })}
             >
-              Name
+              {`Name${sortIndicator("name")}`}
             </th>
             <th
               style={{ cursor: "pointer" }}
               onClick={() => setSort({ column: "start", dir: nextDir("start") })}
             >
-              Start&nbsp;Time&nbsp;(UTC)
+              {`Start Time${sortIndicator("start")}`}
             </th>
             <th
               style={{ cursor: "pointer" }}
@@ -357,7 +358,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                 setSort({ column: "status", dir: nextDir("status") })
               }
             >
-              Status
+              {`Status${sortIndicator("status")}`}
             </th>
             <th>Actions</th>
           </tr>
@@ -403,7 +404,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                   >
                     {nm}
                   </td>
-                  <td>{fmtUtc(wf.status.startedAt)}</td>
+                  <td>{fmtLocal(wf.status.startedAt)}</td>
                   <td>
                     {wf.status.phase === "Failed" ? (
                       <span className="status-pill status-failed">
