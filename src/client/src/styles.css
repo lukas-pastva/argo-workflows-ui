@@ -285,12 +285,13 @@ table.wf-table td:last-child {
 .label-values span {
   display       : inline-block;
   margin        : 0 0.5rem 0.5rem 0;
-  padding       : 0.25rem 0.5rem;
+  padding       : 0.2rem 0.4rem;
   border-radius : 4px;
   cursor        : pointer;
   background    : var(--bg);
   opacity       : 0.6;
   transition    : background 0.2s, color 0.2s, opacity 0.2s;
+  font-size     : 90%;
 }
 .label-filters .label-values span.selected,
 .label-values span.selected {
