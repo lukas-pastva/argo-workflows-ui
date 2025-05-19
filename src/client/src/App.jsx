@@ -4,6 +4,7 @@ import WorkflowList     from "./components/WorkflowList.jsx";
 import LogViewer        from "./components/LogViewer.jsx";
 import WorkflowTrigger  from "./components/WorkflowTrigger.jsx";
 import HelpModal        from "./components/HelpModal.jsx";
+import ThemeToggle      from "./components/ThemeToggle.jsx";          // 🆕 NEW
 
 /* ------------------------------------------------------------------ */
 /*  Keep the log-viewer state in the address bar so it’s shareable    */
@@ -48,9 +49,14 @@ export default function App() {
     <>
       <header className="header" style={headerStyle}>
         <h1>Argo Workflows</h1>
-        <button className="btn-light" onClick={() => setShowHelp(true)}>
-          Help
-        </button>
+
+        {/* right-hand controls */}
+        <div>
+          <ThemeToggle />                                              {/* 🆕 NEW */}
+          <button className="btn-light" onClick={() => setShowHelp(true)}>
+            Help
+          </button>
+        </div>
       </header>
 
       <ErrorBanner message={error} onClose={() => setError("")} />

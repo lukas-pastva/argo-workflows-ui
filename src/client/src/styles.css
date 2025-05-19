@@ -1,61 +1,87 @@
-/* ---------------- Argo CD‑like palette & font ------------------- */
+/* ---------------- Argo CD-like palette & font ------------------- */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
-/* ↓ 20 % smaller baseline for everything that uses rem/em */
+/* ↓ 20 % smaller baseline for everything that uses rem/em */
 html { font-size: 90%; }
 
 :root {
   --primary      : rgb(24, 190, 148);
   --primary-dark : #3c6cd4;
-  --danger       : #ef5654;        /* Argo CD delete red */
+  --danger       : #ef5654;          /* Argo CD delete red */
   --danger-dark  : #d64543;
   --bg           : #f4f6f8;
+
+  /* 🆕 theme-aware tokens */
+  --card-bg      : #fff;
+  --text-color   : #000;
+}
+
+/* --- explicit themes ------------------------------------------- */
+[data-theme="light"] {
+  --bg      : #f4f6f8;
+  --card-bg : #fff;
+  --text-color: #000;
+}
+[data-theme="dark"] {
+  --bg      : #121212;
+  --card-bg : #1e1e1e;
+  --text-color: #e5e5e5;
+}
+
+/* --- “auto” = follow OS preference ----------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg      : #121212;
+    --card-bg : #1e1e1e;
+    --text-color: #e5e5e5;
+  }
 }
 
 * { box-sizing: border-box; }
 
 body {
-  margin: 0;
+  margin     : 0;
   font-family: "Inter", sans-serif;
-  background: var(--bg);
+  background : var(--bg);
+  color      : var(--text-color);
 }
 
 /* ---------------- Layout --------------------------------------- */
 .header {
-  display: flex;
+  display        : flex;
   justify-content: space-between;
-  align-items: center;
-  background: var(--primary);
-  color: #fff;
-  padding: 0.75rem 1rem;
+  align-items    : center;
+  background     : var(--primary);
+  color          : #fff;
+  padding        : 0.75rem 1rem;
 }
 .header h1 { margin: 0; font-size: 1.4rem; }
 
 .wf-title {
-  padding-left: 1rem;
-  margin: 0.5rem 0;
-  font-size: 1.2rem;
-  font-weight: 600;
+  padding-left : 1rem;
+  margin       : 0.5rem 0;
+  font-size    : 1.2rem;
+  font-weight  : 600;
 }
 
 .container {
   max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 1rem;
+  margin   : 0 auto;
+  padding  : 0 1rem;
 }
 
 .wf-container {
-  width: 100%;
-  max-width: none;
-  padding: 0;
+  width      : 100%;
+  max-width  : none;
+  padding    : 0;
 }
 
 .card {
-  background: #fff;
+  background   : var(--card-bg);              /* 🆕 */
   border-radius: 6px;
-  padding: 1.25rem 1.5rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  margin-top: 1.5rem;
+  padding      : 1.25rem 1.5rem;
+  box-shadow   : 0 1px 3px rgba(0,0,0,0.08);
+  margin-top   : 1.5rem;
 }
 
 /* ---------------- Buttons -------------------------------------- */
@@ -85,8 +111,8 @@ body {
 
 .btn-light {
   background: transparent;
-  color: var(--primary);
-  border: 1px solid var(--primary);
+  color     : var(--primary);
+  border    : 1px solid var(--primary);
 }
 .btn-light:hover { background: rgba(77,138,240,0.12); }
 
@@ -105,66 +131,47 @@ table.wf-table thead th { border-bottom: 2px solid #e5e7eb; }
 table.wf-table tbody tr:nth-child(odd) { background: #fafafa; }
 table.wf-table tbody tr:hover          { background: #eef4ff; }
 
+/* dark-mode table overrides */
+[data-theme="dark"] table.wf-table tbody tr:nth-child(odd) { background: #1a1a1a; }
+[data-theme="dark"] table.wf-table tbody tr:hover          { background: #2a2a2a; }
+
 table.wf-table th:last-child,
 table.wf-table td:last-child {
-  text-align: right;
+  text-align : right;
   white-space: nowrap;
 }
 
 /* ---------------- Group headings ------------------------------- */
 .wf-group-title {
-  margin       : 0.25rem 0 0.5rem;
-  padding-left : 0.5rem;
-  font-size    : 1rem;
-  font-weight  : 600;
-  border-left  : 3px solid var(--primary);
+  margin      : 0.25rem 0 0.5rem;
+  padding-left: 0.5rem;
+  font-size   : 1rem;
+  font-weight : 600;
+  border-left : 3px solid var(--primary);
 }
 
-/* ---------------- Trigger‑workflow form ------------------------ */
-.trigger-select {
-  padding      : 0.5rem 0.75rem;
-  font-size    : 1rem;
-  border-radius: 4px;
+/* ---------------- Trigger / filter panels --------------------- */
+.filter-panel {
+  width        : 100%;
+  margin       : 1rem 0;
   border       : 1px solid #cbd5e1;
+  border-radius: 6px;
+  background   : var(--card-bg);              /* 🆕 */
 }
 
-.trigger-form { margin-top: 1rem; }
-
-.trigger-form label {
-  font-size: 0.85rem;
-  padding-right: 0.5rem;
-}
-
-.field {
-  margin-bottom: 0.75rem;
-  display: flex;
-  align-items: center;
-}
-
-.field input,
-.field textarea,
-.trigger-select {
-  flex: 1;
-  padding   : 0.45rem 0.6rem;
-  border    : 1px solid #cbd5e1;
-  border-radius: 4px;
-  font-size : 0.95rem;
-  resize    : vertical;
-}
-
-/* ---------------- Modal ---------------------------------------- */
+/* ---------------- Modal --------------------------------------- */
 .modal-overlay {
-  position : fixed;
-  inset    : 0;
-  background: rgba(0,0,0,0.45);
-  display  : flex;
+  position   : fixed;
+  inset      : 0;
+  background : rgba(0,0,0,0.45);
+  display    : flex;
   align-items: center;
   justify-content: center;
-  z-index  : 1000;
+  z-index    : 1000;
 }
 
 .modal-dialog {
-  background   : #fff;
+  background   : var(--card-bg);              /* 🆕 */
   border-radius: 8px;
   padding      : 1.8rem 2rem;
   width        : min(90vw, 600px);
@@ -175,19 +182,19 @@ table.wf-table td:last-child {
 .modal-dialog h2 { margin-top: 0; }
 
 .modal-close {
-  position   : absolute;
-  top        : 0.6rem;
-  right      : 0.8rem;
-  background : transparent;
-  border     : none;
-  font-size  : 1.5rem;
-  cursor     : pointer;
+  position  : absolute;
+  top       : 0.6rem;
+  right     : 0.8rem;
+  background: transparent;
+  border    : none;
+  font-size : 1.5rem;
+  cursor    : pointer;
 }
 
 /* -----------------------------------------------------------------
-   Collapsible panels – “Expand | Collapse” pills
-   ----------------------------------------------------------------- */
-.filter-panel {
+  Collapsible panels – “Expand | Collapse” pills
+  ----------------------------------------------------------------- */
+  .filter-panel {
   width : 100%;
   margin: 1rem 0;
   border: 1px solid #cbd5e1;
@@ -229,8 +236,8 @@ table.wf-table td:last-child {
 }
 
 /* -----------------------------------------------------------------
-   Label‑filter groups
-   ----------------------------------------------------------------- */
+  Label‑filter groups
+  ----------------------------------------------------------------- */
 .label-filters {
   width      : 100%;
   max-height : 25vh;
@@ -339,8 +346,8 @@ table.wf-table.intimate tbody tr:hover { background: #f0f4fa; }
 }
 
 /* -----------------------------------------------------------------
-   Labels expansion rows
-   ----------------------------------------------------------------- */
+  Labels expansion rows
+  ----------------------------------------------------------------- */
 .tr-labels td {
   background: #f9fbff;
   padding   : 0.6rem 1rem;
