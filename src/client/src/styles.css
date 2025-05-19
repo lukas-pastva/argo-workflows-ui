@@ -1,7 +1,7 @@
-/* ---------------- Argo CD-like palette & font ------------------- */
+/* ---------------- Argo CD-like palette & font ------------------ */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
-/* ↓ 20 % smaller baseline for everything that uses rem/em */
+/*  ↓ 20 % smaller baseline for everything that uses rem/em  */
 html { font-size: 90%; }
 
 /* ---------- Core design tokens (light defaults) ---------------- */
@@ -17,6 +17,12 @@ html { font-size: 90%; }
   --card-bg      : #ffffff;    /* panels / cards / tables / modals */
   --text-color   : #000000;
   --border-color : #cbd5e1;    /* faint borders & dividers */
+
+  /* table / extra backgrounds */
+  --row-alt-bg          : #fafafa;
+  --row-hover-bg        : #eef4ff;
+  --row-hover-intimate  : #f0f4fa;
+  --labels-row-bg       : #f9fbff;
 }
 
 /* ---------- Explicit theme overrides -------------------------- */
@@ -25,6 +31,11 @@ html { font-size: 90%; }
   --card-bg      : #ffffff;
   --text-color   : #000000;
   --border-color : #cbd5e1;
+
+  --row-alt-bg          : #fafafa;
+  --row-hover-bg        : #eef4ff;
+  --row-hover-intimate  : #f0f4fa;
+  --labels-row-bg       : #f9fbff;
 }
 
 [data-theme="dark"] {
@@ -33,6 +44,11 @@ html { font-size: 90%; }
   --card-bg      : #2e2e31;
   --text-color   : #ebebeb;
   --border-color : #3d3d3f;
+
+  --row-alt-bg          : #2a2a2d;
+  --row-hover-bg        : #353538;
+  --row-hover-intimate  : #3a3a3d;
+  --labels-row-bg       : #303033;
 }
 
 /* ---------- “auto” = follow OS preference --------------------- */
@@ -42,6 +58,11 @@ html { font-size: 90%; }
     --card-bg      : #2e2e31;
     --text-color   : #ebebeb;
     --border-color : #3d3d3f;
+
+    --row-alt-bg          : #2a2a2d;
+    --row-hover-bg        : #353538;
+    --row-hover-intimate  : #3a3a3d;
+    --labels-row-bg       : #303033;
   }
 }
 
@@ -136,11 +157,8 @@ table.wf-table td {
 
 table.wf-table thead th { border-bottom: 2px solid var(--border-color); }
 
-table.wf-table tbody tr:nth-child(odd) { background: #fafafa; }
-table.wf-table tbody tr:hover          { background: #eef4ff; }
-
-[data-theme="dark"] table.wf-table tbody tr:nth-child(odd) { background: #2a2a2d; }
-[data-theme="dark"] table.wf-table tbody tr:hover          { background: #353538; }
+table.wf-table tbody tr:nth-child(odd) { background: var(--row-alt-bg); }
+table.wf-table tbody tr:hover          { background: var(--row-hover-bg); }
 
 table.wf-table th:last-child,
 table.wf-table td:last-child {
@@ -289,8 +307,7 @@ table.wf-table.intimate td.group-col { width: 10%; }
 table.wf-table.intimate th:last-child,
 table.wf-table.intimate td:last-child { text-align: right; }
 
-table.wf-table.intimate tbody tr:hover { background: #f0f4fa; }
-[data-theme="dark"] table.wf-table.intimate tbody tr:hover { background: #3a3a3d; }
+table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); }
 
 /* ---------------- Status pills --------------------------------- */
 .status-pill {
@@ -313,10 +330,9 @@ table.wf-table.intimate tbody tr:hover { background: #f0f4fa; }
    Labels expansion rows
    ----------------------------------------------------------------- */
 .tr-labels td {
-  background: #f9fbff;
+  background: var(--labels-row-bg);
   padding   : 0.6rem 1rem;
 }
-[data-theme="dark"] .tr-labels td { background: #303033; }
 
 .wf-labels-list {
   display   : flex;
