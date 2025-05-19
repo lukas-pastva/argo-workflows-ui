@@ -4,20 +4,22 @@
 /* ↓ 20 % smaller baseline for everything that uses rem/em */
 html { font-size: 90%; }
 
+/* ---------- Core design tokens (light defaults) ---------------- */
 :root {
   --primary      : rgb(24, 190, 148);
   --primary-dark : #3c6cd4;
-  --danger       : #ef5654;        /* Argo CD delete red */
+
+  --danger       : #ef5654;    /* Argo CD delete red */
   --danger-dark  : #d64543;
 
-  /* --- neutrals that change with the theme -------------------- */
-  --bg           : #f4f6f8;
-  --card-bg      : #ffffff;
+  /* neutrals that switch with the theme */
+  --bg           : #f4f6f8;    /* page background */
+  --card-bg      : #ffffff;    /* panels / cards / tables / modals */
   --text-color   : #000000;
-  --border-color : #cbd5e1;
+  --border-color : #cbd5e1;    /* faint borders & dividers */
 }
 
-/* ---------- explicit theme overrides -------------------------- */
+/* ---------- Explicit theme overrides -------------------------- */
 [data-theme="light"] {
   --bg           : #f4f6f8;
   --card-bg      : #ffffff;
@@ -26,20 +28,20 @@ html { font-size: 90%; }
 }
 
 [data-theme="dark"] {
-  /* 20 % lighter than before */
-  --bg           : #1c1c1e;
-  --card-bg      : #262628;
-  --text-color   : #f0f0f0;
-  --border-color : #333333;
+  /* slightly brighter than previous iteration */
+  --bg           : #232326;
+  --card-bg      : #2e2e31;
+  --text-color   : #ebebeb;
+  --border-color : #3d3d3f;
 }
 
 /* ---------- “auto” = follow OS preference --------------------- */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --bg           : #1c1c1e;
-    --card-bg      : #262628;
-    --text-color   : #f0f0f0;
-    --border-color : #333333;
+    --bg           : #232326;
+    --card-bg      : #2e2e31;
+    --text-color   : #ebebeb;
+    --border-color : #3d3d3f;
   }
 }
 
@@ -77,9 +79,9 @@ body {
 }
 
 .wf-container {
-  width      : 100%;
-  max-width  : none;
-  padding    : 0;
+  width     : 100%;
+  max-width : none;
+  padding   : 0;
 }
 
 .card {
@@ -137,8 +139,8 @@ table.wf-table thead th { border-bottom: 2px solid var(--border-color); }
 table.wf-table tbody tr:nth-child(odd) { background: #fafafa; }
 table.wf-table tbody tr:hover          { background: #eef4ff; }
 
-[data-theme="dark"] table.wf-table tbody tr:nth-child(odd) { background: #202022; }
-[data-theme="dark"] table.wf-table tbody tr:hover          { background: #2b2b2e; }
+[data-theme="dark"] table.wf-table tbody tr:nth-child(odd) { background: #2a2a2d; }
+[data-theme="dark"] table.wf-table tbody tr:hover          { background: #353538; }
 
 table.wf-table th:last-child,
 table.wf-table td:last-child {
@@ -159,91 +161,49 @@ table.wf-table td:last-child {
 .filter-panel {
   width        : 100%;
   margin       : 1rem 0;
-  border       : 1px solid var(--border-color);   /* 🆕 theme-aware */
+  border       : 1px solid var(--border-color);
   border-radius: 6px;
-  background   : var(--card-bg);                  /* dark-mode fix */
-}
-
-
-/* ---------------- Modal --------------------------------------- */
-.modal-overlay {
-  position   : fixed;
-  inset      : 0;
-  background : rgba(0,0,0,0.45);
-  display    : flex;
-  align-items: center;
-  justify-content: center;
-  z-index    : 1000;
-}
-
-.modal-dialog {
-  background   : var(--card-bg);              /* 🆕 */
-  border-radius: 8px;
-  padding      : 1.8rem 2rem;
-  width        : min(90vw, 600px);
-  position     : relative;
-  box-shadow   : 0 4px 16px rgba(0,0,0,0.15);
-}
-
-.modal-dialog h2 { margin-top: 0; }
-
-.modal-close {
-  position  : absolute;
-  top       : 0.6rem;
-  right     : 0.8rem;
-  background: transparent;
-  border    : none;
-  font-size : 1.5rem;
-  cursor    : pointer;
+  background   : var(--card-bg);
 }
 
 /* -----------------------------------------------------------------
-  Collapsible panels – “Expand | Collapse” pills
-  ----------------------------------------------------------------- */
-  .filter-panel {
-  width : 100%;
-  margin: 1rem 0;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  background: #fff;
-}
-
+   Collapsible panels – “Expand | Collapse” pills
+   ----------------------------------------------------------------- */
 .filter-panel summary.filter-title {
-  padding: 0.75rem 2.5rem 0.75rem 5.25rem; /* extra left space */
-  font-weight: 600;
-  cursor: pointer;
-  list-style: none;
-  position: relative;
+  padding     : 0.75rem 2.5rem 0.75rem 5.25rem;
+  font-weight : 600;
+  cursor      : pointer;
+  list-style  : none;
+  position    : relative;
 }
 .filter-panel summary.filter-title::-webkit-details-marker { display: none; }
 
-/* pill */
 .filter-panel summary.filter-title::before {
-  content: "Expand";
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--primary);
-  color: #fff;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  line-height: 1;
-  padding: 2px 6px;
-  font-weight: 500;
+  content       : "Expand";
+  position      : absolute;
+  left          : 0.75rem;
+  top           : 50%;
+  transform     : translateY(-50%);
+  background    : var(--primary);
+  color         : #fff;
+  border-radius : 4px;
+  font-size     : 0.75rem;
+  line-height   : 1;
+  padding       : 2px 6px;
+  font-weight   : 500;
   pointer-events: none;
 }
 .filter-panel[open] summary.filter-title::before { content: "Collapse"; }
 
 /* AND/OR toggle */
 .filter-mode {
-  padding: 0 1rem;
-  font-size: 0.9rem;
+  padding   : 0 1rem;
+  font-size : 0.9rem;
 }
 
 /* -----------------------------------------------------------------
-  Label‑filter groups
-  ----------------------------------------------------------------- */
+   Label-filter groups
+   ----------------------------------------------------------------- */
 .label-filters {
   width      : 100%;
   max-height : 25vh;
@@ -255,30 +215,28 @@ table.wf-table td:last-child {
   list-style : none;
   font-weight: 600;
   cursor     : pointer;
-  padding    : 0.25rem 0 0.25rem 4rem; /* extra space for pill */
+  padding    : 0.25rem 0 0.25rem 4rem;
   position   : relative;
 }
 .label-filters details summary::-webkit-details-marker { display: none; }
 
-/* pill */
 .label-filters details summary::before {
-  content: "Expand";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--primary);
-  color: #fff;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  line-height: 1;
-  padding: 1px 6px 2px;
-  font-weight: 500;
+  content       : "Expand";
+  position      : absolute;
+  left          : 0;
+  top           : 50%;
+  transform     : translateY(-50%);
+  background    : var(--primary);
+  color         : #fff;
+  border-radius : 4px;
+  font-size     : 0.7rem;
+  line-height   : 1;
+  padding       : 1px 6px 2px;
+  font-weight   : 500;
   pointer-events: none;
 }
 .label-filters details[open] summary::before { content: "Collapse"; }
 
-/* ✓ mark when any value inside group is selected */
 .label-filters details summary.selected::after {
   content: "✓";
   margin-left: 0.35rem;
@@ -287,7 +245,6 @@ table.wf-table td:last-child {
 }
 .label-filters details summary.selected { color: var(--primary-dark); }
 
-/* value‑pill container */
 .label-filters .label-values {
   display    : inline-flex;
   flex-wrap  : wrap;
@@ -317,8 +274,8 @@ table.wf-table td:last-child {
 /* ---------------- “intimate” table variant --------------------- */
 table.wf-table.intimate th,
 table.wf-table.intimate td {
-  padding: 0.4rem 0.6rem;
-  font-size: 0.85rem;
+  padding   : 0.4rem 0.6rem;
+  font-size : 0.85rem;
 }
 
 table.wf-table.intimate th:first-child,
@@ -333,6 +290,7 @@ table.wf-table.intimate th:last-child,
 table.wf-table.intimate td:last-child { text-align: right; }
 
 table.wf-table.intimate tbody tr:hover { background: #f0f4fa; }
+[data-theme="dark"] table.wf-table.intimate tbody tr:hover { background: #3a3a3d; }
 
 /* ---------------- Status pills --------------------------------- */
 .status-pill {
@@ -352,12 +310,13 @@ table.wf-table.intimate tbody tr:hover { background: #f0f4fa; }
 }
 
 /* -----------------------------------------------------------------
-  Labels expansion rows
-  ----------------------------------------------------------------- */
+   Labels expansion rows
+   ----------------------------------------------------------------- */
 .tr-labels td {
   background: #f9fbff;
   padding   : 0.6rem 1rem;
 }
+[data-theme="dark"] .tr-labels td { background: #303033; }
 
 .wf-labels-list {
   display   : flex;
@@ -374,6 +333,40 @@ table.wf-table.intimate tbody tr:hover { background: #f0f4fa; }
 }
 .wf-labels-list code strong { font-weight: 600; }
 .wf-labels-list em { opacity: 0.6; }
+
+/* ---------------- Modal --------------------------------------- */
+.modal-overlay {
+  position   : fixed;
+  inset      : 0;
+  background : rgba(0,0,0,0.45);
+  display    : flex;
+  align-items: center;
+  justify-content: center;
+  z-index    : 1000;
+}
+
+.modal-dialog {
+  background   : var(--card-bg);
+  color        : var(--text-color);
+  border-radius: 8px;
+  padding      : 1.8rem 2rem;
+  width        : min(90vw, 600px);
+  position     : relative;
+  box-shadow   : 0 4px 16px rgba(0,0,0,0.25);
+}
+
+.modal-dialog h2 { margin-top: 0; }
+
+.modal-close {
+  position  : absolute;
+  top       : 0.6rem;
+  right     : 0.8rem;
+  background: transparent;
+  border    : none;
+  font-size : 1.5rem;
+  cursor    : pointer;
+  color     : inherit;
+}
 
 /* ---------------- Spinner -------------------------------------- */
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -396,7 +389,7 @@ table.wf-table.intimate tbody tr:hover { background: #f0f4fa; }
 }
 
 /* ---------------- Log viewer ----------------------------------- */
-.log-viewer {                           /* 🆕 used by LogViewer.jsx */
-  background : var(--card-bg);
-  color      : var(--text-color);
+.log-viewer {
+  background: var(--card-bg);
+  color     : var(--text-color);
 }
