@@ -9,14 +9,14 @@ html { font-size: 90%; }
   --primary      : rgb(24, 190, 148);
   --primary-dark : #3c6cd4;
 
-  --danger       : #ef5654;    /* Argo CD delete red */
+  --danger       : #ef5654;          /* Argo CD delete red */
   --danger-dark  : #d64543;
 
   /* neutrals that switch with the theme */
-  --bg           : #f4f6f8;    /* page background */
-  --card-bg      : #ffffff;    /* panels / cards / tables / modals */
+  --bg           : #f4f6f8;          /* page background */
+  --card-bg      : #ffffff;          /* panels / cards / tables / modals */
   --text-color   : #000000;
-  --border-color : #cbd5e1;    /* faint borders & dividers */
+  --border-color : #cbd5e1;          /* faint borders & dividers */
 
   /* table / extra backgrounds */
   --row-alt-bg          : #fafafa;
@@ -85,6 +85,15 @@ body {
   padding        : 0.75rem 1rem;
 }
 .header h1 { margin: 0; font-size: 1.4rem; }
+
+/* make “light” buttons readable inside the green header */
+.header .btn-light {
+  color        : #ffffff;
+  border-color : #ffffff;
+}
+.header .btn-light:hover {
+  background: rgba(255,255,255,0.15);
+}
 
 .wf-title {
   padding-left : 1rem;
