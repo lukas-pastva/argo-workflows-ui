@@ -29,14 +29,14 @@ export default function LogViewer({ workflowName, onClose }) {
   const [lines, setLines] = useState(["Loading …"]);
   const box = useRef();
 
-  /* ---------------- disable body scroll while logs are open ---------------- */
+  /* ---------------- disable body scroll while logs are open ----- */
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = originalOverflow; };
   }, []);
 
-  /* ---------------- stream log lines (with retries) ------------------------ */
+  /* ---------------- stream log lines (with retries) ------------- */
   useEffect(() => {
     let cancelled = false;
 
@@ -99,26 +99,25 @@ export default function LogViewer({ workflowName, onClose }) {
     return () => { cancelled = true; };
   }, [workflowName]);
 
-  /* ---------------- auto-scroll ---------------- */
+  /* ---------------- auto-scroll -------------------------------- */
   useEffect(() => {
     if (box.current) box.current.scrollTop = box.current.scrollHeight;
   }, [lines]);
 
-  /* ---------------- close on Escape ---------------- */
+  /* ---------------- close on Escape ----------------------------- */
   useEffect(() => {
     function handleKey(e) { if (e.key === "Escape") onClose(); }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
-  /* ---------------- render ---------------- */
+  /* ---------------- render ------------------------------------- */
   return (
     <div
+      className="log-viewer"                    /* 🆕 theme-aware styles */
       style={{
         position  : "fixed",
         inset     : 0,
-        background: "#fff",
-        color     : "#000",
         padding   : "1rem",
         overflow  : "auto",
         fontFamily: "monospace",

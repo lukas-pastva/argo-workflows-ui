@@ -7,33 +7,39 @@ html { font-size: 90%; }
 :root {
   --primary      : rgb(24, 190, 148);
   --primary-dark : #3c6cd4;
-  --danger       : #ef5654;          /* Argo CD delete red */
+  --danger       : #ef5654;        /* Argo CD delete red */
   --danger-dark  : #d64543;
+
+  /* --- neutrals that change with the theme -------------------- */
   --bg           : #f4f6f8;
-
-  /* 🆕 theme-aware tokens */
-  --card-bg      : #fff;
-  --text-color   : #000;
+  --card-bg      : #ffffff;
+  --text-color   : #000000;
+  --border-color : #cbd5e1;
 }
 
-/* --- explicit themes ------------------------------------------- */
+/* ---------- explicit theme overrides -------------------------- */
 [data-theme="light"] {
-  --bg      : #f4f6f8;
-  --card-bg : #fff;
-  --text-color: #000;
-}
-[data-theme="dark"] {
-  --bg      : #121212;
-  --card-bg : #1e1e1e;
-  --text-color: #e5e5e5;
+  --bg           : #f4f6f8;
+  --card-bg      : #ffffff;
+  --text-color   : #000000;
+  --border-color : #cbd5e1;
 }
 
-/* --- “auto” = follow OS preference ----------------------------- */
+[data-theme="dark"] {
+  /* 20 % lighter than before */
+  --bg           : #1c1c1e;
+  --card-bg      : #262628;
+  --text-color   : #f0f0f0;
+  --border-color : #333333;
+}
+
+/* ---------- “auto” = follow OS preference --------------------- */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --bg      : #121212;
-    --card-bg : #1e1e1e;
-    --text-color: #e5e5e5;
+    --bg           : #1c1c1e;
+    --card-bg      : #262628;
+    --text-color   : #f0f0f0;
+    --border-color : #333333;
   }
 }
 
@@ -77,7 +83,7 @@ body {
 }
 
 .card {
-  background   : var(--card-bg);              /* 🆕 */
+  background   : var(--card-bg);
   border-radius: 6px;
   padding      : 1.25rem 1.5rem;
   box-shadow   : 0 1px 3px rgba(0,0,0,0.08);
@@ -126,14 +132,13 @@ table.wf-table td {
   font-size : 0.9rem;
 }
 
-table.wf-table thead th { border-bottom: 2px solid #e5e7eb; }
+table.wf-table thead th { border-bottom: 2px solid var(--border-color); }
 
 table.wf-table tbody tr:nth-child(odd) { background: #fafafa; }
 table.wf-table tbody tr:hover          { background: #eef4ff; }
 
-/* dark-mode table overrides */
-[data-theme="dark"] table.wf-table tbody tr:nth-child(odd) { background: #1a1a1a; }
-[data-theme="dark"] table.wf-table tbody tr:hover          { background: #2a2a2a; }
+[data-theme="dark"] table.wf-table tbody tr:nth-child(odd) { background: #202022; }
+[data-theme="dark"] table.wf-table tbody tr:hover          { background: #2b2b2e; }
 
 table.wf-table th:last-child,
 table.wf-table td:last-child {
@@ -150,14 +155,15 @@ table.wf-table td:last-child {
   border-left : 3px solid var(--primary);
 }
 
-/* ---------------- Trigger / filter panels --------------------- */
+/* ---------------- Trigger / filter panels ---------------------- */
 .filter-panel {
   width        : 100%;
   margin       : 1rem 0;
-  border       : 1px solid #cbd5e1;
+  border       : 1px solid var(--border-color);   /* 🆕 theme-aware */
   border-radius: 6px;
-  background   : var(--card-bg);              /* 🆕 */
+  background   : var(--card-bg);                  /* dark-mode fix */
 }
+
 
 /* ---------------- Modal --------------------------------------- */
 .modal-overlay {
@@ -387,4 +393,10 @@ table.wf-table.intimate tbody tr:hover { background: #f0f4fa; }
   height        : 16px;
   border-width  : 2px;
   vertical-align: text-bottom;
+}
+
+/* ---------------- Log viewer ----------------------------------- */
+.log-viewer {                           /* 🆕 used by LogViewer.jsx */
+  background : var(--card-bg);
+  color      : var(--text-color);
 }
