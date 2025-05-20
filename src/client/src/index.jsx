@@ -1,4 +1,3 @@
-import "./styles.css";          // ⬅️  global CSS
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";

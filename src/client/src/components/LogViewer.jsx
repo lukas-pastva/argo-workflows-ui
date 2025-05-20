@@ -114,7 +114,7 @@ export default function LogViewer({ workflowName, onClose }) {
   /* ---------------- render ------------------------------------- */
   return (
     <div
-      className="log-viewer"                    /* 🆕 theme-aware styles */
+      className="fixed inset-0 z-[2000] overflow-auto bg-white p-4 font-mono dark:bg-zinc-900 dark:text-gray-200"
       style={{
         position  : "fixed",
         inset     : 0,

@@ -1,77 +1,75 @@
 import React, { useEffect, useState } from "react";
 import { listTemplates, submitWorkflow } from "../api";
-import Spinner from "./Spinner.jsx";
-import InsertConfirmModal from "./InsertConfirmModal.jsx";
+import Spinner             from "./Spinner.jsx";
+import InsertConfirmModal  from "./InsertConfirmModal.jsx";
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                           */
-/* ------------------------------------------------------------------ */
+/* -------- helpers for default parameter values ---------------- */
 function parseParameterAnnotation(ann = "") {
-  const defs = {};
-  if (!ann.trim()) return defs;
+  const out = {};
+  if (!ann.trim()) return out;
   ann.split(/\r?\n/).reduce((cur, ln) => {
     const nm = ln.match(/^[\s-]*name:\s*(\S+)/);
     if (nm) return nm[1].replace(/^var_/, "");
     const dv = ln.match(/^\s*defaultValue:\s*(.+)$/);
     if (dv && cur) {
-      defs[cur] = dv[1].trim().replace(/^['"]|['"]$/g, "");
+      out[cur] = dv[1].trim().replace(/^['"]|['"]$/g, "");
       return null;
     }
     return cur;
   }, null);
-  return defs;
+  return out;
 }
 
-function deriveVarParameterDefaults(t) {
+function deriveVarDefaults(t) {
   if (!t?.spec?.templates?.length) return {};
   const prim =
     t.spec.templates.find((x) => x.name === t.metadata.name) ||
     t.spec.templates[0];
   if (!prim?.steps) return {};
-  const out = {};
+  const obj = {};
   prim.steps.flat().forEach((s) =>
     s.arguments?.parameters?.forEach((p) => {
-      if (p.name?.startsWith("var_")) out[p.name.slice(4)] = "";
+      if (p.name?.startsWith("var_")) obj[p.name.slice(4)] = "";
     })
   );
-  return out;
+  return obj;
 }
 
 export default function WorkflowTrigger({ onError = () => {} }) {
   const [templates, setTemplates]     = useState([]);
-  const [selected, setSelected]       = useState("");
-  const [params, setParams]           = useState({});
-  const [infoMsg, setInfoMsg]         = useState("");
-  const [hideTemp, setHideTemp]       = useState(true);
-  const [description, setDescription] = useState("");
-  const [rawView, setRawView]         = useState(false);
-  const [submitting, setSubmitting]   = useState(false);
-  const [confirming, setConfirming]   = useState(false);
+  const [selected , setSelected]      = useState("");
+  const [params   , setParams]        = useState({});
+  const [info     , setInfo]          = useState("");
+  const [hideTemp , setHideTemp]      = useState(true);
+  const [desc     , setDesc]          = useState("");
+  const [rawView  , setRawView]       = useState(false);
+  const [busy     , setBusy]          = useState(false);
+  const [confirm  , setConfirm]       = useState(false);
 
-  /* -------- fetch templates ---------------------------------- */
+  /* --- load templates on mount -------------------------------- */
   useEffect(() => {
     listTemplates().then(setTemplates).catch((e) => onError(e.message));
   }, [onError]);
 
-  /* -------- rebuild params on template change ---------------- */
+  /* --- build param map on template change --------------------- */
   useEffect(() => {
     if (!selected) {
       setParams({});
-      setDescription("");
+      setDesc("");
       return;
     }
-    const tmpl = templates.find((t) => t.metadata.name === selected);
-    if (!tmpl) return;
+    const t = templates.find((x) => x.metadata.name === selected);
+    if (!t) return;
 
     const defaults = {
-      ...deriveVarParameterDefaults(tmpl),
+      ...deriveVarDefaults(t),
       ...parseParameterAnnotation(
-        tmpl.metadata.annotations?.["ui.argoproj.io/parameters"]
+        t.metadata.annotations?.["ui.argoproj.io/parameters"]
       ),
     };
 
     const map = {};
-    (tmpl.spec?.arguments?.parameters || []).forEach((pr) => {
+    (t.spec?.arguments?.parameters || []).forEach((pr) => {
       if (pr.name === "event-data") {
         if (Object.keys(defaults).length)
           map[pr.name] = JSON.stringify(defaults, null, 2);
@@ -81,91 +79,60 @@ export default function WorkflowTrigger({ onError = () => {} }) {
       }
     });
     setParams(map);
-    setDescription(
-      tmpl.metadata.annotations?.description ||
-        tmpl.metadata.annotations?.["ui.argoproj.io/description"] ||
+    setDesc(
+      t.metadata.annotations?.description ||
+        t.metadata.annotations?.["ui.argoproj.io/description"] ||
         ""
     );
   }, [selected, templates]);
 
-  /* -------- event‑data helpers ------------------------------- */
+  /* --- helpers for event-data JSON field ---------------------- */
   const parsedObj = () => {
-    try {
-      return JSON.parse(params["event-data"] || "{}");
-    } catch {
-      return {};
-    }
+    try { return JSON.parse(params["event-data"] || "{}"); }
+    catch { return {}; }
   };
   const updateObj = (obj) =>
-    setParams((pr) => ({
-      ...pr,
-      "event-data": JSON.stringify(obj, null, 2),
-    }));
+    setParams((p) => ({ ...p, "event-data": JSON.stringify(obj, null, 2) }));
 
-  const handleFieldChange = (k, v) => {
-    const o = parsedObj();
-    o[k] = v;
-    updateObj(o);
-  };
-
-  /* -------- submission flow ---------------------------------- */
-  const handleSubmitClick = () => {
-    setConfirming(true);
-  };
-
-  const doSubmit = async () => {
-    setConfirming(false);
-    setSubmitting(true);
+  /* --- submit flow -------------------------------------------- */
+  async function doSubmit() {
+    setConfirm(false);
+    setBusy(true);
     try {
       await submitWorkflow({ template: selected, parameters: params });
-      setInfoMsg("✅ Submitted!");
-      setTimeout(() => setInfoMsg(""), 3000);
+      setInfo("✔️ Submitted!");
+      setTimeout(() => setInfo(""), 3000);
     } catch (e) {
       onError(e.message);
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
-  };
+  }
 
   const visible = templates.filter(
     (t) => !(hideTemp && t.metadata.name.startsWith("template-"))
   );
 
-  /* -------- styles ------------------------------------------- */
-  const panel = { width: "50%", minWidth: 320, maxWidth: "50vw", marginLeft: 0 };
-  const formCard = {
-    border: "1px solid #cbd5e1",
-    borderRadius: 6,
-    padding: "1rem",
-    marginBottom: "0.75rem",
-  };
-  const kvRow = {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    marginBottom: "0.5rem",
-  };
-  const labelStyle = { width: 120, fontWeight: 500 };
-
+  /* ----------------------------- render ----------------------- */
   return (
     <>
-      <details className="filter-panel" style={panel}>
-        <summary className="filter-title">Insert</summary>
+      <details className="mt-2 w-full rounded border border-gray-300
+                          bg-white shadow-sm dark:border-zinc-600
+                          dark:bg-zinc-800/80">
+        <summary className="cursor-pointer px-6 py-3 font-semibold">
+          Insert
+        </summary>
 
-        <div style={{ padding: "0.75rem 1rem" }}>
-          {/* picker */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              marginBottom: "0.75rem",
-            }}
-          >
+        {/* panel body */}
+        <div className="space-y-6 px-6 py-4">
+          {/* template picker */}
+          <div className="flex items-center gap-3">
             <select
-              className="trigger-select"
               value={selected}
               onChange={(e) => setSelected(e.target.value)}
+              className="min-w-[280px] rounded border border-gray-400
+                         bg-white px-3 py-2 text-sm shadow-sm
+                         dark:border-zinc-500 dark:bg-zinc-900"
             >
               <option value="">-- choose template --</option>
               {visible.map((t) => (
@@ -173,23 +140,25 @@ export default function WorkflowTrigger({ onError = () => {} }) {
               ))}
             </select>
 
-            {selected && description && (
-              <span style={{ fontStyle: "italic", opacity: 0.7 }}>
-                {description}
+            {selected && desc && (
+              <span className="italic text-gray-600 dark:text-gray-400">
+                {desc}
               </span>
             )}
           </div>
 
-          {/* form */}
+          {/* params form */}
           {selected && (
-            <div className="trigger-form" style={formCard}>
+            <div className="space-y-4">
               {Object.keys(params)
                 .filter((n) => n !== "event-data")
                 .map((name) => (
-                  <div key={name} style={kvRow}>
-                    <label style={labelStyle}>{name}</label>
+                  <div key={name} className="flex items-center gap-3">
+                    <label className="w-32 shrink-0 font-medium">{name}</label>
                     <input
-                      style={{ flex: 1 }}
+                      className="flex-1 rounded border border-gray-400
+                                 px-3 py-1.5 text-sm shadow-sm
+                                 dark:border-zinc-500 dark:bg-zinc-900"
                       value={params[name]}
                       onChange={(e) =>
                         setParams((p) => ({ ...p, [name]: e.target.value }))
@@ -198,101 +167,86 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                   </div>
                 ))}
 
+              {/* event-data special field */}
               {params["event-data"] !== undefined && (
-                <div
-                  style={{
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 4,
-                    padding: "0.75rem",
-                    marginTop: "0.75rem",
-                    marginBottom: "0.75rem",
-                  }}
-                >
-                  <label
-                    style={{
-                      ...labelStyle,
-                      borderBottom: "1px solid #e2e8f0",
-                      paddingBottom: 4,
-                    }}
-                  >
-                    event-data
-                  </label>
-                  <button
-                    className="btn-light"
-                    style={{
-                      float: "right",
-                      marginTop: -4,
-                      fontSize: "0.8rem",
-                      padding: "0.15rem 0.5rem",
-                    }}
-                    onClick={() => setRawView((r) => !r)}
-                  >
-                    {rawView ? "Form" : "Raw"}
-                  </button>
-
-                  <div style={{ clear: "both", marginTop: rawView ? 6 : 10 }}>
-                    {rawView ? (
-                      <textarea
-                        rows={4}
-                        style={{ width: "100%" }}
-                        value={params["event-data"]}
-                        onChange={(e) =>
-                          setParams((p) => ({
-                            ...p,
-                            "event-data": e.target.value,
-                          }))
-                        }
-                      />
-                    ) : (
-                      Object.entries(parsedObj()).map(([k, v]) => (
-                        <div key={k} style={kvRow}>
-                          <label style={labelStyle}>{k}</label>
-                          <input
-                            style={{ flex: 1 }}
-                            value={v}
-                            onChange={(e) =>
-                              handleFieldChange(k, e.target.value)
-                            }
-                          />
-                        </div>
-                      ))
-                    )}
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="font-medium">event-data</label>
+                    <button
+                      className="rounded border border-gray-400 px-2 py-0.5
+                                 text-xs hover:bg-gray-100
+                                 dark:border-gray-500 dark:hover:bg-zinc-700/50"
+                      onClick={() => setRawView((v) => !v)}
+                    >
+                      {rawView ? "Form" : "Raw"}
+                    </button>
                   </div>
+
+                  {rawView ? (
+                    <textarea
+                      rows={4}
+                      className="w-full rounded border border-gray-400
+                                 px-3 py-2 text-sm font-mono shadow-sm
+                                 dark:border-zinc-500 dark:bg-zinc-900"
+                      value={params["event-data"]}
+                      onChange={(e) =>
+                        setParams((p) => ({
+                          ...p,
+                          "event-data": e.target.value,
+                        }))
+                      }
+                    />
+                  ) : (
+                    Object.entries(parsedObj()).map(([k, v]) => (
+                      <div key={k} className="mb-2 flex items-center gap-3">
+                        <label className="w-32 shrink-0">{k}</label>
+                        <input
+                          className="flex-1 rounded border border-gray-400
+                                     px-3 py-1.5 text-sm shadow-sm
+                                     dark:border-zinc-500 dark:bg-zinc-900"
+                          value={v}
+                          onChange={(e) => {
+                            const obj = parsedObj();
+                            obj[k] = e.target.value;
+                            updateObj(obj);
+                          }}
+                        />
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
 
               <button
-                className="btn"
-                disabled={submitting}
-                onClick={handleSubmitClick}
+                className="rounded bg-primary px-6 py-2 font-medium text-white
+                           hover:bg-primary/90 disabled:opacity-60"
+                disabled={busy}
+                onClick={() => setConfirm(true)}
               >
-                {submitting ? <Spinner small /> : "Insert"}
+                {busy ? <Spinner small /> : "Insert"}
               </button>
-              <span style={{ marginLeft: "0.75rem" }}>{infoMsg}</span>
+              <span className="ml-3 text-sm text-green-600">{info}</span>
             </div>
           )}
 
-          {/* toggle */}
-          <div style={{ fontSize: "0.85rem" }}>
-            <label
-              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-            >
-              <input
-                type="checkbox"
-                checked={hideTemp}
-                onChange={(e) => setHideTemp(e.target.checked)}
-              />
-              Hide <code>template-*</code> templates
-            </label>
-          </div>
+          {/* hide template-* checkbox */}
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={hideTemp}
+              onChange={(e) => setHideTemp(e.target.checked)}
+            />
+            Hide <code className="font-mono">template-*</code> templates
+          </label>
         </div>
       </details>
 
-      {confirming && (
+      {/* confirmation modal */}
+      {confirm && (
         <InsertConfirmModal
           template={selected}
           onConfirm={doSubmit}
-          onCancel={() => setConfirming(false)}
+          onCancel={() => setConfirm(false)}
         />
       )}
     </>

@@ -38,7 +38,7 @@ const shouldSkip = (k, v) => {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Local‑time helper – browser TZ, locale‑aware                      */
+/*  Local-time helper – browser TZ, locale-aware                      */
 /* ------------------------------------------------------------------ */
 function fmtLocal(ts) {
   const d = new Date(ts);
@@ -54,25 +54,17 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
   /* ---- load & persist label filters ---------------------------- */
   const [filters, setFilters] = useState(() => {
-    try {
-      const saved = localStorage.getItem("workflowFilters");
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
+    try { return JSON.parse(localStorage.getItem("workflowFilters") || "{}"); }
+    catch { return {}; }
   });
   useEffect(() => {
-    try {
-      localStorage.setItem("workflowFilters", JSON.stringify(filters));
-    } catch {
-      /* ignore */
-    }
+    localStorage.setItem("workflowFilters", JSON.stringify(filters));
   }, [filters]);
 
-  /* --- DEFAULT SORT: by start‑time (most‑recent first) ----------- */
+  /* --- DEFAULT SORT: by start-time (most-recent first) ----------- */
   const [sort, setSort] = useState({ column: "start", dir: "desc" });
 
-  /* ---------------- fetch list (auto‑refresh) ------------------- */
+  /* ---------------- fetch list (auto-refresh) ------------------- */
   useEffect(() => {
     async function fetchAll() {
       try {
@@ -105,7 +97,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         groups.get(dk).push({ fullKey: k, value: v });
       });
     });
-    /* de‑duplicate values */
+    /* de-duplicate values */
     for (const [dk, entries] of groups) {
       const seen = new Set();
       groups.set(
@@ -136,7 +128,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
   /* ------------------------------------------------------------------
       Label filtering
-      ----------------------------------------------------------------- */
+  ----------------------------------------------------------------- */
   const activePairs = Object.entries(filters)
     .filter(([, v]) => v)
     .map(([p]) => p);
@@ -154,7 +146,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
   const filteredRows = useMemo(() => {
     if (!hasActiveFilters) return rows;
-
     return rows.filter(({ wf }) => {
       const labels = wf.metadata.labels || {};
       for (const [k, values] of keyToValues) {
@@ -181,7 +172,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         return mul * a.wf.status.phase.localeCompare(b.wf.status.phase);
       default:
         if (gKey(a) !== gKey(b)) return mul * gKey(a).localeCompare(gKey(b));
-        return -sTime(a) + sTime(b); /* newest‑first inside each template */
+        return -sTime(a) + sTime(b); /* newest-first inside each template */
     }
   };
   const sortedRows = useMemo(
@@ -189,7 +180,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     [filteredRows, sort]
   );
 
-  /* ---------------- bulk‑selection helpers ---------------------- */
+  /* ---------------- bulk-selection helpers ---------------------- */
   const isRunning  = (wf) => wf.status.phase === "Running";
   const nonRunning = sortedRows.map((r) => r.wf).filter((wf) => !isRunning(wf));
   const allSel =
@@ -236,13 +227,13 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     }
   };
 
-  /* ---------------- expanded‑row helpers ------------------------ */
+  /* ---------------- expanded-row helpers ------------------------ */
   const toggleExpanded = (name, e) => {
     e.stopPropagation(); /* keep row click (logs) untouched */
     setExpanded((ex) => ({ ...ex, [name]: !ex[name] }));
   };
 
-  /* ---------------- sort‑indicator helper ----------------------- */
+  /* ---------------- sort-indicator helper ----------------------- */
   const sortIndicator = (col) =>
     sort.column === col ? (sort.dir === "asc" ? " ▲" : " ▼") : "";
 
@@ -252,237 +243,233 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     sort.column === col ? (sort.dir === "asc" ? "desc" : "asc") : "asc";
 
   return (
-    <div className="wf-container">
-      <h3 className="wf-title">List</h3>
+    <div className="w-full">
+      <h3 className="mb-4 text-lg font-semibold">List</h3>
 
-      {/* ─── Global spinner while fetching first list ───────────── */}
+      {/* global spinner while fetching first list */}
       {loading && items.length === 0 && (
-        <div style={{ textAlign: "center", padding: "2rem" }}>
+        <div className="flex justify-center py-12">
           <Spinner />
         </div>
       )}
 
-      {/* ─── Filter panel ───────────────────────────────────────── */}
-      <details className="filter-panel">
-        <summary className="filter-title">
+      {/* filter panel */}
+      <details className="mb-4 rounded border border-gray-300 bg-white shadow-sm
+                          dark:border-zinc-600 dark:bg-zinc-800/80">
+        <summary className="cursor-pointer px-4 py-3 font-semibold">
           Filters{hasActiveFilters ? " ✓" : ""}
         </summary>
 
-        {/* clear‑filters button */}
-        <button
-          className="btn-light"
-          disabled={!hasActiveFilters}
-          style={{ margin: "0.5rem 1rem" }}
-          onClick={clearFilters}
-        >
-          Clear filters
-        </button>
+        <div className="px-4 py-3">
+          <button
+            className="mb-3 rounded border border-gray-400 px-3 py-1 text-sm
+                       text-gray-700 hover:bg-gray-100
+                       disabled:opacity-50
+                       dark:border-gray-500 dark:text-gray-200
+                       dark:hover:bg-zinc-700/40"
+            disabled={!hasActiveFilters}
+            onClick={clearFilters}
+          >
+            Clear filters
+          </button>
 
-        <div className="label-filters">
-          {Array.from(labelGroups.entries()).map(([dk, entries]) => {
-            const hasSelected = entries.some(
-              ({ fullKey, value }) => filters[`${fullKey}=${value}`]
-            );
+          <div className="space-y-2">
+            {Array.from(labelGroups.entries()).map(([dk, entries]) => {
+              const hasSel = entries.some(
+                ({ fullKey, value }) => filters[`${fullKey}=${value}`]
+              );
+              return (
+                <details key={dk} className="rounded border">
+                  <summary
+                    className={`cursor-pointer px-3 py-1.5 font-medium
+                                ${hasSel ? "text-primary-dark" : ""}`}
+                  >
+                    {dk}{hasSel && " ✓"}
+                  </summary>
 
-            return (
-              <details key={dk}>
-                <summary className={hasSelected ? "selected" : ""}>{dk}</summary>
-
-                <div className="label-values">
-                  {entries.map(({ fullKey, value }) => {
-                    const pair = `${fullKey}=${value}`;
-                    return (
-                      <span
-                        key={pair}
-                        className={filters[pair] ? "selected" : ""}
-                        onClick={() =>
-                          setFilters((f) => ({ ...f, [pair]: !f[pair] }))
-                        }
-                      >
-                        {value}
-                      </span>
-                    );
-                  })}
-                </div>
-              </details>
-            );
-          })}
+                  <div className="flex flex-wrap gap-2 p-2">
+                    {entries.map(({ fullKey, value }) => {
+                      const pair = `${fullKey}=${value}`;
+                      const active = !!filters[pair];
+                      return (
+                        <span
+                          key={pair}
+                          onClick={() =>
+                            setFilters((f) => ({ ...f, [pair]: !f[pair] }))
+                          }
+                          className={`cursor-pointer rounded
+                                      px-2 py-1 text-xs
+                                      ${active
+                                        ? "bg-primary-dark text-white"
+                                        : "bg-gray-200 dark:bg-zinc-700/40"}`}
+                        >
+                          {value}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </details>
+              );
+            })}
+          </div>
         </div>
       </details>
 
-      {/* ─── Bulk‑delete button ─────────────────────────────────── */}
+      {/* bulk delete */}
       {Object.values(selected).some(Boolean) && (
-        <div style={{ margin: "0.5rem 1rem" }}>
-          <button
-            className="btn-danger"
-            onClick={() =>
-              setConfirmNames(Object.keys(selected).filter((n) => selected[n]))
-            }
-          >
-            Delete selected
-          </button>
-        </div>
+        <button
+          className="mb-2 rounded bg-red-500 px-4 py-1.5 text-sm font-medium
+                     text-white hover:bg-red-600"
+          onClick={() =>
+            setConfirmNames(Object.keys(selected).filter((n) => selected[n]))
+          }
+        >
+          Delete selected
+        </button>
       )}
 
-      {/* ─── Main table ─────────────────────────────────────────── */}
-      <table className="wf-table intimate">
-        <thead>
-          <tr>
-            <th
-              style={{ cursor: "pointer" }}
-              title="Sort by template name"
-              onClick={() =>
-                setSort({ column: "template", dir: nextDir("template") })
-              }
-            >
-              {`Template${sortIndicator("template")}`}
-            </th>
-            <th style={{ width: "4rem" }}>
-              <input type="checkbox" checked={allSel} onChange={toggleSelectAll} />
-            </th>
-            <th
-              style={{ cursor: "pointer" }}
-              onClick={() => setSort({ column: "name", dir: nextDir("name") })}
-            >
-              {`Name${sortIndicator("name")}`}
-            </th>
-            <th
-              style={{ cursor: "pointer" }}
-              onClick={() => setSort({ column: "start", dir: nextDir("start") })}
-            >
-              {`Start Time${sortIndicator("start")}`}
-            </th>
-            <th
-              style={{ cursor: "pointer" }}
-              onClick={() =>
-                setSort({ column: "status", dir: nextDir("status") })
-              }
-            >
-              {`Status${sortIndicator("status")}`}
-            </th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+      {/* main table */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-slate-300 dark:border-slate-600">
+              <th
+                className="cursor-pointer px-3 py-2"
+                title="Sort by template name"
+                onClick={() =>
+                  setSort({ column: "template", dir: nextDir("template") })
+                }
+              >
+                Template{sortIndicator("template")}
+              </th>
+              <th className="w-14 px-3 py-2">
+                <input
+                  type="checkbox"
+                  checked={allSel}
+                  onChange={toggleSelectAll}
+                />
+              </th>
+              <th
+                className="cursor-pointer px-3 py-2"
+                onClick={() => setSort({ column: "name", dir: nextDir("name") })}
+              >
+                Name{sortIndicator("name")}
+              </th>
+              <th
+                className="cursor-pointer px-3 py-2"
+                onClick={() => setSort({ column: "start", dir: nextDir("start") })}
+              >
+                Start Time{sortIndicator("start")}
+              </th>
+              <th
+                className="cursor-pointer px-3 py-2"
+                onClick={() =>
+                  setSort({ column: "status", dir: nextDir("status") })
+                }
+              >
+                Status{sortIndicator("status")}
+              </th>
+              <th className="px-3 py-2">Actions</th>
+            </tr>
+          </thead>
 
-        <tbody>
-          {sortedRows.map(({ wf, group }) => {
-            const nm     = wf.metadata.name;
-            const delOk  = !isRunning(wf);
-            const labels = wf.metadata.labels || {};
-
-            return (
-              /* ──────────────── Main workflow row ──────────────── */
-              <React.Fragment key={nm}>
-                <tr onClick={() => onShowLogs(nm)} style={{ cursor: "pointer" }}>
-                  <td
-                    className="group-col"
-                    style={{
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
+          <tbody>
+            {sortedRows.map(({ wf, group }) => {
+              const nm     = wf.metadata.name;
+              const delOk  = !isRunning(wf);
+              const labels = wf.metadata.labels || {};
+              return (
+                <React.Fragment key={nm}>
+                  <tr
+                    onClick={() => onShowLogs(nm)}
+                    className="cursor-pointer transition
+                               even:bg-slate-50 odd:bg-white
+                               hover:bg-slate-100
+                               dark:even:bg-zinc-800/40 dark:odd:bg-zinc-800/20
+                               dark:hover:bg-zinc-700/60"
                   >
-                    {group}
-                  </td>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={!!selected[nm]}
-                      disabled={!delOk}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleRow(wf);
-                      }}
-                    />
-                  </td>
-                  <td
-                    style={{
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {nm}
-                  </td>
-                  <td>{fmtLocal(wf.status.startedAt)}</td>
-                  <td>
-                    {wf.status.phase === "Failed" ? (
-                      <span className="status-pill status-failed">
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                          <line x1="12" y1="9" x2="12" y2="13" />
-                          <line x1="12" y1="17" x2="12.01" y2="17" />
-                        </svg>
-                        {wf.status.phase}
-                      </span>
-                    ) : (
-                      wf.status.phase
-                    )}
-                  </td>
-                  <td>
-                    <button
-                      className="btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onShowLogs(nm);
-                      }}
-                    >
-                      Logs
-                    </button>
-
-                    <button
-                      className="btn-light"
-                      onClick={(e) => toggleExpanded(nm, e)}
-                    >
-                      Labels
-                    </button>
-                    <button
-                      className="btn-danger"
-                      disabled={!delOk}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSingleDelete(nm);
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-
-                {/* ──────────────── Expanded label row ─────────────── */}
-                {expanded[nm] && (
-                  <tr className="tr-labels">
-                    <td colSpan={6}>
-                      <div className="wf-labels-list">
-                        {Object.entries(labels).map(([k, v]) => (
-                          <code key={k} title={k}>
-                            <strong>{trimKey(k)}</strong>=<span>{v}</span>
-                          </code>
-                        ))}
-                        {Object.keys(labels).length === 0 && (
-                          <em>No labels</em>
-                        )}
-                      </div>
+                    <td className="max-w-[200px] truncate px-3 py-2">{group}</td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="checkbox"
+                        checked={!!selected[nm]}
+                        disabled={!delOk}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleRow(wf);
+                        }}
+                      />
+                    </td>
+                    <td className="max-w-[250px] truncate px-3 py-2">{nm}</td>
+                    <td className="px-3 py-2">{fmtLocal(wf.status.startedAt)}</td>
+                    <td className="px-3 py-2">
+                      {wf.status.phase === "Failed"
+                        ? <span className="rounded bg-red-50 px-2 py-0.5 text-red-600
+                                           dark:bg-red-700/40 dark:text-red-300">
+                            {wf.status.phase}
+                          </span>
+                        : wf.status.phase}
+                    </td>
+                    <td className="space-x-2 px-3 py-2">
+                      <button
+                        className="rounded bg-primary px-3 py-0.5 text-xs text-white
+                                   hover:bg-primary/90"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onShowLogs(nm);
+                        }}
+                      >
+                        Logs
+                      </button>
+                      <button
+                        className="rounded border border-primary px-3 py-0.5
+                                   text-xs text-primary hover:bg-primary/10"
+                        onClick={(e) => toggleExpanded(nm, e)}
+                      >
+                        Labels
+                      </button>
+                      <button
+                        className="rounded bg-red-500 px-3 py-0.5 text-xs text-white
+                                   hover:bg-red-600 disabled:opacity-60"
+                        disabled={!delOk}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSingleDelete(nm);
+                        }}
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </tbody>
-      </table>
 
-      {/* ─── Confirm‑delete modal ───────────────────────────────── */}
+                  {/* expanded label row */}
+                  {expanded[nm] && (
+                    <tr className="bg-slate-50 dark:bg-zinc-800/40">
+                      <td colSpan={6} className="px-6 py-3">
+                        <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
+                          {Object.entries(labels).length === 0 && (
+                            <em className="text-gray-500">No labels</em>
+                          )}
+                          {Object.entries(labels).map(([k, v]) => (
+                            <code
+                              key={k}
+                              className="rounded bg-gray-200 px-2 py-0.5 font-mono
+                                         dark:bg-zinc-700/50"
+                            >
+                              <strong>{trimKey(k)}</strong>=<span>{v}</span>
+                            </code>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
       {confirmNames && (
         <DeleteConfirmModal
           names={confirmNames}

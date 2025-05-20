@@ -5,7 +5,16 @@
     <title>Argo Workflows – Lightweight UI</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- Tailwind CSS + dark-mode support (no build step) -->
+    <!-- Tailwind CDN – configure custom primary colour -->
+    <script>
+      tailwind = {
+        theme: {
+          extend: {
+            colors: { primary: "#18be94" }   /* same green as before */
+          }
+        }
+      };
+    </script>
     <script
       src="https://cdn.tailwindcss.com"
       integrity="sha384-OiU0YItfHk5kILUHo5x9MsbIAG8O3VZv/5jdbtInTCefMOd8MvnDHrkSfct7zzHC"
@@ -13,10 +22,10 @@
     ></script>
   </head>
 
-  <body class="bg-gray-50 dark:bg-zinc-900 text-gray-900 dark:text-gray-200">
+  <body class="bg-gray-50 text-gray-900 dark:bg-zinc-900 dark:text-gray-200">
     <div id="root"></div>
 
-    <!-- load runtime config before the app bundle -->
+    <!-- runtime config before the app bundle -->
     <script src="/env.js"></script>
     <script type="module" src="./index.jsx"></script>
   </body>
