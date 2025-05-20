@@ -19,7 +19,7 @@ COPY client/public ./public
 RUN curl -fsSL https://cdn.tailwindcss.com -o ./public/tailwind.js
 
 RUN npm install
-RUN npm run build            # → creates /app/client/dist
+RUN npm run build
 
 # ---------- 2. Build the server image ---------- #
 FROM node:20-alpine AS server
