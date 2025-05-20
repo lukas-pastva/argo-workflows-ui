@@ -1,13 +1,15 @@
 import React from "react";
 
+/**
+ * Re‑usable CSS spinner
+ *
+ * Props
+ *  – small (Boolean) : render a tiny 16 px variant (good for buttons)
+ */
 export default function Spinner({ small = false }) {
   return (
     <span
-      className={
-        `inline-block animate-spin rounded-full border-gray-300
-         border-t-4 border-t-primary
-         ${small ? "w-4 h-4 border-2" : "w-9 h-9"}`
-      }
+      className={small ? "spinner spinner-sm" : "spinner"}
       aria-label="loading"
     />
   );

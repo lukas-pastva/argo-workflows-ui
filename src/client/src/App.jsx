@@ -4,7 +4,8 @@ import WorkflowList     from "./components/WorkflowList.jsx";
 import LogViewer        from "./components/LogViewer.jsx";
 import WorkflowTrigger  from "./components/WorkflowTrigger.jsx";
 import HelpModal        from "./components/HelpModal.jsx";
-import ThemeToggle      from "./components/ThemeToggle.jsx";
+import ThemeToggle      from "./components/ThemeToggle.jsx";          // 🆕 NEW
+
 /* ------------------------------------------------------------------ */
 /*  Keep the log-viewer state in the address bar so it’s shareable    */
 /* ------------------------------------------------------------------ */
@@ -36,22 +37,23 @@ export default function App() {
   const [logWf   , setLogWf]    = useState(null);
   const [showHelp, setShowHelp] = useState(false);
 
+  /* expose log viewer state in the URL */
   useLogUrlSync(logWf, setLogWf);
+
+  /* ---------- configurable header background --------------------- */
+  const runtime  = window.__ENV__ || {};
+  const headerBg = runtime.headerBg || import.meta.env.VITE_HEADER_BG;
+  const headerStyle = headerBg ? { background: headerBg } : {};
 
   return (
     <>
-      {/* ---------- HEADER ---------- */}
-      <header className="flex items-center justify-between bg-primary px-4 py-3 text-white">
-        <h1 className="text-lg font-semibold">Argo Workflows</h1>
+      <header className="header" style={headerStyle}>
+        <h1>Argo Workflows</h1>
 
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-
-          <button
-            className="rounded border border-white/80 px-3 py-1 text-sm
-                       text-white/90 hover:bg-white/15"
-            onClick={() => setShowHelp(true)}
-          >
+        {/* right-hand controls */}
+        <div>
+          <ThemeToggle />                                              {/* 🆕 NEW */}
+          <button className="btn-light" onClick={() => setShowHelp(true)}>
             Help
           </button>
         </div>
@@ -59,22 +61,18 @@ export default function App() {
 
       <ErrorBanner message={error} onClose={() => setError("")} />
 
-      {/* ---------- CARDS ---------- */}
-      <section className="mx-auto max-w-5xl p-4">
-        <div className="rounded-lg bg-white p-6 shadow
-                        dark:bg-zinc-800/80">
-          <WorkflowTrigger onError={setError} />
-        </div>
+      <div className="card">
+        <WorkflowTrigger onError={setError} />
+      </div>
 
-        <div className="mt-6 rounded-lg bg-white p-6 shadow
-                        dark:bg-zinc-800/80">
-          <WorkflowList onShowLogs={setLogWf} onError={setError} />
-        </div>
-      </section>
+      <div className="card">
+        <WorkflowList onShowLogs={setLogWf} onError={setError} />
+      </div>
 
       {logWf && (
         <LogViewer workflowName={logWf} onClose={() => setLogWf(null)} />
       )}
+
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </>
   );
