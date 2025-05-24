@@ -1,32 +1,73 @@
 import React from "react";
 
+/* ------------------------------------------------------------------ */
+/*  Handy wrapper for one help row (icon + text)                      */
+/* ------------------------------------------------------------------ */
+function HelpItem({ icon, children }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: "0.75rem",
+        marginBottom: "1rem",
+      }}
+    >
+      <span
+        style={{
+          fontSize: "1.5rem",
+          lineHeight: 1,
+          width: "1.75rem",
+          textAlign: "center",
+        }}
+        aria-hidden="true"
+      >
+        {icon}
+      </span>
+      <p style={{ margin: 0, lineHeight: 1.4 }}>{children}</p>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Modal                                                              */
+/* ------------------------------------------------------------------ */
 export default function HelpModal({ onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-dialog"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: 640 }}
+      >
         <button className="modal-close" onClick={onClose} aria-label="close">
           ×
         </button>
 
-        <h2>How to use Argo Workflows UI</h2>
+        <h2 style={{ marginBottom: "1.25rem" }}>Quick guide</h2>
 
-        <p>
-          <strong>Trigger a workflow :</strong> Pick a template, fill in the
-          parameters and hit <em>Submit</em>. The special{" "}
-          <code>event-data</code> parameter is pre-filled with a JSON
-          placeholder for convenience.
-        </p>
+        <HelpItem icon="📤">
+          <strong>Trigger a workflow&nbsp;–</strong> Pick a template, fill in the
+          parameters and hit <em>Insert</em>. The special{" "}
+          <code>event-data</code> field comes pre-filled with a JSON placeholder.
+        </HelpItem>
 
-        <p>
-          <strong>Follow runs :</strong> New or running workflows appear in the
-          list below, grouped by their template reference. The list refreshes
-          every 10 seconds.
-        </p>
+        <HelpItem icon="🔄">
+          <strong>Follow runs&nbsp;–</strong> New or running workflows appear in
+          the list automatically; the table refreshes every&nbsp;10&nbsp;seconds.
+        </HelpItem>
 
-        <p>
-          <strong>Logs :</strong> Click&nbsp;<em>Logs</em>&nbsp;to open a
-          full-screen, auto-scrolling viewer for a workflow run.
-        </p>
+        <HelpItem icon="📜">
+          <strong>View logs&nbsp;–</strong> Click <em>Logs</em> to open a
+          full-screen, auto-scrolling log viewer. ANSI colours are preserved and
+          stay readable in both themes.
+        </HelpItem>
+
+        <HelpItem icon="🌓">
+          <strong>Switch theme&nbsp;–</strong> Use the moon/sun button in the
+          header to cycle&nbsp;through <em>auto → light → dark</em>. “Auto”
+          follows your local daytime (light 7-19 h, dark otherwise).
+        </HelpItem>
       </div>
     </div>
   );
