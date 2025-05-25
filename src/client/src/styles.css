@@ -15,6 +15,7 @@ html { font-size: 90%; }
   /* neutrals that switch with the theme */
   --bg           : #f4f6f8;          /* page background */
   --card-bg      : #ffffff;          /* panels / cards / tables / modals */
+  --log-bg       : #f9fafb;          /* 🆕 slightly grey log viewer bg     */
   --text-color   : #000000;
   --border-color : #cbd5e1;          /* faint borders & dividers */
 
@@ -33,6 +34,7 @@ html { font-size: 90%; }
 [data-theme="light"] {
   --bg           : #f4f6f8;
   --card-bg      : #ffffff;
+  --log-bg       : #f9fafb;          /* same grey as default light        */
   --text-color   : #000000;
   --border-color : #cbd5e1;
 
@@ -49,6 +51,7 @@ html { font-size: 90%; }
   /* slightly brighter than previous iteration */
   --bg           : #232326;
   --card-bg      : #2e2e31;
+  --log-bg       : #2e2e31;          /* same as card bg for dark theme    */
   --text-color   : #ebebeb;
   --border-color : #3d3d3f;
 
@@ -57,7 +60,7 @@ html { font-size: 90%; }
   --row-hover-intimate  : #3a3a3d;
   --labels-row-bg       : #303033;
 
-  --ansi-black-fg : #e5e5e5;   /* map “black” → light gray on dark bg */
+  --ansi-black-fg : #e5e5e5;         /* map “black” → light-gray on dark  */
   --ansi-white-fg : #ffffff;
 }
 
@@ -66,6 +69,7 @@ html { font-size: 90%; }
   :root:not([data-theme]) {
     --bg           : #232326;
     --card-bg      : #2e2e31;
+    --log-bg       : #2e2e31;
     --text-color   : #ebebeb;
     --border-color : #3d3d3f;
 
@@ -428,7 +432,7 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
 
 /* ---------------- Log viewer ----------------------------------- */
 .log-viewer {
-  background: var(--card-bg);
+  background: var(--log-bg);          /* 🆕 uses dedicated log background */
   color     : var(--text-color);
 }
 
