@@ -9,12 +9,13 @@ html { font-size: 90%; }
   --primary      : rgb(24, 190, 148);
   --primary-dark : #3c6cd4;
 
-  --danger       : #ef5654;          /* Argo CD delete red */
+  --danger       : #ef5654;          /* Argo CD delete-red */
   --danger-dark  : #d64543;
 
   /* neutrals that switch with the theme */
   --bg           : #f4f6f8;          /* page background */
   --card-bg      : #ffffff;          /* panels / cards / tables / modals */
+  --log-bg       : #f9fafb;          /* 🆕 slightly grey log viewer bg     */
   --text-color   : #000000;
   --border-color : #cbd5e1;          /* faint borders & dividers */
 
@@ -23,12 +24,17 @@ html { font-size: 90%; }
   --row-hover-bg        : #eef4ff;
   --row-hover-intimate  : #f0f4fa;
   --labels-row-bg       : #f9fbff;
+
+  /* ANSI palette overrides for log viewer (light theme) */
+  --ansi-black-fg : #000000;  /* map “black” to black on light bg    */
+  --ansi-white-fg : #000000;  /* map “white” to black on light bg    */
 }
 
 /* ---------- Explicit theme overrides -------------------------- */
 [data-theme="light"] {
   --bg           : #f4f6f8;
   --card-bg      : #ffffff;
+  --log-bg       : #f9fafb;          /* same grey as default light        */
   --text-color   : #000000;
   --border-color : #cbd5e1;
 
@@ -36,12 +42,16 @@ html { font-size: 90%; }
   --row-hover-bg        : #eef4ff;
   --row-hover-intimate  : #f0f4fa;
   --labels-row-bg       : #f9fbff;
+
+  --ansi-black-fg : #000000;
+  --ansi-white-fg : #000000;
 }
 
 [data-theme="dark"] {
   /* slightly brighter than previous iteration */
   --bg           : #232326;
   --card-bg      : #2e2e31;
+  --log-bg       : #2e2e31;          /* same as card bg for dark theme    */
   --text-color   : #ebebeb;
   --border-color : #3d3d3f;
 
@@ -49,6 +59,9 @@ html { font-size: 90%; }
   --row-hover-bg        : #353538;
   --row-hover-intimate  : #3a3a3d;
   --labels-row-bg       : #303033;
+
+  --ansi-black-fg : #e5e5e5;         /* map “black” → light-gray on dark  */
+  --ansi-white-fg : #ffffff;
 }
 
 /* ---------- “auto” = follow OS preference --------------------- */
@@ -56,6 +69,7 @@ html { font-size: 90%; }
   :root:not([data-theme]) {
     --bg           : #232326;
     --card-bg      : #2e2e31;
+    --log-bg       : #2e2e31;
     --text-color   : #ebebeb;
     --border-color : #3d3d3f;
 
@@ -63,6 +77,9 @@ html { font-size: 90%; }
     --row-hover-bg        : #353538;
     --row-hover-intimate  : #3a3a3d;
     --labels-row-bg       : #303033;
+
+    --ansi-black-fg : #e5e5e5;
+    --ansi-white-fg : #ffffff;
   }
 }
 
@@ -265,9 +282,9 @@ table.wf-table td:last-child {
 .label-filters details[open] summary::before { content: "Collapse"; }
 
 .label-filters details summary.selected::after {
-  content: "✓";
-  margin-left: 0.35rem;
-  color: var(--primary-dark);
+  content      : "✓";
+  margin-left  : 0.35rem;
+  color        : var(--primary-dark);
   pointer-events: none;
 }
 .label-filters details summary.selected { color: var(--primary-dark); }
@@ -415,6 +432,16 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
 
 /* ---------------- Log viewer ----------------------------------- */
 .log-viewer {
-  background: var(--card-bg);
+  background: var(--log-bg);          /* 🆕 uses dedicated log background */
   color     : var(--text-color);
+}
+
+/* ---------- ANSI colour overrides for log viewer --------------- */
+.log-viewer .ansi-black-fg,
+.log-viewer .ansi-bright-black-fg {
+  color: var(--ansi-black-fg) !important;
+}
+.log-viewer .ansi-white-fg,
+.log-viewer .ansi-bright-white-fg {
+  color: var(--ansi-white-fg) !important;
 }

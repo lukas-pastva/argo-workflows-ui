@@ -29,14 +29,14 @@ export default function LogViewer({ workflowName, onClose }) {
   const [lines, setLines] = useState(["Loading …"]);
   const box = useRef();
 
-  /* ---------------- disable body scroll while logs are open ----- */
+  /* ───── Disable body scroll while logs are open ─────────────────── */
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = originalOverflow; };
   }, []);
 
-  /* ---------------- stream log lines (with retries) ------------- */
+  /* ───── Stream log lines (with retries) ─────────────────────────── */
   useEffect(() => {
     let cancelled = false;
 
@@ -57,9 +57,7 @@ export default function LogViewer({ workflowName, onClose }) {
 
         /* clear placeholder if still present */
         setLines((prev) =>
-          prev.length === 1 && prev[0].startsWith("Loading")
-            ? []
-            : prev
+          prev.length === 1 && prev[0].startsWith("Loading") ? [] : prev
         );
 
         while (!cancelled) {
@@ -82,7 +80,9 @@ export default function LogViewer({ workflowName, onClose }) {
         if (attempt < MAX_RETRIES) {
           setLines((prev) => [
             ...prev,
-            `⚠️ ${e.message || "Failed to load logs"}. Retrying in ${RETRY_DELAY_MS / 1000}s …`,
+            `⚠️ ${e.message || "Failed to load logs"}. Retrying in ${
+              RETRY_DELAY_MS / 1000
+            } s …`,
           ]);
           setTimeout(() => openStream(attempt + 1), RETRY_DELAY_MS);
         } else {
@@ -96,33 +96,37 @@ export default function LogViewer({ workflowName, onClose }) {
 
     openStream();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [workflowName]);
 
-  /* ---------------- auto-scroll -------------------------------- */
+  /* ───── Auto-scroll ─────────────────────────────────────────────── */
   useEffect(() => {
     if (box.current) box.current.scrollTop = box.current.scrollHeight;
   }, [lines]);
 
-  /* ---------------- close on Escape ----------------------------- */
+  /* ───── Close on Escape ─────────────────────────────────────────── */
   useEffect(() => {
-    function handleKey(e) { if (e.key === "Escape") onClose(); }
+    function handleKey(e) {
+      if (e.key === "Escape") onClose();
+    }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
-  /* ---------------- render ------------------------------------- */
+  /* ───── Render ──────────────────────────────────────────────────── */
   return (
     <div
-      className="log-viewer"                    /* 🆕 theme-aware styles */
+      className="log-viewer"
       style={{
-        position  : "fixed",
-        inset     : 0,
-        padding   : "1rem",
-        overflow  : "auto",
+        position: "fixed",
+        inset: 0,
+        padding: "1rem",
+        overflow: "auto",
         fontFamily: "monospace",
         whiteSpace: "pre-wrap",
-        zIndex    : 2000,
+        zIndex: 2000,
       }}
       ref={box}
     >
@@ -137,8 +141,9 @@ export default function LogViewer({ workflowName, onClose }) {
       <h3 style={{ marginTop: 0 }}>Logs – {workflowName}</h3>
 
       {lines.map((l, i) => (
+        /* useClasses ⇒ ANSI colours become CSS classes we control   */
         <div key={i}>
-          <Ansi>{l}</Ansi>
+          <Ansi useClasses>{l}</Ansi>
         </div>
       ))}
     </div>
