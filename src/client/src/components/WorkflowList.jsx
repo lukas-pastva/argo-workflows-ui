@@ -4,8 +4,9 @@ import {
   deleteWorkflow,
   deleteWorkflows,
 } from "../api";
-import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
-import Spinner            from "./Spinner.jsx";
+import DeleteConfirmModal   from "./DeleteConfirmModal.jsx";
+import FailureReasonModal   from "./FailureReasonModal.jsx";
+import Spinner              from "./Spinner.jsx";
 
 /* ------------------------------------------------------------------ */
 /*  Runtime env                                                       */
@@ -51,6 +52,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [selected, setSelected]         = useState({});
   const [confirmNames, setConfirmNames] = useState(null);
   const [expanded, setExpanded]         = useState({});
+  const [reasonModal, setReasonModal]   = useState(null);
 
   /* ---- load & persist label filters ---------------------------- */
   const [filters, setFilters] = useState(() => {
@@ -180,7 +182,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       case "status":
         return mul * a.wf.status.phase.localeCompare(b.wf.status.phase);
       default:
-        if (gKey(a) !== gKey(b)) return mul * gKey(a).localeCompare(gKey(b));
+        if (gKey(a) !== gKey(b)) return mul * gKey(a).localeCompare(bKey);
         return -sTime(a) + sTime(b); /* newest-first inside each template */
     }
   };
@@ -354,11 +356,11 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             <th
               style={{ cursor: "pointer" }}
               onClick={() =>
-                setSort({ column: "status", dir: nextDir("status") })}
+                setSort({ column: "status", dir: nextDir("status") })
+              }
             >
               {`Status${sortIndicator("status")}`}
             </th>
-            <th>Reason</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -369,11 +371,10 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             const delOk  = !isRunning(wf);
             const labels = wf.metadata.labels || {};
 
-            /* grab a human-readable reason, if any */
-            const reason =
+            const failureMsg =
               wf.status?.message ||
               wf.status?.conditions?.find((c) => c.type === "Failed")?.message ||
-              "—";
+              "No reason recorded";
 
             return (
               /* ──────────────── Main workflow row ──────────────── */
@@ -412,7 +413,16 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                   <td>{fmtLocal(wf.status.startedAt)}</td>
                   <td>
                     {wf.status.phase === "Failed" ? (
-                      <span className="status-pill status-failed">
+                      <span
+                        className="status-pill status-failed"
+                        style={{ cursor: "pointer" }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReasonModal({ name: nm, reason: failureMsg });
+                        }}
+                        title="Click to view failure reason"
+                      >
+                        {/* little warning icon */}
                         <svg
                           width="12"
                           height="12"
@@ -433,17 +443,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     ) : (
                       wf.status.phase
                     )}
-                  </td>
-                  <td
-                    style={{
-                      maxWidth: 240,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                    title={reason}
-                  >
-                    {reason}
                   </td>
                   <td>
                     <button
@@ -478,7 +477,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                 {/* ──────────────── Expanded label row ─────────────── */}
                 {expanded[nm] && (
                   <tr className="tr-labels">
-                    <td colSpan={7}>
+                    <td colSpan={6}>
                       <div className="wf-labels-list">
                         {Object.entries(labels).map(([k, v]) => (
                           <code key={k} title={k}>
@@ -504,6 +503,15 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           names={confirmNames}
           onConfirm={handleBatchDelete}
           onCancel={() => setConfirmNames(null)}
+        />
+      )}
+
+      {/* ─── Failure-reason modal ───────────────────────────────── */}
+      {reasonModal && (
+        <FailureReasonModal
+          name={reasonModal.name}
+          reason={reasonModal.reason}
+          onClose={() => setReasonModal(null)}
         />
       )}
     </div>
