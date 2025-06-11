@@ -38,7 +38,7 @@ const shouldSkip = (k, v) => {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Local‑time helper – browser TZ, locale‑aware                      */
+/*  Local-time helper – browser TZ, locale-aware                      */
 /* ------------------------------------------------------------------ */
 function fmtLocal(ts) {
   const d = new Date(ts);
@@ -69,10 +69,10 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     }
   }, [filters]);
 
-  /* --- DEFAULT SORT: by start‑time (most‑recent first) ----------- */
+  /* --- DEFAULT SORT: by start-time (most-recent first) ----------- */
   const [sort, setSort] = useState({ column: "start", dir: "desc" });
 
-  /* ---------------- fetch list (auto‑refresh) ------------------- */
+  /* ---------------- fetch list (auto-refresh) ------------------- */
   useEffect(() => {
     async function fetchAll() {
       try {
@@ -105,7 +105,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         groups.get(dk).push({ fullKey: k, value: v });
       });
     });
-    /* de‑duplicate values */
+    /* de-duplicate values */
     for (const [dk, entries] of groups) {
       const seen = new Set();
       groups.set(
@@ -181,7 +181,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         return mul * a.wf.status.phase.localeCompare(b.wf.status.phase);
       default:
         if (gKey(a) !== gKey(b)) return mul * gKey(a).localeCompare(gKey(b));
-        return -sTime(a) + sTime(b); /* newest‑first inside each template */
+        return -sTime(a) + sTime(b); /* newest-first inside each template */
     }
   };
   const sortedRows = useMemo(
@@ -189,7 +189,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     [filteredRows, sort]
   );
 
-  /* ---------------- bulk‑selection helpers ---------------------- */
+  /* ---------------- bulk-selection helpers ---------------------- */
   const isRunning  = (wf) => wf.status.phase === "Running";
   const nonRunning = sortedRows.map((r) => r.wf).filter((wf) => !isRunning(wf));
   const allSel =
@@ -236,13 +236,13 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     }
   };
 
-  /* ---------------- expanded‑row helpers ------------------------ */
+  /* ---------------- expanded-row helpers ------------------------ */
   const toggleExpanded = (name, e) => {
     e.stopPropagation(); /* keep row click (logs) untouched */
     setExpanded((ex) => ({ ...ex, [name]: !ex[name] }));
   };
 
-  /* ---------------- sort‑indicator helper ----------------------- */
+  /* ---------------- sort-indicator helper ----------------------- */
   const sortIndicator = (col) =>
     sort.column === col ? (sort.dir === "asc" ? " ▲" : " ▼") : "";
 
@@ -268,7 +268,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           Filters{hasActiveFilters ? " ✓" : ""}
         </summary>
 
-        {/* clear‑filters button */}
+        {/* clear-filters button */}
         <button
           className="btn-light"
           disabled={!hasActiveFilters}
@@ -296,8 +296,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                         key={pair}
                         className={filters[pair] ? "selected" : ""}
                         onClick={() =>
-                          setFilters((f) => ({ ...f, [pair]: !f[pair] }))
-                        }
+                          setFilters((f) => ({ ...f, [pair]: !f[pair] }))}
                       >
                         {value}
                       </span>
@@ -310,7 +309,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       </details>
 
-      {/* ─── Bulk‑delete button ─────────────────────────────────── */}
+      {/* ─── Bulk-delete button ─────────────────────────────────── */}
       {Object.values(selected).some(Boolean) && (
         <div style={{ margin: "0.5rem 1rem" }}>
           <button
@@ -350,16 +349,16 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
               style={{ cursor: "pointer" }}
               onClick={() => setSort({ column: "start", dir: nextDir("start") })}
             >
-              {`Start Time${sortIndicator("start")}`}
+              {`Start Time${sortIndicator("start")}`}
             </th>
             <th
               style={{ cursor: "pointer" }}
               onClick={() =>
-                setSort({ column: "status", dir: nextDir("status") })
-              }
+                setSort({ column: "status", dir: nextDir("status") })}
             >
               {`Status${sortIndicator("status")}`}
             </th>
+            <th>Reason</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -369,6 +368,12 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             const nm     = wf.metadata.name;
             const delOk  = !isRunning(wf);
             const labels = wf.metadata.labels || {};
+
+            /* grab a human-readable reason, if any */
+            const reason =
+              wf.status?.message ||
+              wf.status?.conditions?.find((c) => c.type === "Failed")?.message ||
+              "—";
 
             return (
               /* ──────────────── Main workflow row ──────────────── */
@@ -429,6 +434,17 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                       wf.status.phase
                     )}
                   </td>
+                  <td
+                    style={{
+                      maxWidth: 240,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                    title={reason}
+                  >
+                    {reason}
+                  </td>
                   <td>
                     <button
                       className="btn"
@@ -462,7 +478,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                 {/* ──────────────── Expanded label row ─────────────── */}
                 {expanded[nm] && (
                   <tr className="tr-labels">
-                    <td colSpan={6}>
+                    <td colSpan={7}>
                       <div className="wf-labels-list">
                         {Object.entries(labels).map(([k, v]) => (
                           <code key={k} title={k}>
@@ -482,7 +498,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </tbody>
       </table>
 
-      {/* ─── Confirm‑delete modal ───────────────────────────────── */}
+      {/* ─── Confirm-delete modal ───────────────────────────────── */}
       {confirmNames && (
         <DeleteConfirmModal
           names={confirmNames}
