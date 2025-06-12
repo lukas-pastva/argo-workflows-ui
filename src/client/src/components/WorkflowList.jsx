@@ -39,7 +39,7 @@ const shouldSkip = (k, v) => {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Local-time helper – browser TZ, locale-aware                      */
+/*  Local-time helper – browser TZ, locale-aware                       */
 /* ------------------------------------------------------------------ */
 function fmtLocal(ts) {
   const d = new Date(ts);
@@ -182,7 +182,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       case "status":
         return mul * a.wf.status.phase.localeCompare(b.wf.status.phase);
       default:
-        if (gKey(a) !== gKey(b)) return mul * gKey(a).localeCompare(bKey);
+        if (gKey(a) !== gKey(b)) return mul * gKey(a).localeCompare(gKey(b));
         return -sTime(a) + sTime(b); /* newest-first inside each template */
     }
   };
@@ -411,6 +411,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     {nm}
                   </td>
                   <td>{fmtLocal(wf.status.startedAt)}</td>
+
+                  {/* ─── NEW: icon-only status pills ─────────────── */}
                   <td>
                     {wf.status.phase === "Failed" ? (
                       <span
@@ -420,9 +422,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                           e.stopPropagation();
                           setReasonModal({ name: nm, reason: failureMsg });
                         }}
-                        title="Click to view failure reason"
+                        title="Failed – click to view reason"
                       >
-                        {/* little warning icon */}
                         <svg
                           width="12"
                           height="12"
@@ -438,12 +439,31 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                           <line x1="12" y1="9" x2="12" y2="13" />
                           <line x1="12" y1="17" x2="12.01" y2="17" />
                         </svg>
-                        {wf.status.phase}
+                      </span>
+                    ) : wf.status.phase === "Succeeded" ? (
+                      <span
+                        className="status-pill status-succeeded"
+                        title="Succeeded"
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
                       </span>
                     ) : (
                       wf.status.phase
                     )}
                   </td>
+
                   <td>
                     <button
                       className="btn"

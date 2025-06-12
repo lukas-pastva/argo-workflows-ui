@@ -445,3 +445,29 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
 .log-viewer .ansi-bright-white-fg {
   color: var(--ansi-white-fg) !important;
 }
+
+/* ---------------- Status pills --------------------------------- */
+.status-pill {
+  display      : inline-flex;
+  align-items  : center;
+  justify-content: center;   /* center single icon */
+  padding      : 0.25rem;
+  border-radius: 12px;
+  font-size    : 0.85rem;
+  font-weight  : 600;
+}
+
+.status-failed {
+  background: #ffe5e5;
+  color     : #d64543;
+  border    : 1px solid #f5a8a8;
+}
+
+/* ✅ NEW: icon-only pill for succeeded runs */
+.status-succeeded {
+  background: #e7f9ed;
+  color     : #18be94;
+  border    : 1px solid #a7e3c5;
+}
+
+/* …rest of the file unchanged… */
