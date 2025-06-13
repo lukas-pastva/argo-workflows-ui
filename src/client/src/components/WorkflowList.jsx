@@ -39,7 +39,7 @@ const shouldSkip = (k, v) => {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Local-time helper – browser TZ, locale-aware                       */
+/*  Local-time helper – browser TZ, locale-aware                      */
 /* ------------------------------------------------------------------ */
 function fmtLocal(ts) {
   const d = new Date(ts);
@@ -71,10 +71,10 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     }
   }, [filters]);
 
-  /* --- DEFAULT SORT: by start-time (most-recent first) ----------- */
+  /* --- DEFAULT SORT: by start-time (most-recent first) ---------- */
   const [sort, setSort] = useState({ column: "start", dir: "desc" });
 
-  /* ---------------- fetch list (auto-refresh) ------------------- */
+  /* ---------------- fetch list (auto-refresh) ------------------ */
   useEffect(() => {
     async function fetchAll() {
       try {
@@ -95,7 +95,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     return () => clearInterval(id);
   }, [onError]);
 
-  /* ---------------- build label filter groups ------------------- */
+  /* ---------------- build label filter groups ------------------ */
   const labelGroups = useMemo(() => {
     const groups = new Map();
     items.forEach((wf) => {
@@ -123,7 +123,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     return groups;
   }, [items]);
 
-  /* ---------------- flatten rows -------------------------------- */
+  /* ---------------- flatten rows ------------------------------- */
   const rows = useMemo(
     () =>
       items.map((wf) => ({
@@ -167,7 +167,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     });
   }, [rows, keyToValues, hasActiveFilters]);
 
-  /* ---------------- sorting ------------------------------------- */
+  /* ---------------- sorting ------------------------------------ */
   const comparator = (a, b) => {
     const { column, dir } = sort;
     const mul  = dir === "asc" ? 1 : -1;
@@ -191,7 +191,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     [filteredRows, sort]
   );
 
-  /* ---------------- bulk-selection helpers ---------------------- */
+  /* ---------------- bulk-selection helpers --------------------- */
   const isRunning  = (wf) => wf.status.phase === "Running";
   const nonRunning = sortedRows.map((r) => r.wf).filter((wf) => !isRunning(wf));
   const allSel =
@@ -216,7 +216,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     });
   };
 
-  /* ---------------- delete helpers ------------------------------ */
+  /* ---------------- delete helpers ----------------------------- */
   const handleSingleDelete = async (name) => {
     if (!window.confirm(`Delete workflow “${name}”?`)) return;
     try {
@@ -238,17 +238,17 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     }
   };
 
-  /* ---------------- expanded-row helpers ------------------------ */
+  /* ---------------- expanded-row helpers ----------------------- */
   const toggleExpanded = (name, e) => {
     e.stopPropagation(); /* keep row click (logs) untouched */
     setExpanded((ex) => ({ ...ex, [name]: !ex[name] }));
   };
 
-  /* ---------------- sort-indicator helper ----------------------- */
+  /* ---------------- sort-indicator helper ---------------------- */
   const sortIndicator = (col) =>
     sort.column === col ? (sort.dir === "asc" ? " ▲" : " ▼") : "";
 
-  /* ---------------- render -------------------------------------- */
+  /* ---------------- render ------------------------------------- */
   const clearFilters = () => setFilters({});
   const nextDir = (col) =>
     sort.column === col ? (sort.dir === "asc" ? "desc" : "asc") : "asc";
@@ -311,7 +311,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       </details>
 
-      {/* ─── Bulk-delete button ─────────────────────────────────── */}
+      {/* ─── Bulk-delete button ────────────────────────────────── */}
       {Object.values(selected).some(Boolean) && (
         <div style={{ margin: "0.5rem 1rem" }}>
           <button
@@ -325,7 +325,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       )}
 
-      {/* ─── Main table ─────────────────────────────────────────── */}
+      {/* ─── Main table ────────────────────────────────────────── */}
       <table className="wf-table intimate">
         <thead>
           <tr>
@@ -377,7 +377,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
               "No reason recorded";
 
             return (
-              /* ──────────────── Main workflow row ──────────────── */
+              /* ─────────────── Main workflow row ─────────────── */
               <React.Fragment key={nm}>
                 <tr onClick={() => onShowLogs(nm)} style={{ cursor: "pointer" }}>
                   <td
@@ -412,7 +412,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                   </td>
                   <td>{fmtLocal(wf.status.startedAt)}</td>
 
-                  {/* ─── Status pills with icons ─────────────── */}
+                  {/* ─── Status pill (unchanged) ───────────────── */}
                   <td>
                     {wf.status.phase === "Failed" ? (
                       <span
@@ -424,7 +424,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                         }}
                         title="Failed – click to view reason"
                       >
-                        {/* alert-triangle icon */}
                         <svg
                           width="12"
                           height="12"
@@ -446,7 +445,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                         className="status-pill status-succeeded"
                         title="Succeeded"
                       >
-                        {/* check icon */}
                         <svg
                           width="12"
                           height="12"
@@ -466,20 +464,21 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     )}
                   </td>
 
+                  {/* ─── NEW: icon-only action buttons ─────────── */}
                   <td>
-                    {/* ─── Logs button: icon only ────────────── */}
+                    {/* Logs */}
                     <button
                       className="btn"
-                      title="Logs"
+                      aria-label="Logs"
+                      style={{ padding: "0.35rem" }}
                       onClick={(e) => {
                         e.stopPropagation();
                         onShowLogs(nm);
                       }}
                     >
-                      {/* file-text icon */}
                       <svg
-                        width="14"
-                        height="14"
+                        width="16"
+                        height="16"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -488,23 +487,22 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                         strokeLinejoin="round"
                         aria-hidden="true"
                       >
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8l-6-6z" />
-                        <line x1="9" y1="15" x2="15" y2="15" />
-                        <line x1="9" y1="19" x2="15" y2="19" />
-                        <line x1="9" y1="11" x2="13" y2="11" />
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16l4-4h6a2 2 0 0 0 2-2V2z" />
+                        <line x1="9" y1="9" x2="13" y2="9" />
+                        <line x1="9" y1="13" x2="13" y2="13" />
                       </svg>
                     </button>
 
-                    {/* ─── Labels button: icon only ─────────── */}
+                    {/* Labels */}
                     <button
                       className="btn-light"
-                      title="Labels"
+                      aria-label="Labels"
+                      style={{ padding: "0.35rem" }}
                       onClick={(e) => toggleExpanded(nm, e)}
                     >
-                      {/* tag icon */}
                       <svg
-                        width="14"
-                        height="14"
+                        width="16"
+                        height="16"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -513,25 +511,25 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                         strokeLinejoin="round"
                         aria-hidden="true"
                       >
-                        <path d="M20 12l-8-8H4v8l8 8 8-8z" />
-                        <line x1="7" y1="7" x2="7.01" y2="7" />
+                        <path d="M20.59 13.41L11 4 4 11l9.59 9.59a2 2 0 0 0 2.82 0l4.18-4.18a2 2 0 0 0 0-2.82z" />
+                        <line x1="7" y1="10" x2="7" y2="10" />
                       </svg>
                     </button>
 
-                    {/* ─── Delete button: icon only ─────────── */}
+                    {/* Delete */}
                     <button
                       className="btn-danger"
-                      title="Delete"
+                      aria-label="Delete"
+                      style={{ padding: "0.35rem" }}
                       disabled={!delOk}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSingleDelete(nm);
                       }}
                     >
-                      {/* trash icon */}
                       <svg
-                        width="14"
-                        height="14"
+                        width="16"
+                        height="16"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -541,16 +539,16 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                         aria-hidden="true"
                       >
                         <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6l-1.4 12.5A2 2 0 0 1 15.6 21H8.4a2 2 0 0 1-2-2.5L5 6" />
-                        <path d="M10 11v6" />
-                        <path d="M14 11v6" />
-                        <path d="M15 4l-1-1h-4l-1 1H5v2h14V4z" />
+                        <path d="M19 6l-2 14H7L5 6" />
+                        <line x1="10" y1="11" x2="10" y2="17" />
+                        <line x1="14" y1="11" x2="14" y2="17" />
+                        <path d="M5 6V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
                       </svg>
                     </button>
                   </td>
                 </tr>
 
-                {/* ──────────────── Expanded label row ─────────────── */}
+                {/* ─────────────── Expanded label row ─────────────── */}
                 {expanded[nm] && (
                   <tr className="tr-labels">
                     <td colSpan={6}>
@@ -573,7 +571,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </tbody>
       </table>
 
-      {/* ─── Confirm-delete modal ───────────────────────────────── */}
+      {/* ─── Confirm-delete modal ──────────────────────────────── */}
       {confirmNames && (
         <DeleteConfirmModal
           names={confirmNames}
@@ -582,7 +580,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         />
       )}
 
-      {/* ─── Failure-reason modal ───────────────────────────────── */}
+      {/* ─── Failure-reason modal ──────────────────────────────── */}
       {reasonModal && (
         <FailureReasonModal
           name={reasonModal.name}
