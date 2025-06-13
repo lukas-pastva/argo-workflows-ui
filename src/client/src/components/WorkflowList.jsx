@@ -74,7 +74,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   /* --- DEFAULT SORT: by start-time (most-recent first) ---------- */
   const [sort, setSort] = useState({ column: "start", dir: "desc" });
 
-  /* ---------------- fetch list (auto-refresh) ------------------ */
+  /* ---------------- fetch list (auto-refresh) ------------------- */
   useEffect(() => {
     async function fetchAll() {
       try {
@@ -123,7 +123,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     return groups;
   }, [items]);
 
-  /* ---------------- flatten rows ------------------------------- */
+  /* ---------------- flatten rows -------------------------------- */
   const rows = useMemo(
     () =>
       items.map((wf) => ({
@@ -464,12 +464,13 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     )}
                   </td>
 
-                  {/* ─── NEW: icon-only action buttons ─────────── */}
+                  {/* ─── Icon-only action buttons with tooltips ─── */}
                   <td>
                     {/* Logs */}
                     <button
                       className="btn"
                       aria-label="Logs"
+                      title="Logs"
                       style={{ padding: "0.35rem" }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -497,6 +498,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     <button
                       className="btn-light"
                       aria-label="Labels"
+                      title="Labels"
                       style={{ padding: "0.35rem" }}
                       onClick={(e) => toggleExpanded(nm, e)}
                     >
@@ -520,6 +522,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     <button
                       className="btn-danger"
                       aria-label="Delete"
+                      title="Delete"
                       style={{ padding: "0.35rem" }}
                       disabled={!delOk}
                       onClick={(e) => {
