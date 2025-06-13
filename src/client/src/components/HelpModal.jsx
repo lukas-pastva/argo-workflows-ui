@@ -58,7 +58,7 @@ export default function HelpModal({ onClose }) {
         </HelpItem>
 
         <HelpItem icon="📜">
-          <strong>View logs&nbsp;–</strong> Click <em>Logs</em> to open a
+          <strong>View logs&nbsp;–</strong> Click the <em>log icon</em> to open a
           full-screen, auto-scrolling log viewer. ANSI colours are preserved and
           stay readable in both themes.
         </HelpItem>

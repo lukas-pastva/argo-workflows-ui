@@ -412,7 +412,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                   </td>
                   <td>{fmtLocal(wf.status.startedAt)}</td>
 
-                  {/* ─── NEW: icon-only status pills ─────────────── */}
+                  {/* ─── Status pills with icons ─────────────── */}
                   <td>
                     {wf.status.phase === "Failed" ? (
                       <span
@@ -424,6 +424,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                         }}
                         title="Failed – click to view reason"
                       >
+                        {/* alert-triangle icon */}
                         <svg
                           width="12"
                           height="12"
@@ -445,6 +446,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                         className="status-pill status-succeeded"
                         title="Succeeded"
                       >
+                        {/* check icon */}
                         <svg
                           width="12"
                           height="12"
@@ -465,31 +467,85 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                   </td>
 
                   <td>
+                    {/* ─── Logs button: icon only ────────────── */}
                     <button
                       className="btn"
+                      title="Logs"
                       onClick={(e) => {
                         e.stopPropagation();
                         onShowLogs(nm);
                       }}
                     >
-                      Logs
+                      {/* file-text icon */}
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8l-6-6z" />
+                        <line x1="9" y1="15" x2="15" y2="15" />
+                        <line x1="9" y1="19" x2="15" y2="19" />
+                        <line x1="9" y1="11" x2="13" y2="11" />
+                      </svg>
                     </button>
 
+                    {/* ─── Labels button: icon only ─────────── */}
                     <button
                       className="btn-light"
+                      title="Labels"
                       onClick={(e) => toggleExpanded(nm, e)}
                     >
-                      Labels
+                      {/* tag icon */}
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M20 12l-8-8H4v8l8 8 8-8z" />
+                        <line x1="7" y1="7" x2="7.01" y2="7" />
+                      </svg>
                     </button>
+
+                    {/* ─── Delete button: icon only ─────────── */}
                     <button
                       className="btn-danger"
+                      title="Delete"
                       disabled={!delOk}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSingleDelete(nm);
                       }}
                     >
-                      Delete
+                      {/* trash icon */}
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1.4 12.5A2 2 0 0 1 15.6 21H8.4a2 2 0 0 1-2-2.5L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                        <path d="M15 4l-1-1h-4l-1 1H5v2h14V4z" />
+                      </svg>
                     </button>
                   </td>
                 </tr>
