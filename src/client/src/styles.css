@@ -13,11 +13,11 @@ html { font-size: 90%; }
   --danger-dark  : #d64543;
 
   /* neutrals that switch with the theme */
-  --bg           : #f4f6f8;          /* page background */
-  --card-bg      : #ffffff;          /* panels / cards / tables / modals */
-  --log-bg       : #f9fafb;          /* 🆕 slightly grey log viewer bg     */
+  --bg           : #f4f6f8;          /* page background   */
+  --card-bg      : #ffffff;          /* panels / cards    */
+  --log-bg       : #f9fafb;          /* log-viewer bg     */
   --text-color   : #000000;
-  --border-color : #cbd5e1;          /* faint borders & dividers */
+  --border-color : #cbd5e1;          /* faint dividers    */
 
   /* table / extra backgrounds */
   --row-alt-bg          : #fafafa;
@@ -26,15 +26,15 @@ html { font-size: 90%; }
   --labels-row-bg       : #f9fbff;
 
   /* ANSI palette overrides for log viewer (light theme) */
-  --ansi-black-fg : #000000;  /* map “black” to black on light bg    */
-  --ansi-white-fg : #000000;  /* map “white” to black on light bg    */
+  --ansi-black-fg : #000000;  /* map “black”  → black on light bg */
+  --ansi-white-fg : #000000;  /* map “white”  → black on light bg */
 }
 
 /* ---------- Explicit theme overrides -------------------------- */
 [data-theme="light"] {
   --bg           : #f4f6f8;
   --card-bg      : #ffffff;
-  --log-bg       : #f9fafb;          /* same grey as default light        */
+  --log-bg       : #f9fafb;
   --text-color   : #000000;
   --border-color : #cbd5e1;
 
@@ -51,7 +51,7 @@ html { font-size: 90%; }
   /* slightly brighter than previous iteration */
   --bg           : #232326;
   --card-bg      : #2e2e31;
-  --log-bg       : #2e2e31;          /* same as card bg for dark theme    */
+  --log-bg       : #2e2e31;
   --text-color   : #ebebeb;
   --border-color : #3d3d3f;
 
@@ -60,7 +60,7 @@ html { font-size: 90%; }
   --row-hover-intimate  : #3a3a3d;
   --labels-row-bg       : #303033;
 
-  --ansi-black-fg : #e5e5e5;         /* map “black” → light-gray on dark  */
+  --ansi-black-fg : #e5e5e5;         /* map “black” → light-gray */
   --ansi-white-fg : #ffffff;
 }
 
@@ -108,9 +108,7 @@ body {
   color        : #ffffff;
   border-color : #ffffff;
 }
-.header .btn-light:hover {
-  background: rgba(255,255,255,0.15);
-}
+.header .btn-light:hover { background: rgba(255,255,255,0.15); }
 
 .wf-title {
   padding-left : 1rem;
@@ -339,8 +337,8 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
 .status-pill {
   display      : inline-flex;
   align-items  : center;
-  gap          : 0.25rem;
-  padding      : 0.25rem 0.6rem;
+  justify-content: center;   /* center single icon / spinner */
+  padding      : 0.25rem;
   border-radius: 12px;
   font-size    : 0.85rem;
   font-weight  : 600;
@@ -350,6 +348,19 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
   background: #ffe5e5;
   color     : #d64543;
   border    : 1px solid #f5a8a8;
+}
+
+.status-succeeded {
+  background: #e7f9ed;
+  color     : #18be94;
+  border    : 1px solid #a7e3c5;
+}
+
+/* 🆕 running pill uses a yellow-ish spinner icon */
+.status-running {
+  background: #fff4e6;
+  color     : #d98c00;
+  border    : 1px solid #f7d9b0;
 }
 
 /* -----------------------------------------------------------------
@@ -432,7 +443,7 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
 
 /* ---------------- Log viewer ----------------------------------- */
 .log-viewer {
-  background: var(--log-bg);          /* 🆕 uses dedicated log background */
+  background: var(--log-bg);
   color     : var(--text-color);
 }
 
@@ -470,4 +481,3 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
   border    : 1px solid #a7e3c5;
 }
 
-/* …rest of the file unchanged… */
