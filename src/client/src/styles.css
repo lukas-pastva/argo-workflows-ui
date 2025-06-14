@@ -481,3 +481,22 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
   border    : 1px solid #a7e3c5;
 }
 
+/* === Mini DAG preview ========================================= */
+.mini-dag {
+  display      : flex;
+  align-items  : center;
+  flex-wrap    : wrap;
+  gap          : 0.4rem;
+  font-size    : 0.7rem;   /* arrow size */
+}
+
+.dag-node {
+  width        : 14px;
+  height       : 14px;
+  border-radius: 50%;
+}
+
+.dag-arrow {
+  opacity      : 0.6;
+  line-height  : 1;
+}
