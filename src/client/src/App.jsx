@@ -1,76 +1,69 @@
 import React, { useEffect, useState } from "react";
-import ErrorBanner      from "./components/ErrorBanner.jsx";
-import WorkflowList     from "./components/WorkflowList.jsx";
-import LogViewer        from "./components/LogViewer.jsx";
-import WorkflowTrigger  from "./components/WorkflowTrigger.jsx";
-import HelpModal        from "./components/HelpModal.jsx";
-import ThemeToggle      from "./components/ThemeToggle.jsx";          // 🆕 NEW
+import ErrorBanner     from "./components/ErrorBanner.jsx";
+import WorkflowList    from "./components/WorkflowList.jsx";
+import LogViewer       from "./components/LogViewer.jsx";
+import WorkflowTrigger from "./components/WorkflowTrigger.jsx";
+import HelpModal       from "./components/HelpModal.jsx";
+import ThemeToggle     from "./components/ThemeToggle.jsx";
 
-/* ------------------------------------------------------------------ */
-/*  Keep the log-viewer state in the address bar so it’s shareable    */
-/* ------------------------------------------------------------------ */
-function useLogUrlSync(logWf, setLogWf) {
-  /* — open viewer automatically when ?logs=<name> is present — */
+/* ─── keep log-viewer state in URL so it’s shareable ───────────── */
+function useLogUrlSync(target, setTarget) {
   useEffect(() => {
-    const params  = new URLSearchParams(window.location.search);
-    const initial = params.get("logs");
-    if (initial) setLogWf(initial);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const p = new URLSearchParams(window.location.search).get("logs");
+    if (p) {
+      const [w, n] = p.split("/");
+      setTarget({ name: w, nodeId: n || null });
+    }
   }, []);
 
-  /* — mirror viewer state back to the URL — */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (logWf) {
-      params.set("logs", logWf);
-    } else {
+    if (target)
+      params.set("logs", target.nodeId ? `${target.name}/${target.nodeId}` : target.name);
+    else
       params.delete("logs");
-    }
-    const qs     = params.toString();
-    const newUrl = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
-    window.history.replaceState(null, "", newUrl);
-  }, [logWf]);
+
+    window.history.replaceState(null, "", `${window.location.pathname}${params.toString() ? "?" + params : ""}`);
+  }, [target]);
 }
 
 export default function App() {
-  const [error   , setError]    = useState("");
-  const [logWf   , setLogWf]    = useState(null);
-  const [showHelp, setShowHelp] = useState(false);
+  const [error,      setError]      = useState("");
+  const [logTarget,  setLogTarget]  = useState(null);
+  const [showHelp,   setShowHelp]   = useState(false);
 
-  /* expose log viewer state in the URL */
-  useLogUrlSync(logWf, setLogWf);
+  useLogUrlSync(logTarget, setLogTarget);
 
-  /* ---------- configurable header background --------------------- */
   const runtime  = window.__ENV__ || {};
   const headerBg = runtime.headerBg || import.meta.env.VITE_HEADER_BG;
-  const headerStyle = headerBg ? { background: headerBg } : {};
 
   return (
     <>
-      <header className="header" style={headerStyle}>
+      <header className="header" style={headerBg ? { background: headerBg } : {}}>
         <h1>Argo Workflows</h1>
-
-        {/* right-hand controls */}
         <div>
-          <ThemeToggle />                                              {/* 🆕 NEW */}
-          <button className="btn-light" onClick={() => setShowHelp(true)}>
-            Help
-          </button>
+          <ThemeToggle />
+          <button className="btn-light" onClick={() => setShowHelp(true)}>Help</button>
         </div>
       </header>
 
       <ErrorBanner message={error} onClose={() => setError("")} />
 
-      <div className="card">
-        <WorkflowTrigger onError={setError} />
-      </div>
+      <div className="card"><WorkflowTrigger onError={setError} /></div>
 
       <div className="card">
-        <WorkflowList onShowLogs={setLogWf} onError={setError} />
+        <WorkflowList
+          onShowLogs={(wf, nodeId = null) => setLogTarget({ name: wf, nodeId })}
+          onError={setError}
+        />
       </div>
 
-      {logWf && (
-        <LogViewer workflowName={logWf} onClose={() => setLogWf(null)} />
+      {logTarget && (
+        <LogViewer
+          workflowName={logTarget.name}
+          nodeId={logTarget.nodeId}
+          onClose={() => setLogTarget(null)}
+        />
       )}
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}

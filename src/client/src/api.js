@@ -22,28 +22,33 @@ export async function submitWorkflow(body) {
   return jsonOrThrow(r);
 }
 
-/* ---------- NEW: delete helpers ----------------------------------- */
+/* ---------- delete helpers ----------------------------------- */
 export async function deleteWorkflow(name) {
   const r = await fetch(`${base}/workflows/${encodeURIComponent(name)}`, {
     method: "DELETE"
   });
   return jsonOrThrow(r);
 }
-
-export async function deleteWorkflows(names) {
-  await Promise.all(names.map(deleteWorkflow));
-}
+export async function deleteWorkflows(names) { await Promise.all(names.map(deleteWorkflow)); }
 
 /* ------------------------------------------------------------------ */
-/*  Get logs for a workflow run.                                      */
+/*  Get logs for a workflow run                                       */
+/*  – nodeId ⇒ task-pod logs (preferred)                              */
+/*  – container ⇒ workflow-level logs                                 */
 /* ------------------------------------------------------------------ */
-export async function getWorkflowLogs(name, container = "main") {
-  const qs = new URLSearchParams({ container, follow: "true" });
-  const r  = await fetch(`${base}/workflows/${name}/logs?${qs.toString()}`);
+export async function getWorkflowLogs(
+  name,
+  { container = "main", nodeId } = {}
+) {
+  const qs = new URLSearchParams({ follow: "true" });
+  if (nodeId) qs.set("nodeId", nodeId);
+  else        qs.set("container", container);
+
+  const r = await fetch(`${base}/workflows/${name}/logs?${qs.toString()}`);
   if (!r.ok) {
     const err = new Error(`HTTP ${r.status}`);
     err.status = r.status;
     throw err;
   }
-  return r;                        // streaming Response
+  return r;                         // streaming Response
 }

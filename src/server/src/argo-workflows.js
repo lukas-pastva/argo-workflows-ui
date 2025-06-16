@@ -187,25 +187,23 @@ export async function deleteWorkflow(name) {
 export async function streamLogs(
   name,
   res,
-  { follow = true, container = "main" } = {}
+  { follow = "true", container = "main", nodeId } = {}
 ) {
-  const qs = new URLSearchParams({
-    "logOptions.container": container,
-    "logOptions.follow"   : String(follow)
-  });
+  const qs = new URLSearchParams({ "logOptions.follow": String(follow) });
+  if (nodeId) qs.set("logOptions.nodeId", nodeId);
+  else        qs.set("logOptions.container", container);
+
   const url =
     `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
     `${ARGO_WORKFLOWS_NAMESPACE}/${name}/log?${qs.toString()}`;
 
   if (debug)
-    console.log("[DEBUG] Streaming logs for", name, "from", url);
-  curlHint(url);
+    console.log("[DEBUG] Stream", name, nodeId ? `node ${nodeId}` : `container ${container}`);
 
+  curlHint(url);
   const upstream = await fetch(url, { headers: headers() });
-  if (!upstream.ok) {
-    res.status(upstream.status).end();
-    return;
-  }
+  if (!upstream.ok) return res.status(upstream.status).end();
+
   res.setHeader("Content-Type", upstream.headers.get("content-type"));
   upstream.body.pipe(res);
 }

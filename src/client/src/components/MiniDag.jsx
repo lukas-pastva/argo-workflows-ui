@@ -1,10 +1,6 @@
 /**
- * MiniDag – a thumbnail DAG preview rendered as coloured bubbles,
- * now with captions and click-through to the parent’s log viewer.
- *
- * Props
- *   • nodes        (object) – workflow.status.nodes
- *   • onTaskClick  (func)   – called with (nodeName) when a bubble is clicked
+ * MiniDag – thumbnail DAG preview with full titles
+ *            and click-through to task-level logs.
  */
 import React from "react";
 
@@ -16,14 +12,10 @@ const PHASE_COLOUR = {
 };
 
 export default function MiniDag({ nodes = {}, onTaskClick = () => {} }) {
-  /* keep only real task Pods, order by start-time */
+  // keep only real task Pods, order by start time
   const steps = Object.values(nodes)
     .filter((n) => n.type === "Pod")
-    .sort(
-      (a, b) =>
-        new Date(a.startedAt || 0).getTime() -
-        new Date(b.startedAt || 0).getTime()
-    );
+    .sort((a, b) => new Date(a.startedAt || 0) - new Date(b.startedAt || 0));
 
   if (steps.length === 0) return null;
 
@@ -31,15 +23,17 @@ export default function MiniDag({ nodes = {}, onTaskClick = () => {} }) {
     <div className="mini-dag">
       {steps.map((n, i) => (
         <React.Fragment key={n.id}>
-          <div className="dag-node-wrap">
+          <div
+            className="dag-node-wrap"
+            title={`${n.displayName} – ${n.phase}`}
+            onClick={(e) => {
+              e.stopPropagation();     // keep parent row collapsed
+              onTaskClick(n.id);       // open task-specific logs
+            }}
+          >
             <span
               className="dag-node"
-              style={{ background: PHASE_COLOUR[n.phase] || "#cccccc" }}
-              title={`${n.displayName} – ${n.phase}`}
-              onClick={(e) => {
-                e.stopPropagation();     // keep parent row collapsed
-                onTaskClick(n.id);       // bubble-specific click
-              }}
+              style={{ background: PHASE_COLOUR[n.phase] || "#ccc" }}
             />
             <span className="dag-caption">{n.displayName}</span>
           </div>
