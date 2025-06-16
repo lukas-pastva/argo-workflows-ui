@@ -22,21 +22,26 @@ function extractContent(line) {
   return trimmed;
 }
 
-const MAX_RETRIES    = 10;       // total attempts = 1 + (MAX_RETRIES-1)
-const RETRY_DELAY_MS = 3000;     // 3 s between attempts
+const MAX_RETRIES    = 10;   // total attempts = 1 + (MAX_RETRIES-1)
+const RETRY_DELAY_MS = 3000; // 3 s between attempts
 
-export default function LogViewer({ workflowName, onClose }) {
+/**
+ * Full-screen log stream.
+ * – `workflowName`  (required)  
+ * – `nodeId`        (optional) → pod-level logs; omit for workflow-level
+ */
+export default function LogViewer({ workflowName, nodeId = null, onClose }) {
   const [lines, setLines] = useState(["Loading …"]);
   const box = useRef();
 
-  /* ───── Disable body scroll while logs are open ─────────────────── */
+  /* ─── Disable body scroll while viewer is open ─────────────────── */
   useEffect(() => {
-    const originalOverflow = document.body.style.overflow;
+    const orig = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = originalOverflow; };
+    return () => { document.body.style.overflow = orig; };
   }, []);
 
-  /* ───── Stream log lines (with retries) ─────────────────────────── */
+  /* ─── Stream log lines (with retries) ──────────────────────────── */
   useEffect(() => {
     let cancelled = false;
 
@@ -51,7 +56,7 @@ export default function LogViewer({ workflowName, onClose }) {
           setLines(["Loading …"]);
         }
 
-        const resp   = await getWorkflowLogs(workflowName, "main");
+        const resp   = await getWorkflowLogs(workflowName, { nodeId });
         const reader = resp.body.getReader();
         const dec    = new TextDecoder();
 
@@ -88,45 +93,44 @@ export default function LogViewer({ workflowName, onClose }) {
         } else {
           setLines((prev) => [
             ...prev,
-            `❌ Failed after ${MAX_RETRIES} attempts: ${e.message || "unknown error"}`,
+            `❌ Failed after ${MAX_RETRIES} attempts: ${
+              e.message || "unknown error"
+            }`,
           ]);
         }
       }
     }
 
     openStream();
+    return () => { cancelled = true; };
+  }, [workflowName, nodeId]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [workflowName]);
-
-  /* ───── Auto-scroll ─────────────────────────────────────────────── */
+  /* ─── Auto-scroll ──────────────────────────────────────────────── */
   useEffect(() => {
     if (box.current) box.current.scrollTop = box.current.scrollHeight;
   }, [lines]);
 
-  /* ───── Close on Escape ─────────────────────────────────────────── */
+  /* ─── Close on Escape ──────────────────────────────────────────── */
   useEffect(() => {
-    function handleKey(e) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
+    const handler = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  /* ───── Render ──────────────────────────────────────────────────── */
+  /* ─── Render ───────────────────────────────────────────────────── */
   return (
     <div
       className="log-viewer"
       style={{
-        position: "fixed",
-        inset: 0,
-        padding: "1rem",
-        overflow: "auto",
-        fontFamily: "monospace",
-        whiteSpace: "pre-wrap",
-        zIndex: 2000,
+        position   : "fixed",
+        inset      : 0,
+        padding    : "1rem",
+        overflow   : "auto",
+        fontFamily : "monospace",
+        whiteSpace : "pre-wrap",
+        zIndex     : 2000,
+        background : "var(--log-bg)",
+        color      : "var(--text-color)",
       }}
       ref={box}
     >
@@ -138,13 +142,14 @@ export default function LogViewer({ workflowName, onClose }) {
         ✕ Close
       </button>
 
-      <h3 style={{ marginTop: 0 }}>Logs – {workflowName}</h3>
+      <h3 style={{ marginTop: 0 }}>
+        Logs – {workflowName}
+        {nodeId && <> → <code>{nodeId}</code></>}
+      </h3>
 
       {lines.map((l, i) => (
         /* useClasses ⇒ ANSI colours become CSS classes we control   */
-        <div key={i}>
-          <Ansi useClasses>{l}</Ansi>
-        </div>
+        <div key={i}><Ansi useClasses>{l}</Ansi></div>
       ))}
     </div>
   );
