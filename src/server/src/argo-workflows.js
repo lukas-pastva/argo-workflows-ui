@@ -189,18 +189,23 @@ export async function streamLogs(
   res,
   { follow = "true", container = "main", nodeId } = {}
 ) {
-  const qs = new URLSearchParams({ "logOptions.follow": String(follow) });
-  if (nodeId) qs.set("logOptions.nodeId", nodeId);
-  else        qs.set("logOptions.container", container);
+  const qs = new URLSearchParams({ follow: String(follow) });
+  if (nodeId) qs.set("nodeId", nodeId);
+  qs.set("container", container);
 
   const url =
     `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
     `${ARGO_WORKFLOWS_NAMESPACE}/${name}/log?${qs.toString()}`;
 
-  if (debug)
-    console.log("[DEBUG] Stream", name, nodeId ? `node ${nodeId}` : `container ${container}`);
-
+  if (debug) {
+    console.log(
+      "[DEBUG] Stream",
+      name,
+      nodeId ? `nodeId=${nodeId}` : `container=${container}`
+    );
+  }
   curlHint(url);
+
   const upstream = await fetch(url, { headers: headers() });
   if (!upstream.ok) return res.status(upstream.status).end();
 

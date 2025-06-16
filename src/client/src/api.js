@@ -10,8 +10,8 @@ async function jsonOrThrow(resp) {
   return resp.json();
 }
 
-export async function listWorkflows()      { return jsonOrThrow(await fetch(`${base}/workflows`)); }
-export async function listTemplates()      { return jsonOrThrow(await fetch(`${base}/templates`)); }
+export async function listWorkflows() { return jsonOrThrow(await fetch(`${base}/workflows`)); }
+export async function listTemplates() { return jsonOrThrow(await fetch(`${base}/templates`)); }
 
 export async function submitWorkflow(body) {
   const r = await fetch(`${base}/workflows`, {
@@ -24,17 +24,15 @@ export async function submitWorkflow(body) {
 
 /* ---------- delete helpers ----------------------------------- */
 export async function deleteWorkflow(name) {
-  const r = await fetch(`${base}/workflows/${encodeURIComponent(name)}`, {
-    method: "DELETE"
-  });
+  const r = await fetch(`${base}/workflows/${encodeURIComponent(name)}`, { method: "DELETE" });
   return jsonOrThrow(r);
 }
 export async function deleteWorkflows(names) { await Promise.all(names.map(deleteWorkflow)); }
 
 /* ------------------------------------------------------------------ */
-/*  Get logs for a workflow run                                       */
-/*  – nodeId ⇒ task-pod logs (preferred)                              */
-/*  – container ⇒ workflow-level logs                                 */
+/*  Get logs for a workflow run.                                       */
+/*  – nodeId ⇒ task-pod logs                                           */
+/*  – (else) container ⇒ workflow-level logs                           */
 /* ------------------------------------------------------------------ */
 export async function getWorkflowLogs(
   name,
