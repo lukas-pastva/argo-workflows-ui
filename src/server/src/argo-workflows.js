@@ -37,7 +37,7 @@ const headers = () => ({
 });
 
 /* ------------------------------------------------------------------ */
-/*  Helper: print a ready-to-copy curl                                */
+/*  Helper: print a ready-to-copy curl for debugging                   */
 /* ------------------------------------------------------------------ */
 function curlHint(url, method = "GET", body = null) {
   if (!debug) return;
@@ -52,8 +52,7 @@ function curlHint(url, method = "GET", body = null) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  List workflows                                                    */
-/*  (sorted by template ASC, then start‑time DESC)                     */
+/*  List workflows (sorted by template ASC, start-time DESC)          */
 /* ------------------------------------------------------------------ */
 export async function listWorkflows() {
   const url =
@@ -66,10 +65,10 @@ export async function listWorkflows() {
   const r = await fetch(url, { headers: headers() });
   if (!r.ok) throw new Error(`Argo ${r.status}`);
 
-  const j = await r.json();
+  const j     = await r.json();
   const items = j.items || [];
 
-  // sort by [template name ASC, start‑time DESC]
+  /* sort by [template name ASC, start-time DESC] */
   items.sort((a, b) => {
     const aKey = a.spec?.workflowTemplateRef?.name || a.metadata.generateName || "";
     const bKey = b.spec?.workflowTemplateRef?.name || b.metadata.generateName || "";
@@ -109,23 +108,22 @@ export async function listTemplates() {
 /*  Submit workflow from a template                                   */
 /* ------------------------------------------------------------------ */
 
-/* --- NEW: compact JSON parameters (strips all whitespace/newlines) -- */
+/* compact JSON-looking parameter values (strip whitespace/newlines)  */
 function compactValue(val = "") {
   if (typeof val !== "string") return val;
 
   const trimmed = val.trim();
-  if (!/^[\[{]/.test(trimmed)) return val;      // fast‑exit for non‑JSON
+  if (!/^[\[{]/.test(trimmed)) return val;      // fast-exit for non-JSON
 
   try {
     return JSON.stringify(JSON.parse(trimmed));
   } catch {
-    return val;                                // keep original if not valid JSON
+    return val;                                // keep original if not valid
   }
 }
 
 export async function submitWorkflow({ template, parameters }) {
-  // Turn { key: value } pairs into ["key=value", ...],
-  // while compacting any JSON‑looking values so Argo sees them without “\n”.
+  /* Turn { key: value } ⇒ ["key=value", …] (with compacted values) */
   const paramStrings = Object
     .entries(parameters || {})
     .map(([n, v]) => `${n}=${compactValue(v)}`);
@@ -161,7 +159,7 @@ export async function submitWorkflow({ template, parameters }) {
   if (!r.ok) throw new Error(`Argo ${r.status}`);
 
   const result = await r.json();
-  if (debug) console.log("[DEBUG] Workflow‑submit response:", result);
+  if (debug) console.log("[DEBUG] Workflow submit response:", result);
   return result;
 }
 
@@ -182,16 +180,21 @@ export async function deleteWorkflow(name) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Stream logs                                                       */
+/*  Stream logs (node-level or workflow-level)                        */
 /* ------------------------------------------------------------------ */
 export async function streamLogs(
   name,
   res,
   { follow = "true", container = "main", nodeId } = {}
 ) {
-  const qs = new URLSearchParams({ follow: String(follow) });
+  /* Argo expects these two under logOptions.* */
+  const qs = new URLSearchParams({
+    "logOptions.follow"   : String(follow),
+    "logOptions.container": container
+  });
+
+  /* nodeId (for a specific Pod) stays top-level */
   if (nodeId) qs.set("nodeId", nodeId);
-  qs.set("container", container);
 
   const url =
     `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
@@ -199,7 +202,7 @@ export async function streamLogs(
 
   if (debug) {
     console.log(
-      "[DEBUG] Stream",
+      "[DEBUG] Streaming",
       name,
       nodeId ? `nodeId=${nodeId}` : `container=${container}`
     );
@@ -207,7 +210,10 @@ export async function streamLogs(
   curlHint(url);
 
   const upstream = await fetch(url, { headers: headers() });
-  if (!upstream.ok) return res.status(upstream.status).end();
+  if (!upstream.ok) {
+    res.status(upstream.status).end();
+    return;
+  }
 
   res.setHeader("Content-Type", upstream.headers.get("content-type"));
   upstream.body.pipe(res);
