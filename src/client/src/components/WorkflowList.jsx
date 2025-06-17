@@ -24,6 +24,12 @@ const trimPrefixes = (env.labelPrefixTrim || "")
   .map((p) => p.trim())
   .filter(Boolean);
 
+/* 🆕 list of label keys that become table columns */
+const listLabelColumns = (env.listLabelColumns || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 const trimKey = (k) => {
   for (const pref of trimPrefixes) {
     if (k.startsWith(pref)) return k.slice(pref.length);
@@ -214,6 +220,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   /* ------------------------------------------------------------------ */
   /*  RENDER                                                             */
   /* ------------------------------------------------------------------ */
+  const fullColSpan = 6 + listLabelColumns.length;   // for expanded rows
+
   return (
     <div className="wf-container">
       <h3 className="wf-title">List</h3>
@@ -313,6 +321,12 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             >
               {`Status${sortIndicator("status")}`}
             </th>
+
+            {/* 🆕 extra label columns */}
+            {listLabelColumns.map((k) => (
+              <th key={`hdr-${k}`}>{trimKey(k)}</th>
+            ))}
+
             <th>Actions</th>
           </tr>
         </thead>
@@ -427,6 +441,11 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     )}
                   </td>
 
+                  {/* 🆕 extra label values */}
+                  {listLabelColumns.map((k) => (
+                    <td key={`${nm}-${k}`}>{labels[k] ?? ""}</td>
+                  ))}
+
                   {/* ---------- action buttons ---------- */}
                   <td>
                     {/* Logs */}
@@ -517,7 +536,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                 {/* ---------- expanded row (labels + mini DAG) ---------- */}
                 {expanded[nm] && (
                   <tr className="tr-labels">
-                    <td colSpan={6}>
+                    <td colSpan={fullColSpan}>
                       {/* Mini DAG bubbles */}
                       <MiniDag
                         nodes={wf.status.nodes}

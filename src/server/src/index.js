@@ -34,6 +34,7 @@ app.get("/env.js", (_req, res) => {
     collapsedLabelGroups : process.env.VITE_COLLAPSED_LABEL_GROUPS || "",
     labelPrefixTrim      : process.env.VITE_LABEL_PREFIX_TRIM      || "",
     headerBg             : process.env.VITE_HEADER_BG              || "",
+    listLabelColumns     : process.env.VITE_LIST_LABEL_COLUMNS     || "",
   };
   res.setHeader("Content-Type", "application/javascript");
   res.send(`window.__ENV__ = ${JSON.stringify(cfg)};`);
