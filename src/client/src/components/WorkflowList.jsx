@@ -220,7 +220,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   /* ------------------------------------------------------------------ */
   /*  RENDER                                                             */
   /* ------------------------------------------------------------------ */
-  const fullColSpan = 6 + listLabelColumns.length;   // for expanded rows
+  const fullColSpan = 5 + listLabelColumns.length;
 
   return (
     <div className="wf-container">
@@ -293,13 +293,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       <table className="wf-table intimate">
         <thead>
           <tr>
-            <th
-              style={{ cursor: "pointer" }}
-              title="Sort by template name"
-              onClick={() => setSort({ column: "template", dir: nextDir("template") })}
-            >
-              {`Template${sortIndicator("template")}`}
-            </th>
             <th style={{ width: "4rem" }}>
               <input type="checkbox" checked={allSel} onChange={toggleSelectAll} />
             </th>
@@ -332,7 +325,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </thead>
 
         <tbody>
-          {sortedRows.map(({ wf, group }) => {
+          {sortedRows.map(({ wf }) => {
             const nm = wf.metadata.name;
             const delOk = wf.status.phase !== "Running";
             const labels = wf.metadata.labels || {};
@@ -348,17 +341,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                   onClick={() => onShowLogs(nm, null)}
                   style={{ cursor: "pointer" }}
                 >
-                  <td
-                    className="group-col"
-                    style={{
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {group}
-                  </td>
-
                   <td>
                     <input
                       type="checkbox"
