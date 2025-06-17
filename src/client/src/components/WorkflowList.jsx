@@ -7,12 +7,18 @@ import {
 import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
 import FailureReasonModal from "./FailureReasonModal.jsx";
 import Spinner            from "./Spinner.jsx";
-import MiniDag            from "./MiniDag.jsx";   // tiny DAG preview
+import MiniDag            from "./MiniDag.jsx";
 
 /* ------------------------------------------------------------------ */
 /*  Runtime env & helpers                                             */
 /* ------------------------------------------------------------------ */
 const env = window.__ENV__ || {};
+
+/* 🆕 choose between browser-local (default) and UTC */
+const useUtcTime =
+  String(env.useUtcTime ?? import.meta.env.VITE_USE_UTC_TIME ?? "")
+    .toLowerCase()
+    .trim() === "true";
 
 const rawSkip = (env.skipLabels || "")
   .split(",")
@@ -45,7 +51,18 @@ const shouldSkip = (k, v) => {
   });
 };
 
-const fmtLocal = (ts) => new Date(ts).toLocaleString();
+/* ------------------------------------------------------------------ */
+/*  NEW: timestamp formatter                                          */
+/* ------------------------------------------------------------------ */
+function fmtTime(ts) {
+  const d = new Date(ts);
+  return useUtcTime
+    ? d.toLocaleString("en-GB", {
+        hour12 : false,
+        timeZone: "UTC",
+      }).replace(",", "") + " UTC"
+    : d.toLocaleString(undefined, { hour12: false });
+}
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                         */
@@ -153,7 +170,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     });
   }, [rows, keyToValues, hasActiveFilters]);
 
-  /* ---- sort rows ----------------------------------------------- */
+  /* ---- sort rows (comparator unchanged except for start-time call) */
   const comparator = (a, b) => {
     const { column, dir } = sort;
     const mul   = dir === "asc" ? 1 : -1;
@@ -361,8 +378,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     }}
                   >
                     {nm}
-                  </td>
-                  <td>{fmtLocal(wf.status.startedAt)}</td>
+                  </td>                  
+                  <td>{fmtTime(wf.status.startedAt)}</td>
 
                   {/* ---------- status pill ---------- */}
                   <td>

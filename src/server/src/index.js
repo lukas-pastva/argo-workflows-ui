@@ -35,12 +35,13 @@ app.get("/env.js", (_req, res) => {
     labelPrefixTrim      : process.env.VITE_LABEL_PREFIX_TRIM      || "",
     headerBg             : process.env.VITE_HEADER_BG              || "",
     listLabelColumns     : process.env.VITE_LIST_LABEL_COLUMNS     || "",
+    useUtcTime           : process.env.VITE_USE_UTC_TIME           || "",
   };
   res.setHeader("Content-Type", "application/javascript");
   res.send(`window.__ENV__ = ${JSON.stringify(cfg)};`);
 });
 
-/* ─── API routes ─────────────────────────────────────────────────── */
+/* ─── API routes ─────────────────────────────────────── */
 app.get("/api/workflows", async (_req, res, next) => {
   try { res.json(await listWorkflows()); } catch (e) { next(e); }
 });
@@ -63,14 +64,14 @@ app.post("/api/workflows", async (req, res, next) => {
   try { res.json(await submitWorkflow(req.body)); } catch (e) { next(e); }
 });
 
-/* ─── Serve compiled front-end ───────────────────────────────────── */
+/* ─── Serve compiled front-end ───────────────────────── */
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 app.use(express.static(path.join(__dirname, "../public")));
 app.get("*", (_req, res) =>
   res.sendFile(path.join(__dirname, "../public/index.html"))
 );
 
-/* ─── Central error handler ──────────────────────────────────────── */
+/* ─── Central error handler & server start  ───────────── */
 app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(500).json({ error: err.message });

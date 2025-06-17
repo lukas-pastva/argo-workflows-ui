@@ -28,9 +28,8 @@ A lightweight, single-container web interface for Kubernetes **Argo Workflows**.
 | `VITE_SKIP_LABELS`            | Comma-separated list of **label keys** or exact `key=value` pairs to hide completely. | `events.argoproj.io/action-timestamp` |
 | `VITE_COLLAPSED_LABEL_GROUPS` | Comma-separated list of label keys that should start collapsed in the UI. | *(none – everything expanded)* |
 | `VITE_LABEL_PREFIX_TRIM`      | Comma-separated list of prefixes to strip from label keys when shown (purely cosmetic). | `events.argoproj.io/` |
-| `VITE_LIST_LABEL_COLUMNS`     | Comma-separated list of label keys to display as **extra columns** in the Workflow list (each row shows the label’s value; column order follows the list). | *(none – no extra columns)* |
+| **`VITE_USE_UTC_TIME`**       | Show timestamps in 24-hour **UTC** instead of local browser time. Any truthy value enables UTC. | *(empty → use browser locale)* |
 
-> **Important:** all `VITE_*` variables are read by Vite at build time – set them before running `npm run build` (or bake them into the Docker layer that performs the build).
 
 ### Template Annotations
 
@@ -70,4 +69,5 @@ steps:
   "version": ""
 }
 ```
+
 
