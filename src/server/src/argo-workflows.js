@@ -180,7 +180,7 @@ export async function deleteWorkflow(name) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Helper: map nodeId -> podName                                     */
+/*  Helper: map nodeId → podName                                      */
 /* ------------------------------------------------------------------ */
 async function nodeIdToPodName(workflowName, nodeId) {
   const url = `${ARGO_WORKFLOWS_URL}/api/v1/workflows/${ARGO_WORKFLOWS_NAMESPACE}/${workflowName}`;
@@ -192,13 +192,28 @@ async function nodeIdToPodName(workflowName, nodeId) {
   const wf = await r.json();
   const nodes = wf.status?.nodes || {};
 
-  // 1) Fast path – key lookup (common case for Argo ≤3.5)
+  /* 1️⃣ Fast path – node has podName     */
   if (nodes[nodeId]?.podName) return nodes[nodeId].podName;
 
-  // 2) Fallback – iterate values and match by id or partial suffix
+  /* 2️⃣ Exact id lookup across all nodes */
   for (const n of Object.values(nodes)) {
     if (n.id === nodeId && n.podName) return n.podName;
-    if (n.podName && n.podName.endsWith(nodeId)) return n.podName;
+  }
+
+  /* 3️⃣ Derive podName when Argo omit it (pod-name-format=v2)          
+         Pattern: <workflow>-<template-name>-<suffix>                 */
+  const node = nodes[nodeId];
+  if (node && node.templateRef?.name) {
+    const suffix = nodeId.substring(nodeId.lastIndexOf("-") + 1);
+    const candidate = `${workflowName}-${node.templateRef.name}-${suffix}`;
+    if (debug) console.log("[DEBUG] Derived podName candidate", candidate);
+    return candidate;
+  }
+
+  /* 4️⃣ Fuzzy match by numeric suffix */
+  const numericSuffix = nodeId.substring(nodeId.lastIndexOf("-") + 1);
+  for (const n of Object.values(nodes)) {
+    if (n.podName && n.podName.endsWith(numericSuffix)) return n.podName;
   }
 
   if (debug) console.log("[DEBUG] podName not found for", nodeId);
@@ -229,20 +244,14 @@ export async function streamLogs(
       "logOptions.container": container
     });
 
-    if (finalPodName) {
-      qs.set("podName", finalPodName);
-    }
+    if (finalPodName) qs.set("podName", finalPodName);
 
     const url =
       `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
       `${ARGO_WORKFLOWS_NAMESPACE}/${name}/log?${qs.toString()}`;
 
     if (debug) {
-      console.log(
-        "[DEBUG] Streaming",
-        name,
-        finalPodName ? `podName=${finalPodName}` : "workflow-level"
-      );
+      console.log("[DEBUG] Streaming", name, finalPodName ? `podName=${finalPodName}` : "workflow-level");
     }
     curlHint(url);
 
