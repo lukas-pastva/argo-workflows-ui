@@ -185,16 +185,18 @@ export async function deleteWorkflow(name) {
 export async function streamLogs(
   name,
   res,
-  { follow = "true", container = "main", nodeId } = {}
+  { follow = "true", container, nodeId } = {}
 ) {
-  /* Argo expects these two under logOptions.* */
-  const qs = new URLSearchParams({
-    "logOptions.follow"   : String(follow),
-    "logOptions.container": container
-  });
+  /* Build query parameters – container is **omitted** when nodeId is present */
+  const qs = new URLSearchParams({ "logOptions.follow": String(follow) });
 
-  /* nodeId (for a specific Pod) stays top-level */
-  if (nodeId) qs.set("nodeId", nodeId);
+  if (nodeId) {
+    // Task‑level logs: identify the Pod node; Argo will pick default container.
+    qs.set("nodeId", nodeId);
+  } else {
+    // Workflow‑level logs: still need a container (default "main")
+    qs.set("logOptions.container", container || "main");
+  }
 
   const url =
     `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
@@ -204,7 +206,7 @@ export async function streamLogs(
     console.log(
       "[DEBUG] Streaming",
       name,
-      nodeId ? `nodeId=${nodeId}` : `container=${container}`
+      nodeId ? `nodeId=${nodeId}` : `container=${container || "main"}`
     );
   }
   curlHint(url);
