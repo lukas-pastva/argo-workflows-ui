@@ -187,14 +187,28 @@ export async function streamLogs(
   res,
   { follow = "true", container, nodeId } = {}
 ) {
-  /* Build query parameters – container is **omitted** when nodeId is present */
-  const qs = new URLSearchParams({ "logOptions.follow": String(follow) });
+  /* Build query parameters – different contract depending on whether we
+     stream the **whole workflow** or a **single task Pod**. */
+  const qs = new URLSearchParams();
 
   if (nodeId) {
-    // Task‑level logs: identify the Pod node; Argo will pick default container.
+    /* ----------------------------------------------------------------
+       Task‑level logs
+       ----------------------------------------------------------------
+       Must send *top‑level* parameters:
+       - nodeId      – the DAG/task node (maps to a Pod)
+       - container   – optional, but defaulting to "main" is safest
+       - follow      – top‑level flag (NOT under logOptions)
+       ---------------------------------------------------------------- */
     qs.set("nodeId", nodeId);
+    qs.set("container", container || "main");
+    qs.set("follow", String(follow));
   } else {
-    // Workflow‑level logs: still need a container (default "main")
+    /* ----------------------------------------------------------------
+       Workflow‑level logs (aggregated)
+       ----------------------------------------------------------------
+       Argo expects them *inside* the logOptions.* envelope.         */
+    qs.set("logOptions.follow", String(follow));
     qs.set("logOptions.container", container || "main");
   }
 
