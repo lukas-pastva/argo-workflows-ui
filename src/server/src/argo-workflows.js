@@ -180,57 +180,70 @@ export async function deleteWorkflow(name) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Helper: map nodeId -> podName                                     */
+/* ------------------------------------------------------------------ */
+async function nodeIdToPodName(workflowName, nodeId) {
+  const url = `${ARGO_WORKFLOWS_URL}/api/v1/workflows/${ARGO_WORKFLOWS_NAMESPACE}/${workflowName}`;
+  if (debug) console.log("[DEBUG] Resolving podName for", nodeId);
+  curlHint(url);
+  const r = await fetch(url, { headers: headers() });
+  if (!r.ok) throw new Error(`Argo ${r.status}`);
+  const wf = await r.json();
+  const node = wf.status?.nodes?.[nodeId];
+  return node?.podName || null;
+}
+
+/* ------------------------------------------------------------------ */
 /*  Stream logs (node-level or workflow-level)                        */
 /* ------------------------------------------------------------------ */
 export async function streamLogs(
   name,
   res,
-  { follow = "true", container, nodeId } = {}
+  { follow = "true", container = "main", nodeId, podName } = {}
 ) {
-  /* Build query parameters – different contract depending on whether we
-     stream the **whole workflow** or a **single task Pod**. */
-  const qs = new URLSearchParams();
+  try {
+    /* If caller only knows nodeId, resolve it to podName first */
+    let finalPodName = podName;
+    if (!finalPodName && nodeId) {
+      finalPodName = await nodeIdToPodName(name, nodeId);
+      if (!finalPodName) {
+        res.status(400).json({ error: `Cannot find pod for nodeId ${nodeId}` });
+        return;
+      }
+    }
 
-  if (nodeId) {
-    /* ----------------------------------------------------------------
-       Task‑level logs
-       ----------------------------------------------------------------
-       Must send *top‑level* parameters:
-       - nodeId      – the DAG/task node (maps to a Pod)
-       - container   – optional, but defaulting to "main" is safest
-       - follow      – top‑level flag (NOT under logOptions)
-       ---------------------------------------------------------------- */
-    qs.set("nodeId", nodeId);
-    qs.set("container", container || "main");
-    qs.set("follow", String(follow));
-  } else {
-    /* ----------------------------------------------------------------
-       Workflow‑level logs (aggregated)
-       ----------------------------------------------------------------
-       Argo expects them *inside* the logOptions.* envelope.         */
-    qs.set("logOptions.follow", String(follow));
-    qs.set("logOptions.container", container || "main");
+    const qs = new URLSearchParams({
+      "logOptions.follow": String(follow),
+      "logOptions.container": container
+    });
+
+    if (finalPodName) {
+      qs.set("podName", finalPodName);
+    }
+
+    const url =
+      `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
+      `${ARGO_WORKFLOWS_NAMESPACE}/${name}/log?${qs.toString()}`;
+
+    if (debug) {
+      console.log(
+        "[DEBUG] Streaming",
+        name,
+        finalPodName ? `podName=${finalPodName}` : "workflow-level"
+      );
+    }
+    curlHint(url);
+
+    const upstream = await fetch(url, { headers: headers() });
+    if (!upstream.ok) {
+      res.status(upstream.status).end();
+      return;
+    }
+
+    res.setHeader("Content-Type", upstream.headers.get("content-type"));
+    upstream.body.pipe(res);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message || "Stream error" });
   }
-
-  const url =
-    `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
-    `${ARGO_WORKFLOWS_NAMESPACE}/${name}/log?${qs.toString()}`;
-
-  if (debug) {
-    console.log(
-      "[DEBUG] Streaming",
-      name,
-      nodeId ? `nodeId=${nodeId}` : `container=${container || "main"}`
-    );
-  }
-  curlHint(url);
-
-  const upstream = await fetch(url, { headers: headers() });
-  if (!upstream.ok) {
-    res.status(upstream.status).end();
-    return;
-  }
-
-  res.setHeader("Content-Type", upstream.headers.get("content-type"));
-  upstream.body.pipe(res);
 }
