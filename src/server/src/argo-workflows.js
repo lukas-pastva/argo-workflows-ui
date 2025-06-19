@@ -186,11 +186,23 @@ async function nodeIdToPodName(workflowName, nodeId) {
   const url = `${ARGO_WORKFLOWS_URL}/api/v1/workflows/${ARGO_WORKFLOWS_NAMESPACE}/${workflowName}`;
   if (debug) console.log("[DEBUG] Resolving podName for", nodeId);
   curlHint(url);
+
   const r = await fetch(url, { headers: headers() });
   if (!r.ok) throw new Error(`Argo ${r.status}`);
   const wf = await r.json();
-  const node = wf.status?.nodes?.[nodeId];
-  return node?.podName || null;
+  const nodes = wf.status?.nodes || {};
+
+  // 1) Fast path – key lookup (common case for Argo ≤3.5)
+  if (nodes[nodeId]?.podName) return nodes[nodeId].podName;
+
+  // 2) Fallback – iterate values and match by id or partial suffix
+  for (const n of Object.values(nodes)) {
+    if (n.id === nodeId && n.podName) return n.podName;
+    if (n.podName && n.podName.endsWith(nodeId)) return n.podName;
+  }
+
+  if (debug) console.log("[DEBUG] podName not found for", nodeId);
+  return null;
 }
 
 /* ------------------------------------------------------------------ */
