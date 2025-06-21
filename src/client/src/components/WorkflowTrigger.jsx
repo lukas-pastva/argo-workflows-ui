@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { listTemplates, submitWorkflow } from "../api";
+import {
+  listTemplates,
+  submitWorkflow,
+  listWorkflows
+} from "../api";
 import Spinner from "./Spinner.jsx";
 import InsertConfirmModal from "./InsertConfirmModal.jsx";
 
@@ -37,6 +41,44 @@ function deriveVarParameterDefaults(t) {
   return out;
 }
 
+/* ------------------------------------------------------------------ */
+/*  🆕  Gather value suggestions from previous runs                   */
+/* ------------------------------------------------------------------ */
+async function collectSuggestions(templateName) {
+  const sugg = {};
+  if (!templateName) return sugg;
+
+  try {
+    const wfs = await listWorkflows();
+
+    /* relevant runs = explicit ref *or* generateName prefix matches */
+    const relevant = wfs.filter(
+      (wf) =>
+        wf.spec?.workflowTemplateRef?.name === templateName ||
+        wf.metadata?.generateName?.startsWith(`${templateName}-`)
+    );
+
+    /* harvest event-data JSON values */
+    relevant.forEach((wf) => {
+      const params = wf.spec?.arguments?.parameters || [];
+      const ev     = params.find((p) => p.name === "event-data");
+      if (!ev?.value) return;
+      try {
+        const obj = JSON.parse(ev.value);
+        Object.entries(obj).forEach(([k, v]) => {
+          if (!sugg[k]) sugg[k] = new Set();
+          sugg[k].add(String(v));
+        });
+      } catch { /* ignore non-JSON */ }
+    });
+  } catch { /* backend might be unreachable – ignore */ }
+
+  /* Set → Array for easier use in JSX */
+  const flat = {};
+  Object.entries(sugg).forEach(([k, set]) => (flat[k] = [...set]));
+  return flat;
+}
+
 export default function WorkflowTrigger({ onError = () => {} }) {
   const [templates, setTemplates]     = useState([]);
   const [selected, setSelected]       = useState("");
@@ -47,19 +89,22 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   const [rawView, setRawView]         = useState(false);
   const [submitting, setSubmitting]   = useState(false);
   const [confirming, setConfirming]   = useState(false);
+  const [suggestions, setSuggestions] = useState({});
 
   /* -------- fetch templates ---------------------------------- */
   useEffect(() => {
     listTemplates().then(setTemplates).catch((e) => onError(e.message));
   }, [onError]);
 
-  /* -------- rebuild params on template change ---------------- */
+  /* -------- template changed → rebuild defaults & suggestions - */
   useEffect(() => {
     if (!selected) {
       setParams({});
       setDescription("");
+      setSuggestions({});
       return;
     }
+
     const tmpl = templates.find((t) => t.metadata.name === selected);
     if (!tmpl) return;
 
@@ -86,21 +131,17 @@ export default function WorkflowTrigger({ onError = () => {} }) {
         tmpl.metadata.annotations?.["ui.argoproj.io/description"] ||
         ""
     );
+
+    collectSuggestions(selected).then(setSuggestions);
   }, [selected, templates]);
 
-  /* -------- event‑data helpers ------------------------------- */
+  /* -------- event-data helpers ------------------------------- */
   const parsedObj = () => {
-    try {
-      return JSON.parse(params["event-data"] || "{}");
-    } catch {
-      return {};
-    }
+    try { return JSON.parse(params["event-data"] || "{}"); }
+    catch { return {}; }
   };
-  const updateObj = (obj) =>
-    setParams((pr) => ({
-      ...pr,
-      "event-data": JSON.stringify(obj, null, 2),
-    }));
+  const updateObj = (o) =>
+    setParams((pr) => ({ ...pr, "event-data": JSON.stringify(o, null, 2) }));
 
   const handleFieldChange = (k, v) => {
     const o = parsedObj();
@@ -109,9 +150,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   };
 
   /* -------- submission flow ---------------------------------- */
-  const handleSubmitClick = () => {
-    setConfirming(true);
-  };
+  const handleSubmitClick = () => setConfirming(true);
 
   const doSubmit = async () => {
     setConfirming(false);
@@ -120,11 +159,8 @@ export default function WorkflowTrigger({ onError = () => {} }) {
       await submitWorkflow({ template: selected, parameters: params });
       setInfoMsg("✅ Submitted!");
       setTimeout(() => setInfoMsg(""), 3000);
-    } catch (e) {
-      onError(e.message);
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (e) { onError(e.message); }
+    finally     { setSubmitting(false); }
   };
 
   const visible = templates.filter(
@@ -132,19 +168,14 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   );
 
   /* -------- styles ------------------------------------------- */
-  const panel = { width: "50%", minWidth: 320, maxWidth: "50vw", marginLeft: 0 };
+  const panel    = { width: "50%", minWidth: 320, maxWidth: "50vw", marginLeft: 0 };
   const formCard = {
     border: "1px solid #cbd5e1",
     borderRadius: 6,
     padding: "1rem",
     marginBottom: "0.75rem",
   };
-  const kvRow = {
-    display: "flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    marginBottom: "0.5rem",
-  };
+  const kvRow      = { display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" };
   const labelStyle = { width: 120, fontWeight: 500 };
 
   return (
@@ -154,14 +185,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
 
         <div style={{ padding: "0.75rem 1rem" }}>
           {/* picker */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              marginBottom: "0.75rem",
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
             <select
               className="trigger-select"
               value={selected}
@@ -174,57 +198,36 @@ export default function WorkflowTrigger({ onError = () => {} }) {
             </select>
 
             {selected && description && (
-              <span style={{ fontStyle: "italic", opacity: 0.7 }}>
-                {description}
-              </span>
+              <span style={{ fontStyle: "italic", opacity: 0.7 }}>{description}</span>
             )}
           </div>
 
           {/* form */}
           {selected && (
             <div className="trigger-form" style={formCard}>
-              {Object.keys(params)
-                .filter((n) => n !== "event-data")
-                .map((name) => (
-                  <div key={name} style={kvRow}>
-                    <label style={labelStyle}>{name}</label>
-                    <input
-                      style={{ flex: 1 }}
-                      value={params[name]}
-                      onChange={(e) =>
-                        setParams((p) => ({ ...p, [name]: e.target.value }))
-                      }
-                    />
-                  </div>
-                ))}
 
+              {Object.keys(params).filter((n) => n !== "event-data").map((name) => (
+                <div key={name} style={kvRow}>
+                  <label style={labelStyle}>{name}</label>
+                  <input
+                    style={{ flex: 1 }}
+                    value={params[name]}
+                    onChange={(e) => setParams((p) => ({ ...p, [name]: e.target.value }))}
+                  />
+                </div>
+              ))}
+
+              {/* event-data JSON (form view adds suggestion dropdowns) */}
               {params["event-data"] !== undefined && (
-                <div
-                  style={{
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 4,
-                    padding: "0.75rem",
-                    marginTop: "0.75rem",
-                    marginBottom: "0.75rem",
-                  }}
-                >
-                  <label
-                    style={{
-                      ...labelStyle,
-                      borderBottom: "1px solid #e2e8f0",
-                      paddingBottom: 4,
-                    }}
-                  >
+                <div style={{ border: "1px solid #e2e8f0", borderRadius: 4, padding: "0.75rem",
+                              marginTop: "0.75rem", marginBottom: "0.75rem" }}>
+                  <label style={{ ...labelStyle, borderBottom: "1px solid #e2e8f0", paddingBottom: 4 }}>
                     event-data
                   </label>
+
                   <button
                     className="btn-light"
-                    style={{
-                      float: "right",
-                      marginTop: -4,
-                      fontSize: "0.8rem",
-                      padding: "0.15rem 0.5rem",
-                    }}
+                    style={{ float: "right", marginTop: -4, fontSize: "0.8rem", padding: "0.15rem 0.5rem" }}
                     onClick={() => setRawView((r) => !r)}
                   >
                     {rawView ? "Form" : "Raw"}
@@ -232,56 +235,62 @@ export default function WorkflowTrigger({ onError = () => {} }) {
 
                   <div style={{ clear: "both", marginTop: rawView ? 6 : 10 }}>
                     {rawView ? (
+                      /* raw JSON textarea */
                       <textarea
                         rows={4}
                         style={{ width: "100%" }}
                         value={params["event-data"]}
                         onChange={(e) =>
-                          setParams((p) => ({
-                            ...p,
-                            "event-data": e.target.value,
-                          }))
-                        }
+                          setParams((p) => ({ ...p, "event-data": e.target.value }))}
                       />
                     ) : (
-                      Object.entries(parsedObj()).map(([k, v]) => (
-                        <div key={k} style={kvRow}>
-                          <label style={labelStyle}>{k}</label>
-                          <input
-                            style={{ flex: 1 }}
-                            value={v}
-                            onChange={(e) =>
-                              handleFieldChange(k, e.target.value)
-                            }
-                          />
-                        </div>
-                      ))
+                      /* key-value inputs with suggestions */
+                      Object.entries(parsedObj()).map(([k, v]) => {
+                        const opts = suggestions[k] || [];
+                        return (
+                          <div key={k} style={kvRow}>
+                            <label style={labelStyle}>{k}</label>
+
+                            {opts.length ? (
+                              <>
+                                <input
+                                  list={`sugg-${k}`}
+                                  style={{ flex: 1 }}
+                                  value={v}
+                                  onChange={(e) => handleFieldChange(k, e.target.value)}
+                                />
+                                <datalist id={`sugg-${k}`}>
+                                  {opts.map((val) => (
+                                    <option key={val} value={val} />
+                                  ))}
+                                </datalist>
+                              </>
+                            ) : (
+                              <input
+                                style={{ flex: 1 }}
+                                value={v}
+                                onChange={(e) => handleFieldChange(k, e.target.value)}
+                              />
+                            )}
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>
               )}
 
-              <button
-                className="btn"
-                disabled={submitting}
-                onClick={handleSubmitClick}
-              >
+              <button className="btn" disabled={submitting} onClick={handleSubmitClick}>
                 {submitting ? <Spinner small /> : "Insert"}
               </button>
               <span style={{ marginLeft: "0.75rem" }}>{infoMsg}</span>
             </div>
           )}
 
-          {/* toggle */}
+          {/* toggle for template-prefixed items */}
           <div style={{ fontSize: "0.85rem" }}>
-            <label
-              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-            >
-              <input
-                type="checkbox"
-                checked={hideTemp}
-                onChange={(e) => setHideTemp(e.target.checked)}
-              />
+            <label style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              <input type="checkbox" checked={hideTemp} onChange={(e) => setHideTemp(e.target.checked)} />
               Hide <code>template-*</code> templates
             </label>
           </div>
