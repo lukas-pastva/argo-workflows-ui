@@ -1,15 +1,15 @@
 /* WorkflowTrigger – pick a WorkflowTemplate, fill in parameters,
-   hit “Insert”.  Now with dropdown suggestions collected from past runs. */
+   hit “Insert”.  Dropdown suggestions are harvested from past runs. */
 
 import React, {
   useEffect,
   useState,
-  useRef       // 🆕 for SuggestInput.showPicker()
+  useRef
 } from "react";
 import {
   listTemplates,
   submitWorkflow,
-  listWorkflows          // ← used for suggestions
+  listWorkflows
 } from "../api";
 import Spinner from "./Spinner.jsx";
 import InsertConfirmModal from "./InsertConfirmModal.jsx";
@@ -18,8 +18,6 @@ import InsertConfirmModal from "./InsertConfirmModal.jsx";
 /*  Helpers                                                           */
 /* ------------------------------------------------------------------ */
 function parseParameterAnnotation(ann = "") {
-  /* Parse ui.argoproj.io/parameters YAML-style annotation
-     – returns { param: defaultValue, … }                           */
   const defs = {};
   if (!ann.trim()) return defs;
   ann.split(/\r?\n/).reduce((cur, ln) => {
@@ -35,7 +33,6 @@ function parseParameterAnnotation(ann = "") {
   return defs;
 }
 
-/* Harvest names of var_* parameters forwarded by the primary template */
 function deriveVarParameterDefaults(t) {
   if (!t?.spec?.templates?.length) return {};
   const prim =
@@ -52,20 +49,19 @@ function deriveVarParameterDefaults(t) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Collect value suggestions from finished runs                      */
+/*  Collect suggestions from finished runs                            */
 /* ------------------------------------------------------------------ */
 async function collectSuggestions(templateName) {
   const sugg = {};
   const add  = (k, v) => {
     if (v === undefined || v === null || String(v).trim() === "") return;
-    if (!sugg[k]) sugg[k] = new Set();
-    sugg[k].add(String(v));
+    (sugg[k] ??= new Set()).add(String(v));
   };
 
   if (!templateName) return {};
 
   let wfs = [];
-  try { wfs = await listWorkflows(); } catch { /* ignore network errors */ }
+  try { wfs = await listWorkflows(); } catch { /* network error – ignore */ }
 
   wfs
     .filter(
@@ -74,18 +70,15 @@ async function collectSuggestions(templateName) {
         wf.metadata?.generateName?.startsWith(`${templateName}-`)
     )
     .forEach((wf) => {
-      /* 1️⃣  event-data JSON in spec_arguments */
       (wf.spec?.arguments?.parameters || []).forEach((p) => {
         if (p.name === "event-data" && p.value) {
           try {
             Object.entries(JSON.parse(p.value)).forEach(([k, v]) => add(k, v));
-          } catch { /* invalid JSON – skip */ }
+          } catch { /* bad JSON */ }
         } else if (p.name?.startsWith("var_")) {
           add(p.name.slice(4), p.value);
         }
       });
-
-      /* 2️⃣  node outputs (captures var_* emitted by steps) */
       Object.values(wf.status?.nodes || {}).forEach((n) =>
         (n.outputs?.parameters || []).forEach((pp) =>
           add(pp.name.replace(/^var_/, ""), pp.value)
@@ -93,42 +86,54 @@ async function collectSuggestions(templateName) {
       );
     });
 
-  /* Set → Array */
   const flat = {};
   Object.entries(sugg).forEach(([k, set]) => (flat[k] = [...set]));
   return flat;
 }
 
 /* ------------------------------------------------------------------ */
-/*  SuggestInput – input that opens its <datalist> on focus           */
-/*  Supported in Chromium ≥113 / Firefox 126                           */
+/*  SuggestInput – always opens its <datalist> picker on click/focus  */
 /* ------------------------------------------------------------------ */
 function SuggestInput({ listId, value, onChange, style = {} }) {
   const ref = useRef(null);
-  const onFocus = () => {
-    if (ref.current?.showPicker) ref.current.showPicker();
+
+  const openPicker = () => {
+    const el = ref.current;
+    if (!el?.showPicker) return;
+
+    /* Temporarily clear value so the list shows all options           */
+    const orig = el.value;
+    el.value = "";
+    el.showPicker();
+    /* Restore after a tick so caret lands at end                      */
+    setTimeout(() => {
+      el.value = orig;
+      try { el.setSelectionRange(orig.length, orig.length); } catch {}
+    });
   };
+
   return (
     <input
       ref={ref}
       list={listId}
       value={value}
       onChange={onChange}
-      onFocus={onFocus}
+      onFocus={openPicker}
+      onMouseDown={openPicker}   /* opens even on repeated clicks */
       style={style}
     />
   );
 }
 
 /* ================================================================== */
-/*  Component                                                         */
+/*  Main component                                                    */
 /* ================================================================== */
 export default function WorkflowTrigger({ onError = () => {} }) {
   const [templates,   setTemplates]   = useState([]);
   const [selected,    setSelected]    = useState("");
   const [params,      setParams]      = useState({});
   const [description, setDescription] = useState("");
-  const [suggestions, setSuggestions] = useState({});   // { key → [values] }
+  const [suggestions, setSuggestions] = useState({});
 
   const [rawView,   setRawView]   = useState(false);
   const [hideTemp,  setHideTemp]  = useState(true);
@@ -136,21 +141,14 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   const [confirming,setConfirming]= useState(false);
   const [infoMsg,   setInfoMsg]   = useState("");
 
-  /* -------- fetch templates once -------------------------------- */
+  /* load templates once */
   useEffect(() => {
-    listTemplates()
-      .then(setTemplates)
-      .catch((e) => onError(`Templates: ${e.message}`));
+    listTemplates().then(setTemplates).catch((e) => onError(e.message));
   }, [onError]);
 
-  /* -------- template changed → defaults & suggestions ----------- */
+  /* rebuild defaults & suggestions on template change */
   useEffect(() => {
-    if (!selected) {
-      setParams({});
-      setDescription("");
-      setSuggestions({});
-      return;
-    }
+    if (!selected) { setParams({}); setDescription(""); setSuggestions({}); return; }
 
     const tmpl = templates.find((t) => t.metadata.name === selected);
     if (!tmpl) return;
@@ -162,13 +160,12 @@ export default function WorkflowTrigger({ onError = () => {} }) {
       ),
     };
 
-    /* Build initial param-map from template spec */
     const map = {};
     (tmpl.spec?.arguments?.parameters || []).forEach((pr) => {
       if (pr.name === "event-data") {
-        if (Object.keys(defaults).length)
-          map[pr.name] = JSON.stringify(defaults, null, 2);
-        else if (pr.value) map[pr.name] = pr.value;
+        map[pr.name] = Object.keys(defaults).length
+          ? JSON.stringify(defaults, null, 2)
+          : pr.value ?? "";
       } else {
         map[pr.name] = pr.value ?? "";
       }
@@ -181,57 +178,44 @@ export default function WorkflowTrigger({ onError = () => {} }) {
         ""
     );
 
-    /* async – load suggestions → merge keys into JSON object */
     collectSuggestions(selected).then((sugg) => {
       setSuggestions(sugg);
 
+      /* auto-add missing keys to JSON so their inputs appear */
       if (map["event-data"]) {
         try {
           const obj = JSON.parse(map["event-data"]);
           let changed = false;
           Object.keys(sugg).forEach((k) => {
-            if (!(k in obj)) {
-              obj[k] = "";
-              changed = true;
-            }
+            if (!(k in obj)) { obj[k] = ""; changed = true; }
           });
           if (changed)
             setParams((p) => ({
               ...p,
               "event-data": JSON.stringify(obj, null, 2),
             }));
-        } catch { /* keep as is */ }
+        } catch { /* keep as raw text */ }
       }
     });
   }, [selected, templates]);
 
-  /* -------- helpers for event-data form view -------------------- */
-  const parsedObj = () => {
-    try { return JSON.parse(params["event-data"] || "{}"); }
-    catch { return {}; }
-  };
-  const updateObj = (o) =>
-    setParams((pr) => ({ ...pr, "event-data": JSON.stringify(o, null, 2) }));
-  const handleFieldChange = (k, v) => {
-    const o = parsedObj();
-    o[k] = v;
-    updateObj(o);
-  };
+  /* helpers for event-data JSON */
+  const parsedObj = () => { try { return JSON.parse(params["event-data"] || "{}"); } catch { return {}; } };
+  const updateObj = (o) => setParams((pr) => ({ ...pr, "event-data": JSON.stringify(o, null, 2) }));
+  const handleFieldChange = (k, v) => { const o = parsedObj(); o[k] = v; updateObj(o); };
 
-  /* -------- submit flow ---------------------------------------- */
+  /* submit flow */
   const doSubmit = async () => {
-    setConfirming(false);
-    setSubmitting(true);
+    setConfirming(false); setSubmitting(true);
     try {
       await submitWorkflow({ template: selected, parameters: params });
-      setInfoMsg("✅ Submitted!");
-      setTimeout(() => setInfoMsg(""), 3000);
+      setInfoMsg("✅ Submitted!"); setTimeout(() => setInfoMsg(""), 3000);
     } catch (e) { onError(e.message); }
     finally     { setSubmitting(false); }
   };
 
-  /* -------- presentation --------------------------------------- */
-  const panel    = { width: "50%", minWidth: 320, maxWidth: "50vw", marginLeft: 0 };
+  /* styling shorthands */
+  const panel = { width: "50%", minWidth: 320, maxWidth: "50vw", marginLeft: 0 };
   const formCard = { border: "1px solid #cbd5e1", borderRadius: 6, padding: "1rem", marginBottom: "0.75rem" };
   const kvRow      = { display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" };
   const labelStyle = { width: 120, fontWeight: 500 };
@@ -246,7 +230,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
         <summary className="filter-title">Insert</summary>
 
         <div style={{ padding: "0.75rem 1rem" }}>
-          {/* template picker --------------------------------------------------- */}
+          {/* ── template picker ─────────────────────────────────── */}
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
             <select
               className="trigger-select"
@@ -258,16 +242,15 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                 <option key={t.metadata.name}>{t.metadata.name}</option>
               ))}
             </select>
-
             {selected && description && (
               <span style={{ fontStyle: "italic", opacity: 0.7 }}>{description}</span>
             )}
           </div>
 
-          {/* parameters form -------------------------------------------------- */}
+          {/* ── parameters form ────────────────────────────────── */}
           {selected && (
             <div className="trigger-form" style={formCard}>
-              {/* scalar parameters (non event-data) */}
+              {/* scalar parameters */}
               {Object.keys(params)
                 .filter((n) => n !== "event-data")
                 .map((name) => (
@@ -282,7 +265,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                   </div>
                 ))}
 
-              {/* event-data block -------------------------------------------- */}
+              {/* event-data block */}
               {params["event-data"] !== undefined && (
                 <div style={{ border: "1px solid #e2e8f0", borderRadius: 4, padding: "0.75rem", margin: "0.75rem 0" }}>
                   <label style={{ ...labelStyle, borderBottom: "1px solid #e2e8f0", paddingBottom: 4 }}>
@@ -297,7 +280,6 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                   </button>
 
                   <div style={{ clear: "both", marginTop: rawView ? 6 : 10 }}>
-                    {/* RAW JSON view */}
                     {rawView ? (
                       <textarea
                         rows={4}
@@ -307,9 +289,8 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                           setParams((p) => ({ ...p, "event-data": e.target.value }))}
                       />
                     ) : (
-                      /* FORM view – inputs with suggestions */
                       Object.entries(parsedObj()).map(([k, v]) => {
-                        const opts   = suggestions[k] || [];
+                        const opts = suggestions[k] || [];
                         const listId = `sugg-${k}`;
                         return (
                           <div key={k} style={kvRow}>
@@ -343,7 +324,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                 </div>
               )}
 
-              {/* submit button & feedback */}
+              {/* submit button */}
               <button className="btn" disabled={submitting} onClick={() => setConfirming(true)}>
                 {submitting ? <Spinner small /> : "Insert"}
               </button>
@@ -351,7 +332,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
             </div>
           )}
 
-          {/* hide template-* checkbox --------------------------------------- */}
+          {/* toggle template-* visibility */}
           <div style={{ fontSize: "0.85rem" }}>
             <label style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
               <input
@@ -365,7 +346,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
         </div>
       </details>
 
-      {/* confirmation modal -------------------------------------------------- */}
+      {/* confirmation modal */}
       {confirming && (
         <InsertConfirmModal
           template={selected}
