@@ -52,7 +52,7 @@ const shouldSkip = (k, v) => {
 };
 
 /* ------------------------------------------------------------------ */
-/*  NEW: timestamp formatter                                          */
+/*  Timestamp formatter                                               */
 /* ------------------------------------------------------------------ */
 function fmtTime(ts) {
   const d = new Date(ts);
@@ -65,7 +65,7 @@ function fmtTime(ts) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  🆕 Duration helper (in seconds, integer)                           */
+/*  Duration helpers                                                  */
 /* ------------------------------------------------------------------ */
 function durationSeconds(wf) {
   const start = new Date(wf.status.startedAt).getTime();
@@ -73,6 +73,15 @@ function durationSeconds(wf) {
     ? new Date(wf.status.finishedAt).getTime()
     : Date.now();
   return Math.max(0, Math.round((end - start) / 1000));
+}
+
+/* Convert seconds → "m:ss" (or "h:mm:ss" for long runs) */
+function fmtDuration(sec) {
+  const s = Math.max(0, sec);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = (s % 60).toString().padStart(2, "0");
+  return h > 0 ? `${h}:${m.toString().padStart(2, "0")}:${ss}` : `${m}:${ss}`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -129,7 +138,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         groups.get(dk).push({ fullKey: k, value: v });
       });
     });
-    // de-dupe values
+    /* de-dupe values */
     for (const [dk, arr] of groups) {
       const seen = new Set();
       groups.set(
@@ -181,7 +190,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     });
   }, [rows, keyToValues, hasActiveFilters]);
 
-  /* ---- sort rows (comparator unchanged except for duration logic) */
+  /* ---- sort rows ----------------------------------------------- */
   const comparator = (a, b) => {
     const { column, dir } = sort;
     const mul   = dir === "asc" ? 1 : -1;
@@ -201,7 +210,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   };
   const sortedRows = useMemo(() => [...filteredRows].sort(comparator), [filteredRows, sort]);
 
-  /* ---- bulk selection helpers ---------------------------------- */
+  /* ---- bulk-selection helpers ---------------------------------- */
   const isRunning  = (wf) => wf.status.phase === "Running";
   const nonRunning = sortedRows.map((r) => r.wf).filter((wf) => !isRunning(wf));
   const allSel     = nonRunning.length > 0 && nonRunning.every((wf) => selected[wf.metadata.name]);
@@ -339,12 +348,12 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             >
               {`Start Time${sortIndicator("start")}`}
             </th>
-            {/* 🆕 Duration column */}
+            {/* 🆕 Duration column (m : s) */}
             <th
               style={{ cursor: "pointer" }}
               onClick={() => setSort({ column: "duration", dir: nextDir("duration") })}
             >
-              {`Duration (s)${sortIndicator("duration")}`}
+              {`Duration${sortIndicator("duration")}`}
             </th>
             <th
               style={{ cursor: "pointer" }}
@@ -353,7 +362,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
               {`Status${sortIndicator("status")}`}
             </th>
 
-            {/* 🆕 extra label columns */}
+            {/* extra label columns */}
             {listLabelColumns.map((k) => (
               <th key={`hdr-${k}`}>{trimKey(k)}</th>
             ))}
@@ -402,7 +411,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     {nm}
                   </td>                  
                   <td>{fmtTime(wf.status.startedAt)}</td>
-                  <td>{durSec}</td>
+                  <td>{fmtDuration(durSec)}</td>
 
                   {/* ---------- status pill ---------- */}
                   <td>
@@ -463,7 +472,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     )}
                   </td>
 
-                  {/* 🆕 extra label values */}
+                  {/* extra label values */}
                   {listLabelColumns.map((k) => (
                     <td key={`${nm}-${k}`}>{labels[k] ?? ""}</td>
                   ))}
@@ -555,7 +564,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                   </td>
                 </tr>
 
-                {/* ---------- expanded row (labels + mini DAG) ---------- */}
+                {/* ---------- expanded row (labels + mini-DAG) ---------- */}
                 {expanded[nm] && (
                   <tr className="tr-labels">
                     <td colSpan={fullColSpan}>
