@@ -65,6 +65,17 @@ function fmtTime(ts) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  🆕 Duration helper (in seconds, integer)                           */
+/* ------------------------------------------------------------------ */
+function durationSeconds(wf) {
+  const start = new Date(wf.status.startedAt).getTime();
+  const end   = wf.status.finishedAt
+    ? new Date(wf.status.finishedAt).getTime()
+    : Date.now();
+  return Math.max(0, Math.round((end - start) / 1000));
+}
+
+/* ------------------------------------------------------------------ */
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
 export default function WorkflowList({ onShowLogs, onError = () => {} }) {
@@ -170,16 +181,19 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     });
   }, [rows, keyToValues, hasActiveFilters]);
 
-  /* ---- sort rows (comparator unchanged except for start-time call) */
+  /* ---- sort rows (comparator unchanged except for duration logic) */
   const comparator = (a, b) => {
     const { column, dir } = sort;
     const mul   = dir === "asc" ? 1 : -1;
     const gKey  = (r) => r.group;
     const sTime = (r) => new Date(r.wf.status.startedAt).getTime();
+    const dur   = (r) => durationSeconds(r.wf);
+
     switch (column) {
-      case "name"  : return mul * a.wf.metadata.name.localeCompare(b.wf.metadata.name);
-      case "start" : return mul * (sTime(a) - sTime(b));
-      case "status": return mul * a.wf.status.phase.localeCompare(b.wf.status.phase);
+      case "name"     : return mul * a.wf.metadata.name.localeCompare(b.wf.metadata.name);
+      case "start"    : return mul * (sTime(a) - sTime(b));
+      case "duration" : return mul * (dur(a) - dur(b));
+      case "status"   : return mul * a.wf.status.phase.localeCompare(b.wf.status.phase);
       default:
         if (gKey(a) !== gKey(b)) return mul * gKey(a).localeCompare(gKey(b));
         return -sTime(a) + sTime(b);
@@ -237,7 +251,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   /* ------------------------------------------------------------------ */
   /*  RENDER                                                             */
   /* ------------------------------------------------------------------ */
-  const fullColSpan = 5 + listLabelColumns.length;
+  const fullColSpan = 6 + listLabelColumns.length; // checkbox + Name + Start + Duration + Status + labels + Actions
 
   return (
     <div className="wf-container">
@@ -325,6 +339,13 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             >
               {`Start Time${sortIndicator("start")}`}
             </th>
+            {/* 🆕 Duration column */}
+            <th
+              style={{ cursor: "pointer" }}
+              onClick={() => setSort({ column: "duration", dir: nextDir("duration") })}
+            >
+              {`Duration (s)${sortIndicator("duration")}`}
+            </th>
             <th
               style={{ cursor: "pointer" }}
               onClick={() => setSort({ column: "status", dir: nextDir("status") })}
@@ -344,6 +365,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         <tbody>
           {sortedRows.map(({ wf }) => {
             const nm = wf.metadata.name;
+            const durSec = durationSeconds(wf);
             const delOk = wf.status.phase !== "Running";
             const labels = wf.metadata.labels || {};
             const failureMsg =
@@ -380,6 +402,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     {nm}
                   </td>                  
                   <td>{fmtTime(wf.status.startedAt)}</td>
+                  <td>{durSec}</td>
 
                   {/* ---------- status pill ---------- */}
                   <td>
