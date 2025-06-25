@@ -176,15 +176,25 @@ export default function Chart({ onError = () => {} }) {
     });
   }, [items, keyToValues, hasActiveFilters]);
 
-  /* ⑤ build chart dataset --------------------------------------- */
-  const chartData = useMemo(() => {
+  /* ⑤ order by start-time ASC ----------------------------------- */
+  const orderedItems = useMemo(() => {
     if (!filteredItems) return null;
+    return [...filteredItems].sort(
+      (a, b) =>
+        new Date(a.status.startedAt).getTime() -
+        new Date(b.status.startedAt).getTime()
+    );
+  }, [filteredItems]);
 
-    const labels   = filteredItems.map((wf) => wf.metadata.name);
+  /* ⑥ build chart dataset --------------------------------------- */
+  const chartData = useMemo(() => {
+    if (!orderedItems) return null;
+
+    const labels   = orderedItems.map((wf) => wf.metadata.name);
     const data     = [];
     const colours  = [];
 
-    filteredItems.forEach((wf) => {
+    orderedItems.forEach((wf) => {
       const start = new Date(wf.status.startedAt).getTime();
       const end   = wf.status.finishedAt
         ? new Date(wf.status.finishedAt).getTime()
@@ -205,12 +215,12 @@ export default function Chart({ onError = () => {} }) {
         }
       ]
     };
-  }, [filteredItems]);
+  }, [orderedItems]);
 
-  /* ⑥ helpers ---------------------------------------------------- */
+  /* ⑦ helpers ---------------------------------------------------- */
   const clearFilters = () => setFilters({});
 
-  /* ⑦ render ----------------------------------------------------- */
+  /* ⑧ render ----------------------------------------------------- */
   if (!items)
     return (
       <div style={{ textAlign: "center", padding: "2rem" }}>
@@ -218,11 +228,10 @@ export default function Chart({ onError = () => {} }) {
       </div>
     );
 
-  /* generate tooltip callbacks – needs access to filteredItems ---- */
+  /* tooltip callbacks need orderedItems -------------------------- */
   const tooltipCallbacks = {
-    /* first line: Duration (s) is already shown via label callback */
     afterLabel: (ctx) => {
-      const wf  = filteredItems[ctx.dataIndex];
+      const wf  = orderedItems[ctx.dataIndex];
       const lbl = wf.metadata.labels || {};
 
       const lines = [
@@ -231,7 +240,6 @@ export default function Chart({ onError = () => {} }) {
         `Duration : ${fmtDuration(ctx.raw)}`
       ];
 
-      /* extra label columns ------------------------------------- */
       listLabelColumns.forEach((k) => {
         if (lbl[k]) lines.push(`${trimKey(k)} : ${lbl[k]}`);
       });
