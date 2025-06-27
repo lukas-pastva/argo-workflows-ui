@@ -117,6 +117,24 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
+  /* ─── Download helper ─────────────────────────────────────────── */
+  const handleDownload = () => {
+    /* Compose a .log blob and trigger a download                     */
+    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+    const url  = URL.createObjectURL(blob);
+
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const base  = nodeId ? `${workflowName}-${nodeId}` : workflowName;
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${base}-${stamp}.log`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   /* ─── Render ───────────────────────────────────────────────────── */
   return (
     <div
@@ -134,13 +152,15 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
       }}
       ref={box}
     >
-      <button
-        className="btn-light"
-        style={{ float: "right" }}
-        onClick={onClose}
-      >
-        ✕ Close
-      </button>
+      {/* top-right buttons */}
+      <div style={{ float: "right", display: "flex", gap: "0.5rem" }}>
+        <button className="btn-light" onClick={handleDownload}>
+          ⬇︎ Download
+        </button>
+        <button className="btn-light" onClick={onClose}>
+          ✕ Close
+        </button>
+      </div>
 
       <h3 style={{ marginTop: 0 }}>
         Logs – {workflowName}
