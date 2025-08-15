@@ -10,7 +10,9 @@ A lightweight, single-container web interface for Kubernetes **Argo Workflows**.
 - **Label filters** – grouped by label *key*, expanded by default; groups can be collapsed via an env var.  
 - **Extra label columns** – pick specific labels to show as dedicated columns in the list.  
 - **Full-screen log viewer** – real-time, auto-scrolling logs.  
-- **Trigger workflows** – choose a template, fill in parameters, hit *Submit*.  
+- **Trigger workflows** – choose a template, fill in parameters, hit *Insert*.  
+  - 🆕 Submissions now **POST to an Argo Events webhook** (EventSource) instead of the argo-server `/submit` API.
+  - 🆕 The **webhook endpoint is derived from the flow name** (`resourceName`, e.g. `event-deploy`).
 - **Auto-refresh** – list every 10 s, log stream continuously.  
 - **Self-contained image** – React + Vite front-end and Express back-end in one container.
 
@@ -18,56 +20,16 @@ A lightweight, single-container web interface for Kubernetes **Argo Workflows**.
 
 ## Configuration (environment variables)
 
-| Variable                      | Purpose                                                  | Default                                               |
-|-------------------------------|----------------------------------------------------------|-------------------------------------------------------|
-| **`ARGO_WORKFLOWS_URL`**      | Base URL of the Argo Workflows API server.               | `http://argo-workflows-server:2746`                   |
-| **`ARGO_WORKFLOWS_TOKEN`**    | Bearer token; omit to use the pod’s service-account token automatically. | *(auto)* |
-| **`ARGO_WORKFLOWS_NAMESPACE`**| Namespace to operate in.                                 | `$POD_NAMESPACE` or `default`                         |
-| `DEBUG_LOGS`                  | Verbose server logging.                                  | `false`                                               |
-| **Front-end build-time vars (`VITE_*`)** |                                                  |                                                       |
-| `VITE_SKIP_LABELS`            | Comma-separated list of **label keys** or exact `key=value` pairs to hide completely. | `events.argoproj.io/action-timestamp` |
-| `VITE_COLLAPSED_LABEL_GROUPS` | Comma-separated list of label keys that should start collapsed in the UI. | *(none – everything expanded)* |
-| `VITE_LABEL_PREFIX_TRIM`      | Comma-separated list of prefixes to strip from label keys when shown (purely cosmetic). | `events.argoproj.io/` |
-| **`VITE_USE_UTC_TIME`**       | Show timestamps in 24-hour **UTC** instead of local browser time. Any truthy value enables UTC. | *(empty → use browser locale)* |
-
-
-### Template Annotations
-
-You can augment each **WorkflowTemplate** with these annotations:
-
-- **Description** (`ui.argoproj.io/description` *or* `description`):
-
-    ```yaml
-    metadata:
-      annotations:
-        ui.argoproj.io/description: |
-          This template performs X, Y and Z. Fill in the parameters below to customise.
-    ```
-
-    The contents appear under **Template Description** in the trigger form.
-
-#### Automatic defaults (no annotation needed)
-
-If the primary template (the one whose `.spec.templates[].name` equals the WorkflowTemplate’s own `metadata.name`) contains steps that forward parameters named **`var_*`**, those names are harvested, the `var_` prefix is stripped, and an empty‑string JSON object is pre‑filled into the special **`event-data`** field.  
-
-Example:
-
-```yaml
-steps:
-  - - name: deploy
-      arguments:
-        parameters:
-          - name: var_name
-          - name: var_version
-```
-
-→ The trigger form shows:
-
-```json
-{
-  "name": "",
-  "version": ""
-}
-```
+| Variable                         | Purpose                                                                 | Default                                                                                  |
+|----------------------------------|-------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| **`ARGO_WORKFLOWS_URL`**         | Base URL of the Argo Workflows **API server** (used for list/logs).    | `http://argo-workflows-server:2746`                                                      |
+| **`ARGO_WORKFLOWS_TOKEN`**       | Bearer token; omit to auto-use the pod’s SA token.                      | *(auto)*                                                                                |
+| **`ARGO_WORKFLOWS_NAMESPACE`**   | Namespace to operate in.                                                | `$POD_NAMESPACE` or `default`                                                            |
+| `DEBUG_LOGS`                     | Verbose server logging.                                                 | `false`                                                                                  |
+| **Webhook URL derivation**       | The server derives the webhook URL from `resourceName` (e.g. `event-deploy`). |                                                                                 |
+| `ARGO_EVENTS_SCHEME`             | Webhook scheme.                                                         | `http`                                                                                   |
+| `ARGO_EVENTS_SVC_SUFFIX`         | Suffix appended to `resourceName` to form the Service name.             | `-eventsource-svc`                                                                       |
+| `ARGO_EVENTS_PORT`               | Webhook Service port.                                                   | `12000`                                                                                  |
+| `ARGO_EVENTS_PATH`               | Path on the webhook service.                                            | `/`                                                                                      |
 
 

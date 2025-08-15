@@ -5,16 +5,21 @@ import fs    from "fs";
 /*  Environment & debug flag                                          */
 /* ------------------------------------------------------------------ */
 const {
-  ARGO_WORKFLOWS_URL        = "http://argo-workflows-server:2746",
+  ARGO_WORKFLOWS_URL        = "http://argo-workflows-server:2746", // list/logs
   ARGO_WORKFLOWS_TOKEN,
   ARGO_WORKFLOWS_NAMESPACE  = process.env.POD_NAMESPACE || "default",
+  /* 🆕 Argo Events webhook derivation */
+  ARGO_EVENTS_SCHEME        = "http",
+  ARGO_EVENTS_SVC_SUFFIX    = "-eventsource-svc",
+  ARGO_EVENTS_PORT          = "12000",
+  ARGO_EVENTS_PATH          = "/",
   DEBUG_LOGS                = "false"
 } = process.env;
 
 const debug = DEBUG_LOGS === "true";
 
 /* ------------------------------------------------------------------ */
-/*  Helper: obtain the Bearer token                                   */
+/*  Helper: obtain the Bearer token (for argo-server API only)        */
 /* ------------------------------------------------------------------ */
 let saToken = ARGO_WORKFLOWS_TOKEN;
 if (!saToken) {
@@ -37,7 +42,7 @@ const headers = () => ({
 });
 
 /* ------------------------------------------------------------------ */
-/*  Helper: print a ready-to-copy curl for debugging                   */
+/*  Curl hints for quick debugging                                    */
 /* ------------------------------------------------------------------ */
 function curlHint(url, method = "GET", body = null) {
   if (!debug) return;
@@ -48,6 +53,16 @@ function curlHint(url, method = "GET", body = null) {
       `curl -k -H "Authorization: Bearer $(cat ${tokenPath})" ` +
       `-H "Content-Type: application/json" -X ${method} ` +
       `${dataPart}"${url}"`
+  );
+}
+
+function curlEventHint(url, method = "POST", bodyText = "") {
+  if (!debug) return;
+  const safe = bodyText.length > 1000 ? bodyText.slice(0, 1000) + "…(truncated)" : bodyText;
+  console.log(
+    `[DEBUG] event-curl:\n` +
+      `curl -s -H "Content-Type: application/json" -X ${method} ` +
+      `--data '${safe}' "${url}"`
   );
 }
 
@@ -105,79 +120,88 @@ export async function listTemplates() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Submit workflow from a template (create Workflow directly)        */
+/*  🆕 Trigger via Argo Events webhook                                */
+/*      - Uses resourceName (or template) to derive the webhook URL    */
+/*      - Sends the *contents of parameters["event-data"]* as payload  */
 /* ------------------------------------------------------------------ */
 
-/* compact JSON-looking parameter values (strip whitespace/newlines)  */
+/* Compact JSON-looking parameter values (strip whitespace/newlines)  */
 function compactValue(val = "") {
   if (typeof val !== "string") return val;
   const trimmed = val.trim();
-  if (!/^[\[{]/.test(trimmed)) return val;      // fast-exit for non-JSON
+  if (!/^[\[{]/.test(trimmed)) return val;
   try {
     return JSON.stringify(JSON.parse(trimmed));
   } catch {
-    return val;                                // keep original if not valid
+    return val;
   }
 }
 
-export async function submitWorkflow({ template, parameters }) {
-  /* Ensure values are strings and compact JSON-ish ones */
-  const toParamValue = (v) => {
-    if (typeof v === "string") return compactValue(v);
-    if (v === null || v === undefined) return "";
-    return String(v);
-  };
+/* Helper to build final webhook URL for a given name */
+function eventUrl(name) {
+  const service = `${name}${ARGO_EVENTS_SVC_SUFFIX}.${ARGO_WORKFLOWS_NAMESPACE}.svc.cluster.local`;
+  const path    = ARGO_EVENTS_PATH.startsWith("/") ? ARGO_EVENTS_PATH : `/${ARGO_EVENTS_PATH}`;
+  return `${ARGO_EVENTS_SCHEME}://${service}:${ARGO_EVENTS_PORT}${path}`;
+}
 
-  /* Map {name:value} → [{name,value}] */
-  const paramArray = Object.entries(parameters || {}).map(([name, value]) => ({
-    name,
-    value: toParamValue(value)
-  }));
+export async function triggerEvent({ template, resourceName, parameters }) {
+  const name = resourceName || template;
+  if (!name) throw new Error("Missing resourceName/template to derive event endpoint");
 
-  /* Build a Workflow resource that references the WorkflowTemplate */
-  const body = {
-    namespace   : ARGO_WORKFLOWS_NAMESPACE,
-    serverDryRun: false,
-    workflow    : {
-      apiVersion: "argoproj.io/v1alpha1",
-      kind      : "Workflow",
-      metadata  : {
-        generateName: `${template}-`,
-        namespace   : ARGO_WORKFLOWS_NAMESPACE
-      },
-      spec      : {
-        workflowTemplateRef: { name: template },
-        ...(paramArray.length
-          ? { arguments: { parameters: paramArray } }
-          : {})
+  /* Determine payload:
+     1) If "event-data" exists and is valid JSON → send that object.
+     2) If "event-data" is a string but not JSON → send as text/plain.
+     3) Else → send the remaining scalar params as JSON object.       */
+  const params = parameters || {};
+  let payloadObj = null;
+  let payloadText = null;
+
+  if (Object.prototype.hasOwnProperty.call(params, "event-data")) {
+    const raw = params["event-data"];
+    if (typeof raw === "string") {
+      const compact = compactValue(raw);
+      try {
+        payloadObj = JSON.parse(compact);
+      } catch {
+        payloadText = raw; // keep as text
       }
+    } else if (raw && typeof raw === "object") {
+      payloadObj = raw;
+    } else {
+      payloadText = String(raw ?? "");
     }
-  };
+  } else {
+    const obj = {};
+    for (const [k, v] of Object.entries(params)) {
+      obj[k] = typeof v === "string" ? v : (v == null ? "" : String(v));
+    }
+    payloadObj = obj;
+  }
 
-  const url =
-    `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
-    `${ARGO_WORKFLOWS_NAMESPACE}`;
+  const url = eventUrl(name);
+  const init = payloadObj
+    ? {
+        method : "POST",
+        headers: { "Content-Type": "application/json" },
+        body   : JSON.stringify(payloadObj)
+      }
+    : {
+        method : "POST",
+        headers: { "Content-Type": "text/plain" },
+        body   : payloadText ?? ""
+      };
 
   if (debug) {
-    console.log(
-      `[DEBUG] Creating Workflow from template ${template}` +
-        (paramArray.length
-          ? ` with ${paramArray.length} parameter(s)`
-          : " (no parameters)")
-    );
+    console.log(`[DEBUG] Posting to Argo Events webhook: ${url} (resourceName=${name})`);
+    curlEventHint(url, "POST", payloadObj ? JSON.stringify(payloadObj) : String(payloadText ?? ""));
   }
-  curlHint(url, "POST", body);
 
-  const r = await fetch(url, {
-    method : "POST",
-    headers: headers(),
-    body   : JSON.stringify(body)
-  });
-  if (!r.ok) throw new Error(`Argo ${r.status}`);
+  const r = await fetch(url, init);
+  if (!r.ok) throw new Error(`Event webhook ${r.status}`);
 
-  const result = await r.json();
-  if (debug) console.log("[DEBUG] Workflow submit response:", result);
-  return result;
+  const text = await r.text().catch(() => "");
+  if (debug) console.log("[DEBUG] Webhook response:", text || "(no body)");
+  return { accepted: true, status: r.status };
 }
 
 /* ------------------------------------------------------------------ */
@@ -209,16 +233,12 @@ async function nodeIdToPodName(workflowName, nodeId) {
   const wf = await r.json();
   const nodes = wf.status?.nodes || {};
 
-  /* 1️⃣ Fast path – node has podName     */
   if (nodes[nodeId]?.podName) return nodes[nodeId].podName;
 
-  /* 2️⃣ Exact id lookup across all nodes */
   for (const n of Object.values(nodes)) {
     if (n.id === nodeId && n.podName) return n.podName;
   }
 
-  /* 3️⃣ Derive podName when Argo omit it (pod-name-format=v2)
-         Pattern: <workflow>-<template-name>-<suffix>                */
   const node = nodes[nodeId];
   if (node && node.templateRef?.name) {
     const suffix = nodeId.substring(nodeId.lastIndexOf("-") + 1);
@@ -227,7 +247,6 @@ async function nodeIdToPodName(workflowName, nodeId) {
     return candidate;
   }
 
-  /* 4️⃣ Fuzzy match by numeric suffix */
   const numericSuffix = nodeId.substring(nodeId.lastIndexOf("-") + 1);
   for (const n of Object.values(nodes)) {
     if (n.podName && n.podName.endsWith(numericSuffix)) return n.podName;
@@ -246,7 +265,6 @@ export async function streamLogs(
   { follow = "true", container = "main", nodeId, podName } = {}
 ) {
   try {
-    /* If caller only knows nodeId, resolve it to podName first */
     let finalPodName = podName;
     if (!finalPodName && nodeId) {
       finalPodName = await nodeIdToPodName(name, nodeId);

@@ -1,5 +1,5 @@
 /* WorkflowTrigger – pick a WorkflowTemplate, fill in parameters,
-   hit “Insert”.  Dropdown suggestions are harvested from past runs. */
+   hit “Insert”. Dropdown suggestions are harvested from past runs. */
 
 import React, {
   useEffect,
@@ -101,11 +101,9 @@ function SuggestInput({ listId, value, onChange, style = {} }) {
     const el = ref.current;
     if (!el?.showPicker) return;
 
-    /* Temporarily clear value so the list shows all options           */
     const orig = el.value;
     el.value = "";
     el.showPicker();
-    /* Restore after a tick so caret lands at end                      */
     setTimeout(() => {
       el.value = orig;
       try { el.setSelectionRange(orig.length, orig.length); } catch {}
@@ -119,7 +117,7 @@ function SuggestInput({ listId, value, onChange, style = {} }) {
       value={value}
       onChange={onChange}
       onFocus={openPicker}
-      onMouseDown={openPicker}   /* opens even on repeated clicks */
+      onMouseDown={openPicker}
       style={style}
     />
   );
@@ -181,7 +179,6 @@ export default function WorkflowTrigger({ onError = () => {} }) {
     collectSuggestions(selected).then((sugg) => {
       setSuggestions(sugg);
 
-      /* auto-add missing keys to JSON so their inputs appear */
       if (map["event-data"]) {
         try {
           const obj = JSON.parse(map["event-data"]);
@@ -208,7 +205,8 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   const doSubmit = async () => {
     setConfirming(false); setSubmitting(true);
     try {
-      await submitWorkflow({ template: selected, parameters: params });
+      // 🆕 include resourceName so the server can derive the event endpoint
+      await submitWorkflow({ resourceName: selected, template: selected, parameters: params });
       setInfoMsg("✅ Submitted!"); setTimeout(() => setInfoMsg(""), 3000);
     } catch (e) { onError(e.message); }
     finally     { setSubmitting(false); }

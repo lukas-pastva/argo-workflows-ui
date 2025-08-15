@@ -6,7 +6,8 @@ import { fileURLToPath } from "url";
 import {
   listWorkflows,
   listTemplates,
-  submitWorkflow,
+  /* 🆕 use Events webhook instead of argo-server submit */
+  triggerEvent,
   streamLogs,
   deleteWorkflow,
 } from "./argo-workflows.js";
@@ -60,8 +61,9 @@ app.get("/api/templates", async (_req, res, next) => {
   try { res.json(await listTemplates()); } catch (e) { next(e); }
 });
 
+/* 🆕 Submissions go to Argo Events webhook */
 app.post("/api/workflows", async (req, res, next) => {
-  try { res.json(await submitWorkflow(req.body)); } catch (e) { next(e); }
+  try { res.json(await triggerEvent(req.body)); } catch (e) { next(e); }
 });
 
 /* ─── Serve compiled front-end ───────────────────────── */
