@@ -105,16 +105,14 @@ export async function listTemplates() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Submit workflow from a template                                   */
+/*  Submit workflow from a template (create Workflow directly)        */
 /* ------------------------------------------------------------------ */
 
 /* compact JSON-looking parameter values (strip whitespace/newlines)  */
 function compactValue(val = "") {
   if (typeof val !== "string") return val;
-
   const trimmed = val.trim();
   if (!/^[\[{]/.test(trimmed)) return val;      // fast-exit for non-JSON
-
   try {
     return JSON.stringify(JSON.parse(trimmed));
   } catch {
@@ -123,30 +121,49 @@ function compactValue(val = "") {
 }
 
 export async function submitWorkflow({ template, parameters }) {
-  /* Turn { key: value } ⇒ ["key=value", …] (with compacted values) */
-  const paramStrings = Object
-    .entries(parameters || {})
-    .map(([n, v]) => `${n}=${compactValue(v)}`);
+  /* Ensure values are strings and compact JSON-ish ones */
+  const toParamValue = (v) => {
+    if (typeof v === "string") return compactValue(v);
+    if (v === null || v === undefined) return "";
+    return String(v);
+  };
 
+  /* Map {name:value} → [{name,value}] */
+  const paramArray = Object.entries(parameters || {}).map(([name, value]) => ({
+    name,
+    value: toParamValue(value)
+  }));
+
+  /* Build a Workflow resource that references the WorkflowTemplate */
   const body = {
-    resourceKind : "WorkflowTemplate",
-    resourceName : template,
-    submitOptions: {
-      generateName: `${template}-`,
-      ...(paramStrings.length ? { parameters: paramStrings } : {})
+    namespace   : ARGO_WORKFLOWS_NAMESPACE,
+    serverDryRun: false,
+    workflow    : {
+      apiVersion: "argoproj.io/v1alpha1",
+      kind      : "Workflow",
+      metadata  : {
+        generateName: `${template}-`,
+        namespace   : ARGO_WORKFLOWS_NAMESPACE
+      },
+      spec      : {
+        workflowTemplateRef: { name: template },
+        ...(paramArray.length
+          ? { arguments: { parameters: paramArray } }
+          : {})
+      }
     }
   };
 
   const url =
     `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
-    `${ARGO_WORKFLOWS_NAMESPACE}/submit`;
+    `${ARGO_WORKFLOWS_NAMESPACE}`;
 
   if (debug) {
     console.log(
-      `[DEBUG] Submitting workflowTemplate ${template}` +
-      (paramStrings.length
-        ? ` with ${paramStrings.length} parameters`
-        : " (no parameters)")
+      `[DEBUG] Creating Workflow from template ${template}` +
+        (paramArray.length
+          ? ` with ${paramArray.length} parameter(s)`
+          : " (no parameters)")
     );
   }
   curlHint(url, "POST", body);
@@ -200,8 +217,8 @@ async function nodeIdToPodName(workflowName, nodeId) {
     if (n.id === nodeId && n.podName) return n.podName;
   }
 
-  /* 3️⃣ Derive podName when Argo omit it (pod-name-format=v2)          
-         Pattern: <workflow>-<template-name>-<suffix>                 */
+  /* 3️⃣ Derive podName when Argo omit it (pod-name-format=v2)
+         Pattern: <workflow>-<template-name>-<suffix>                */
   const node = nodes[nodeId];
   if (node && node.templateRef?.name) {
     const suffix = nodeId.substring(nodeId.lastIndexOf("-") + 1);
