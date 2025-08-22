@@ -78,7 +78,7 @@ html { font-size: 90%; }
     --row-hover-intimate  : #3a3a3d;
     --labels-row-bg       : #303033;
 
-    --ansi-black-fg : #e5e5e5;
+    --ansi-black-fg : #e5e55;
     --ansi-white-fg : #ffffff;
   }
 }
@@ -127,6 +127,8 @@ body {
   width     : 100%;
   max-width : none;
   padding   : 0;
+  /* reserve space so the fixed pager doesn't overlap content */
+  padding-bottom: 4.5rem;
 }
 
 .card {
@@ -531,3 +533,40 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
 }
 
 .dag-arrow { opacity: 0.6; }
+
+/* ===== Fixed bottom pager ===================================== */
+.pager-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg);
+  z-index: 900; /* below modals (1000) and log viewer (2000) */
+  /* subtle separation from content behind */
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+}
+
+.pager {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.pager-inner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem; /* a tad smaller */
+}
+
+/* make the buttons in the pager slightly smaller too */
+.pager-inner .btn,
+.pager-inner .btn-light,
+.pager-inner .btn-danger {
+  font-size: 0.85rem;
+  padding: 0.3rem 0.9rem;
+}

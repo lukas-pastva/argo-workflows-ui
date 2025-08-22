@@ -308,22 +308,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     <div className="wf-container">
       <h3 className="wf-title">List</h3>
 
-      {/* ------- paging controls ------- */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0 0.5rem" }}>
-        <button className="btn-light" onClick={goFirst} disabled={pageNum === 1}>⟲ First</button>
-        <button className="btn-light" onClick={goPrev}  disabled={cursorStack.length === 0}>← Prev</button>
-        <button className="btn-light" onClick={goNext}  disabled={!nextCursor}>Next →</button>
-        <span style={{ opacity: 0.8 }}>Page {pageNum}</span>
-        <span style={{ marginLeft: "1rem" }}>
-          Page size:&nbsp;
-          <select value={pageSize} onChange={(e) => changePageSize(parseInt(e.target.value, 10))}>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-            <option value={200}>200</option>
-          </select>
-        </span>
-      </div>
-
       {loading && items.length === 0 && (
         <div style={{ textAlign: "center", padding: "2rem" }}><Spinner /></div>
       )}
@@ -673,6 +657,26 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           onClose={() => setReasonModal(null)}
         />
       )}
+
+      {/* ---- fixed bottom pager ---- */}
+      <div className="pager-bar" role="navigation" aria-label="Pagination">
+        <div className="pager">
+          <div className="pager-inner">
+            <button className="btn-light" onClick={goFirst} disabled={pageNum === 1}>⟲ First</button>
+            <button className="btn-light" onClick={goPrev}  disabled={cursorStack.length === 0}>← Prev</button>
+            <button className="btn-light" onClick={goNext}  disabled={!nextCursor}>Next →</button>
+            <span style={{ opacity: 0.8, marginLeft: "0.25rem" }}>Page {pageNum}</span>
+            <span style={{ marginLeft: "1rem" }}>
+              Page size:&nbsp;
+              <select value={pageSize} onChange={(e) => changePageSize(parseInt(e.target.value, 10))}>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={200}>200</option>
+              </select>
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
