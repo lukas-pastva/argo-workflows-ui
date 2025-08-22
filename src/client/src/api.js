@@ -10,7 +10,25 @@ async function jsonOrThrow(resp) {
   return resp.json();
 }
 
-export async function listWorkflows() { return jsonOrThrow(await fetch(`${base}/workflows`)); }
+/* ------------------------------------------------------------------ */
+/*  Workflows – both paged and convenience flat list                  */
+/* ------------------------------------------------------------------ */
+
+// Paged: returns { items, nextCursor }
+export async function listWorkflowsPaged({ limit, cursor } = {}) {
+  const qs = new URLSearchParams();
+  if (limit)  qs.set("limit", String(limit));
+  if (cursor) qs.set("cursor", cursor);
+  const url = `${base}/workflows${qs.toString() ? `?${qs}` : ""}`;
+  return jsonOrThrow(await fetch(url));
+}
+
+// Convenience: return just an array of items (used by Chart etc.)
+export async function listWorkflows(opts) {
+  const data = await listWorkflowsPaged(opts);
+  return Array.isArray(data) ? data : (data.items || []);
+}
+
 export async function listTemplates() { return jsonOrThrow(await fetch(`${base}/templates`)); }
 
 export async function submitWorkflow(body) {

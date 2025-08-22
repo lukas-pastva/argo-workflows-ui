@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 import {
   listWorkflows,
   listTemplates,
-  /* 🆕 use Events webhook instead of argo-server submit */
+  /* use Events webhook instead of argo-server submit */
   triggerEvent,
   streamLogs,
   deleteWorkflow,
@@ -43,12 +43,13 @@ app.get("/env.js", (_req, res) => {
 });
 
 /* ─── API routes ─────────────────────────────────────── */
+/* Always returns { items, nextCursor } and supports ?limit&cursor */
 app.get("/api/workflows", async (req, res, next) => {
   try {
-    // allow optional ?limit=…&pageLimit=…
-    const limit     = req.query?.limit     ? parseInt(req.query.limit, 10)     : undefined;
-    const pageLimit = req.query?.pageLimit ? parseInt(req.query.pageLimit, 10) : undefined;
-    res.json(await listWorkflows({ limit, pageLimit }));
+    const limit  = req.query?.limit  ? Math.max(1, parseInt(req.query.limit, 10)  || 0) : undefined;
+    const cursor = typeof req.query?.cursor === "string" ? req.query.cursor : "";
+    const result = await listWorkflows({ limit, cursor });
+    res.json(result);
   } catch (e) { next(e); }
 });
 
@@ -66,7 +67,7 @@ app.get("/api/templates", async (_req, res, next) => {
   try { res.json(await listTemplates()); } catch (e) { next(e); }
 });
 
-/* 🆕 Submissions go to Argo Events webhook */
+/* Submissions go to Argo Events webhook */
 app.post("/api/workflows", async (req, res, next) => {
   try { res.json(await triggerEvent(req.body)); } catch (e) { next(e); }
 });

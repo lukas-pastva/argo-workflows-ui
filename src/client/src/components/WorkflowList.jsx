@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  listWorkflows,
+  listWorkflowsPaged,
+  listWorkflows,      // used for suggestions in Trigger; keep available
   deleteWorkflow,
   deleteWorkflows,
 } from "../api";
@@ -14,7 +15,7 @@ import MiniDag            from "./MiniDag.jsx";
 /* ------------------------------------------------------------------ */
 const env = window.__ENV__ || {};
 
-/* 🆕 choose between browser-local (default) and UTC */
+/* choose between browser-local (default) and UTC */
 const useUtcTime =
   String(env.useUtcTime ?? import.meta.env.VITE_USE_UTC_TIME ?? "")
     .toLowerCase()
@@ -30,7 +31,7 @@ const trimPrefixes = (env.labelPrefixTrim || "")
   .map((p) => p.trim())
   .filter(Boolean);
 
-/* 🆕 list of label keys that become table columns */
+/* list of label keys that become table columns */
 const listLabelColumns = (env.listLabelColumns || "")
   .split(",")
   .map((s) => s.trim())
@@ -52,7 +53,7 @@ const shouldSkip = (k, v) => {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Timestamp formatter                                               */
+/*  Timestamp & duration helpers                                      */
 /* ------------------------------------------------------------------ */
 function fmtTime(ts) {
   const d = new Date(ts);
@@ -64,9 +65,6 @@ function fmtTime(ts) {
     : d.toLocaleString(undefined, { hour12: false });
 }
 
-/* ------------------------------------------------------------------ */
-/*  Duration helpers                                                  */
-/* ------------------------------------------------------------------ */
 function durationSeconds(wf) {
   const start = new Date(wf.status.startedAt).getTime();
   const end   = wf.status.finishedAt
@@ -75,7 +73,6 @@ function durationSeconds(wf) {
   return Math.max(0, Math.round((end - start) / 1000));
 }
 
-/* Convert seconds → "m:ss" (or "h:mm:ss" for long runs) */
 function fmtDuration(sec) {
   const s = Math.max(0, sec);
   const h = Math.floor(s / 3600);
@@ -95,6 +92,13 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [expanded, setExpanded]         = useState({});
   const [reasonModal, setReasonModal]   = useState(null);
 
+  /* ---- paging state --------------------------------------------- */
+  const [pageSize, setPageSize]   = useState(100);
+  const [cursor, setCursor]       = useState("");     // current cursor (continue token for this page)
+  const [nextCursor, setNextCursor] = useState(null); // next token if available
+  const [cursorStack, setCursorStack] = useState([]); // stack of previous cursors for "Prev"
+  const [pageNum, setPageNum]     = useState(1);
+
   /* ---- label filters (persisted) -------------------------------- */
   const [filters, setFilters] = useState(() => {
     try { return JSON.parse(localStorage.getItem("workflowFilters") || "{}"); }
@@ -108,24 +112,34 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   /* ---- sort ----------------------------------------------------- */
   const [sort, setSort] = useState({ column: "start", dir: "desc" });
 
-  /* ---- fetch list (auto-refresh) -------------------------------- */
+  /* ---- fetch list (auto-refresh current page) ------------------- */
   useEffect(() => {
-    async function fetchAll() {
+    let cancelled = false;
+
+    async function fetchPage() {
       try {
         setLoading(true);
-        setItems(await listWorkflows());
+        const res = await listWorkflowsPaged({ limit: pageSize, cursor });
+        if (cancelled) return;
+        setItems(res.items || []);
+        setNextCursor(res.nextCursor || null);
       } catch (e) {
-        onError(
-          e.status === 403
-            ? "Access denied (HTTP 403)."
-            : `Error loading workflows: ${e.message}`
-        );
-      } finally { setLoading(false); }
+        if (!cancelled) {
+          onError(
+            e.status === 403
+              ? "Access denied (HTTP 403)."
+              : `Error loading workflows: ${e.message}`
+          );
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
-    fetchAll();
-    const id = setInterval(fetchAll, 10_000);
-    return () => clearInterval(id);
-  }, [onError]);
+
+    fetchPage();
+    const id = setInterval(fetchPage, 10_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [onError, pageSize, cursor]);
 
   /* ---- build label groups -------------------------------------- */
   const labelGroups = useMemo(() => {
@@ -167,7 +181,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     [items]
   );
 
-  /* ---- filter rows --------------------------------------------- */
+  /* ---- filter rows (client-side, within the current page) ------- */
   const activePairs      = Object.entries(filters).filter(([, v]) => v).map(([p]) => p);
   const hasActiveFilters = activePairs.length > 0;
   const keyToValues      = useMemo(() => {
@@ -252,6 +266,34 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     setExpanded((ex) => ({ ...ex, [name]: !ex[name] }));
   };
 
+  /* ---- paging actions ------------------------------------------ */
+  const goFirst = () => {
+    setCursor("");
+    setCursorStack([]);
+    setPageNum(1);
+  };
+  const goPrev = () => {
+    if (cursorStack.length === 0) return;
+    const prev = cursorStack[cursorStack.length - 1];                // token used to fetch current page
+    const beforePrev = cursorStack.slice(0, -1);                    // remaining history
+    setCursor(prev);
+    setCursorStack(beforePrev.slice(0, -1));                        // drop also the token for the page *before* current
+    setPageNum((n) => Math.max(1, n - 1));
+  };
+  const goNext = () => {
+    if (!nextCursor) return;
+    setCursorStack((st) => [...st, cursor]);                        // remember where we were
+    setCursor(nextCursor);
+    setPageNum((n) => n + 1);
+  };
+  const changePageSize = (n) => {
+    setPageSize(n);
+    // reset to first page on size change
+    setCursor("");
+    setCursorStack([]);
+    setPageNum(1);
+  };
+
   /* ---- render helpers ------------------------------------------ */
   const sortIndicator = (c) => (sort.column === c ? (sort.dir === "asc" ? " ▲" : " ▼") : "");
   const nextDir       = (c) => (sort.column === c ? (sort.dir === "asc" ? "desc" : "asc") : "asc");
@@ -265,6 +307,22 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   return (
     <div className="wf-container">
       <h3 className="wf-title">List</h3>
+
+      {/* ------- paging controls ------- */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0 0.5rem" }}>
+        <button className="btn-light" onClick={goFirst} disabled={pageNum === 1}>⟲ First</button>
+        <button className="btn-light" onClick={goPrev}  disabled={cursorStack.length === 0}>← Prev</button>
+        <button className="btn-light" onClick={goNext}  disabled={!nextCursor}>Next →</button>
+        <span style={{ opacity: 0.8 }}>Page {pageNum}</span>
+        <span style={{ marginLeft: "1rem" }}>
+          Page size:&nbsp;
+          <select value={pageSize} onChange={(e) => changePageSize(parseInt(e.target.value, 10))}>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+            <option value={200}>200</option>
+          </select>
+        </span>
+      </div>
 
       {loading && items.length === 0 && (
         <div style={{ textAlign: "center", padding: "2rem" }}><Spinner /></div>
@@ -301,8 +359,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                         key={pair}
                         className={filters[pair] ? "selected" : ""}
                         onClick={() =>
-                          setFilters((f) => ({ ...f, [pair]: !f[pair] }))
-                        }
+                          setFilters((f) => ({ ...f, [pair]: !f[pair] }))}
                       >
                         {value}
                       </span>
@@ -348,7 +405,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             >
               {`Start Time${sortIndicator("start")}`}
             </th>
-            {/* 🆕 Duration column (m : s) */}
+            {/* Duration column */}
             <th
               style={{ cursor: "pointer" }}
               onClick={() => setSort({ column: "duration", dir: nextDir("duration") })}

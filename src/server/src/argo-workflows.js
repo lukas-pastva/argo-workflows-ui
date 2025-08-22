@@ -8,22 +8,20 @@ const {
   ARGO_WORKFLOWS_URL        = "http://argo-workflows-server:2746", // list/logs
   ARGO_WORKFLOWS_TOKEN,
   ARGO_WORKFLOWS_NAMESPACE  = process.env.POD_NAMESPACE || "default",
-  /* 🆕 Argo Events webhook derivation */
+  /* Argo Events webhook derivation */
   ARGO_EVENTS_SCHEME        = "http",
   ARGO_EVENTS_SVC_SUFFIX    = "-eventsource-svc",
   ARGO_EVENTS_PORT          = "12000",
   ARGO_EVENTS_PATH          = "/",
   DEBUG_LOGS                = "false",
-  /* 🆕 list tuning */
-  API_LIST_LIMIT            = "200",   // hard cap of returned items
-  API_PAGE_LIMIT            = "100",   // page size for server-side pagination
+  /* List tuning */
+  API_LIST_LIMIT            = "200",   // default page size
   API_INCLUDE_NODES         = "true"   // include minimal nodes in list response
 } = process.env;
 
 const debug = DEBUG_LOGS === "true";
-const HARD_LIMIT = Math.max(1, parseInt(API_LIST_LIMIT, 10)  || 200);
-const PAGE_LIMIT = Math.max(1, parseInt(API_PAGE_LIMIT, 10)  || 100);
-const WITH_NODES = String(API_INCLUDE_NODES).toLowerCase() !== "false";
+const DEFAULT_LIMIT = Math.max(1, parseInt(API_LIST_LIMIT, 10) || 200);
+const WITH_NODES    = String(API_INCLUDE_NODES).toLowerCase() !== "false";
 
 /* ------------------------------------------------------------------ */
 /*  Helper: obtain the Bearer token (for argo-server API only)        */
@@ -131,43 +129,33 @@ function slimWorkflow(wf) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  List workflows (paged; sorted by template ASC, start-time DESC)   */
+/*  Fetch exactly one upstream page (cursor-based paging)             */
 /* ------------------------------------------------------------------ */
-export async function listWorkflows({ limit = HARD_LIMIT, pageLimit = PAGE_LIMIT } = {}) {
-  let cont      = "";
-  const out     = [];
-  let pageIndex = 0;
+async function fetchWorkflowsPage({ limit, cursor }) {
+  const params = new URLSearchParams({
+    "listOptions.fieldSelector": "",
+    "listOptions.limit"        : String(limit)
+  });
+  if (cursor) params.set("listOptions.continue", cursor);
 
-  while (out.length < limit) {
-    const params = new URLSearchParams({
-      "listOptions.fieldSelector": "",
-      "listOptions.limit"        : String(pageLimit)
-    });
-    if (cont) params.set("listOptions.continue", cont);
+  const url = `${ARGO_WORKFLOWS_URL}/api/v1/workflows/${ARGO_WORKFLOWS_NAMESPACE}?${params.toString()}`;
+  if (debug) console.log(`[DEBUG] Fetching workflows page (limit=${limit}, cursor=${cursor || "-"})`);
+  curlHint(url);
 
-    const url = `${ARGO_WORKFLOWS_URL}/api/v1/workflows/${ARGO_WORKFLOWS_NAMESPACE}?${params.toString()}`;
-    if (debug) console.log(`[DEBUG] Fetching workflows page ${++pageIndex}: ${url}`);
-    curlHint(url);
+  const r = await fetch(url, { headers: headers() });
+  if (!r.ok) throw new Error(`Argo ${r.status}`);
 
-    const r = await fetch(url, { headers: headers() });
-    if (!r.ok) throw new Error(`Argo ${r.status}`);
+  const j = await r.json();
+  const items = Array.isArray(j.items) ? j.items : [];
 
-    const j = await r.json();
-    const items = Array.isArray(j.items) ? j.items : [];
+  const slimmed = items.map(slimWorkflow);
 
-    // slim as we go to avoid keeping full page in memory
-    for (const wf of items) {
-      out.push(slimWorkflow(wf));
-      if (out.length >= limit) break;
-    }
+  // next cursor varies in field name
+  const nextCursor =
+    j.metadata?.continue || j.continueToken || j.continue || null;
 
-    // find continue token (K8s-style list metadata or Argo variants)
-    cont = j.metadata?.continue || j.continueToken || j.continue || "";
-    if (!cont || items.length === 0) break;
-  }
-
-  // sort by [template name ASC, start-time DESC]
-  out.sort((a, b) => {
+  // Sort slimmed page for stable UI (template ASC, startedAt DESC)
+  slimmed.sort((a, b) => {
     const aKey = a.spec?.workflowTemplateRef?.name || a.metadata.generateName || "";
     const bKey = b.spec?.workflowTemplateRef?.name || b.metadata.generateName || "";
     if (aKey < bKey) return -1;
@@ -176,9 +164,17 @@ export async function listWorkflows({ limit = HARD_LIMIT, pageLimit = PAGE_LIMIT
   });
 
   if (debug) {
-    console.log(`[DEBUG] Sorted ${out.length} workflows by template and start time (limit=${limit}, page=${pageLimit})`);
+    console.log(`[DEBUG] Page size=${slimmed.length}, nextCursor=${nextCursor ? "(present)" : "null"}`);
   }
-  return out;
+
+  return { items: slimmed, nextCursor };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Public list API (always returns {items, nextCursor})              */
+/* ------------------------------------------------------------------ */
+export async function listWorkflows({ limit = DEFAULT_LIMIT, cursor = "" } = {}) {
+  return fetchWorkflowsPage({ limit, cursor });
 }
 
 /* ------------------------------------------------------------------ */
@@ -203,9 +199,7 @@ export async function listTemplates() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  🆕 Trigger via Argo Events webhook                                */
-/*      - Uses resourceName (or template) to derive the webhook URL    */
-/*      - Sends the *contents of parameters["event-data"]* as payload  */
+/*  Trigger via Argo Events webhook                                   */
 /* ------------------------------------------------------------------ */
 
 /* Compact JSON-looking parameter values (strip whitespace/newlines)  */
