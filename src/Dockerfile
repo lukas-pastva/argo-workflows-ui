@@ -23,6 +23,9 @@ WORKDIR /app/server
 # add curl for debug curls
 RUN apk add --no-cache curl
 
+# keep V8's old-space modest so native + agent memory have headroom
+ENV NODE_OPTIONS="--max-old-space-size=384"
+
 COPY server/package*.json ./
 RUN npm install
 COPY server .

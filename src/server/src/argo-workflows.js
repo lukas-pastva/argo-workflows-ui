@@ -13,10 +13,17 @@ const {
   ARGO_EVENTS_SVC_SUFFIX    = "-eventsource-svc",
   ARGO_EVENTS_PORT          = "12000",
   ARGO_EVENTS_PATH          = "/",
-  DEBUG_LOGS                = "false"
+  DEBUG_LOGS                = "false",
+  /* 🆕 list tuning */
+  API_LIST_LIMIT            = "200",   // hard cap of returned items
+  API_PAGE_LIMIT            = "100",   // page size for server-side pagination
+  API_INCLUDE_NODES         = "true"   // include minimal nodes in list response
 } = process.env;
 
 const debug = DEBUG_LOGS === "true";
+const HARD_LIMIT = Math.max(1, parseInt(API_LIST_LIMIT, 10)  || 200);
+const PAGE_LIMIT = Math.max(1, parseInt(API_PAGE_LIMIT, 10)  || 100);
+const WITH_NODES = String(API_INCLUDE_NODES).toLowerCase() !== "false";
 
 /* ------------------------------------------------------------------ */
 /*  Helper: obtain the Bearer token (for argo-server API only)        */
@@ -67,35 +74,111 @@ function curlEventHint(url, method = "POST", bodyText = "") {
 }
 
 /* ------------------------------------------------------------------ */
-/*  List workflows (sorted by template ASC, start-time DESC)          */
+/*  Slimming helpers to keep memory usage low                         */
 /* ------------------------------------------------------------------ */
-export async function listWorkflows() {
-  const url =
-    `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
-    `${ARGO_WORKFLOWS_NAMESPACE}?listOptions.fieldSelector=`;
+function slimNode(n) {
+  // keep only what's needed for MiniDag and suggestions
+  const out = {
+    id         : n.id,
+    type       : n.type,
+    displayName: n.displayName,
+    phase      : n.phase,
+    startedAt  : n.startedAt,
+  };
+  if (n.templateRef?.name) out.templateRef = { name: n.templateRef.name };
+  if (n.podName) out.podName = n.podName;
+  if (n.outputs?.parameters?.length) {
+    out.outputs = {
+      parameters: n.outputs.parameters.map((p) => ({ name: p.name, value: p.value }))
+    };
+  }
+  return out;
+}
 
-  if (debug) console.log("[DEBUG] Fetching workflows from", url);
-  curlHint(url);
+function slimWorkflow(wf) {
+  const slim = {
+    apiVersion: wf.apiVersion,
+    kind      : wf.kind,
+    metadata  : {
+      name        : wf.metadata?.name,
+      generateName: wf.metadata?.generateName,
+      labels      : wf.metadata?.labels || {}
+    },
+    spec: {
+      workflowTemplateRef: wf.spec?.workflowTemplateRef
+        ? { name: wf.spec.workflowTemplateRef.name }
+        : undefined,
+      // used by suggestions; keep only parameter name+value
+      arguments: wf.spec?.arguments?.parameters
+        ? { parameters: wf.spec.arguments.parameters.map((p) => ({ name: p.name, value: p.value })) }
+        : undefined
+    },
+    status: {
+      phase     : wf.status?.phase,
+      startedAt : wf.status?.startedAt,
+      finishedAt: wf.status?.finishedAt,
+      message   : wf.status?.message,
+      // keep only Failed condition (used by FailureReasonModal)
+      conditions: (wf.status?.conditions || []).filter((c) => c.type === "Failed")
+    }
+  };
+  if (WITH_NODES && wf.status?.nodes) {
+    slim.status.nodes = Object.fromEntries(
+      Object.entries(wf.status.nodes).map(([id, n]) => [id, slimNode(n)])
+    );
+  }
+  return slim;
+}
 
-  const r = await fetch(url, { headers: headers() });
-  if (!r.ok) throw new Error(`Argo ${r.status}`);
+/* ------------------------------------------------------------------ */
+/*  List workflows (paged; sorted by template ASC, start-time DESC)   */
+/* ------------------------------------------------------------------ */
+export async function listWorkflows({ limit = HARD_LIMIT, pageLimit = PAGE_LIMIT } = {}) {
+  let cont      = "";
+  const out     = [];
+  let pageIndex = 0;
 
-  const j     = await r.json();
-  const items = j.items || [];
+  while (out.length < limit) {
+    const params = new URLSearchParams({
+      "listOptions.fieldSelector": "",
+      "listOptions.limit"        : String(pageLimit)
+    });
+    if (cont) params.set("listOptions.continue", cont);
 
-  /* sort by [template name ASC, start-time DESC] */
-  items.sort((a, b) => {
+    const url = `${ARGO_WORKFLOWS_URL}/api/v1/workflows/${ARGO_WORKFLOWS_NAMESPACE}?${params.toString()}`;
+    if (debug) console.log(`[DEBUG] Fetching workflows page ${++pageIndex}: ${url}`);
+    curlHint(url);
+
+    const r = await fetch(url, { headers: headers() });
+    if (!r.ok) throw new Error(`Argo ${r.status}`);
+
+    const j = await r.json();
+    const items = Array.isArray(j.items) ? j.items : [];
+
+    // slim as we go to avoid keeping full page in memory
+    for (const wf of items) {
+      out.push(slimWorkflow(wf));
+      if (out.length >= limit) break;
+    }
+
+    // find continue token (K8s-style list metadata or Argo variants)
+    cont = j.metadata?.continue || j.continueToken || j.continue || "";
+    if (!cont || items.length === 0) break;
+  }
+
+  // sort by [template name ASC, start-time DESC]
+  out.sort((a, b) => {
     const aKey = a.spec?.workflowTemplateRef?.name || a.metadata.generateName || "";
     const bKey = b.spec?.workflowTemplateRef?.name || b.metadata.generateName || "";
     if (aKey < bKey) return -1;
     if (aKey > bKey) return 1;
-    return new Date(b.status.startedAt) - new Date(a.status.startedAt);
+    return new Date(b.status.startedAt || 0) - new Date(a.status.startedAt || 0);
   });
 
-  if (debug) console.log(
-    `[DEBUG] Sorted ${items.length} workflows by template and start time`
-  );
-  return items;
+  if (debug) {
+    console.log(`[DEBUG] Sorted ${out.length} workflows by template and start time (limit=${limit}, page=${pageLimit})`);
+  }
+  return out;
 }
 
 /* ------------------------------------------------------------------ */

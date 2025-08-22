@@ -43,8 +43,13 @@ app.get("/env.js", (_req, res) => {
 });
 
 /* ─── API routes ─────────────────────────────────────── */
-app.get("/api/workflows", async (_req, res, next) => {
-  try { res.json(await listWorkflows()); } catch (e) { next(e); }
+app.get("/api/workflows", async (req, res, next) => {
+  try {
+    // allow optional ?limit=…&pageLimit=…
+    const limit     = req.query?.limit     ? parseInt(req.query.limit, 10)     : undefined;
+    const pageLimit = req.query?.pageLimit ? parseInt(req.query.pageLimit, 10) : undefined;
+    res.json(await listWorkflows({ limit, pageLimit }));
+  } catch (e) { next(e); }
 });
 
 app.get("/api/workflows/:name/logs", (req, res) =>
