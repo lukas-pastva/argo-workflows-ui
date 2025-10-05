@@ -449,6 +449,27 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
   color     : var(--text-color);
 }
 
+/* Sticky toolbar within the log viewer */
+.log-toolbar {
+  position   : sticky;
+  top        : 0;
+  z-index    : 1;
+  display    : flex;
+  align-items: center;
+  justify-content: space-between;
+  gap        : 0.75rem;
+  padding    : 0.5rem 1rem;
+  background : var(--log-bg);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+.log-toolbar-left { display: flex; align-items: center; gap: 0.5rem; }
+.log-toolbar-meta { opacity: 0.8; }
+.log-toolbar-actions { display: flex; gap: 0.5rem; }
+
+/* Log line container */
+.log-lines { padding: 0.5rem 1rem 1rem; }
+
 /* ---------- ANSI colour overrides for log viewer --------------- */
 .log-viewer .ansi-black-fg,
 .log-viewer .ansi-bright-black-fg {

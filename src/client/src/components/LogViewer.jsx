@@ -32,6 +32,7 @@ const RETRY_DELAY_MS = 3000; // 3 s between attempts
  */
 export default function LogViewer({ workflowName, nodeId = null, onClose }) {
   const [lines, setLines] = useState(["Loading …"]);
+  const [autoScroll, setAutoScroll] = useState(true);
   const box = useRef();
 
   /* ─── Disable body scroll while viewer is open ─────────────────── */
@@ -105,10 +106,18 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
     return () => { cancelled = true; };
   }, [workflowName, nodeId]);
 
-  /* ─── Auto-scroll ──────────────────────────────────────────────── */
+  /* ─── Auto-scroll (toggleable) ─────────────────────────────────── */
   useEffect(() => {
+    if (!autoScroll) return;
     if (box.current) box.current.scrollTop = box.current.scrollHeight;
-  }, [lines]);
+  }, [lines, autoScroll]);
+
+  // When re-enabling autoscroll, jump to bottom immediately
+  useEffect(() => {
+    if (autoScroll && box.current) {
+      box.current.scrollTop = box.current.scrollHeight;
+    }
+  }, [autoScroll]);
 
   /* ─── Close on Escape ──────────────────────────────────────────── */
   useEffect(() => {
@@ -142,35 +151,46 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
       style={{
         position   : "fixed",
         inset      : 0,
-        padding    : "1rem",
+        padding    : "0.75rem 0 1rem",
         overflow   : "auto",
         fontFamily : "monospace",
         whiteSpace : "pre-wrap",
         zIndex     : 2000,
-        background : "var(--log-bg)",
-        color      : "var(--text-color)",
       }}
       ref={box}
     >
-      {/* top-right buttons */}
-      <div style={{ float: "right", display: "flex", gap: "0.5rem" }}>
-        <button className="btn-light" onClick={handleDownload}>
-          ⬇︎ Download
-        </button>
-        <button className="btn-light" onClick={onClose}>
-          ✕ Close
-        </button>
+      {/* Sticky toolbar */}
+      <div className="log-toolbar">
+        <div className="log-toolbar-left">
+          <strong>Logs</strong>
+          <span className="log-toolbar-meta">
+            {workflowName}
+            {nodeId && <> → <code>{nodeId}</code></>}
+          </span>
+        </div>
+        <div className="log-toolbar-actions">
+          <button
+            className="btn-light"
+            onClick={() => setAutoScroll((v) => !v)}
+            title={autoScroll ? "Pause auto-scroll" : "Resume auto-scroll"}
+          >
+            {autoScroll ? "⏸ Auto-scroll" : "▶ Auto-scroll"}
+          </button>
+          <button className="btn-light" onClick={handleDownload}>
+            ⬇︎ Download
+          </button>
+          <button className="btn-light" onClick={onClose}>
+            ✕ Close
+          </button>
+        </div>
       </div>
 
-      <h3 style={{ marginTop: 0 }}>
-        Logs – {workflowName}
-        {nodeId && <> → <code>{nodeId}</code></>}
-      </h3>
-
-      {lines.map((l, i) => (
-        /* useClasses ⇒ ANSI colours become CSS classes we control   */
-        <div key={i}><Ansi useClasses>{l}</Ansi></div>
-      ))}
+      {/* Log lines */}
+      <div className="log-lines">
+        {lines.map((l, i) => (
+          <div key={i}><Ansi useClasses>{l}</Ansi></div>
+        ))}
+      </div>
     </div>
   );
 }
