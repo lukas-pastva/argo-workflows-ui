@@ -7,7 +7,8 @@ html { font-size: 90%; }
 /* ---------- Core design tokens (light defaults) ---------------- */
 :root {
   --primary      : rgb(24, 190, 148);
-  --primary-dark : #3c6cd4;
+  /* darker shade of Argo CD green for hovers/selected */
+  --primary-dark : #139e7a;
 
   --danger       : #ef5654;          /* Argo CD delete-red */
   --danger-dark  : #d64543;
@@ -169,7 +170,7 @@ body {
   color     : var(--primary);
   border    : 1px solid var(--primary);
 }
-.btn-light:hover { background: rgba(77,138,240,0.12); }
+.btn-light:hover { background: rgba(24,190,148,0.12); }
 
 /* ---------------- Workflow tables ------------------------------ */
 table.wf-table { width: 100%; border-collapse: collapse; }
@@ -354,7 +355,7 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
 
 .status-succeeded {
   background: #e7f9ed;
-  color     : #18be94;
+  color     : var(--primary);
   border    : 1px solid #a7e3c5;
 }
 
@@ -500,7 +501,7 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
 /* ✅ NEW: icon-only pill for succeeded runs */
 .status-succeeded {
   background: #e7f9ed;
-  color     : #18be94;
+  color     : var(--primary);
   border    : 1px solid #a7e3c5;
 }
 
