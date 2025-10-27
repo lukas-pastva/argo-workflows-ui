@@ -35,10 +35,14 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
   const [autoScroll, setAutoScroll] = useState(true);
   const [fontSize, setFontSize] = useState(() => {
     try {
-      const saved = localStorage.getItem("logFontSizePx");
-      if (saved) return Math.max(10, Math.min(24, Number(saved)));
+      const raw = localStorage.getItem("logFontSizePx");
+      const num = Number(raw);
+      if (Number.isFinite(num)) return Math.max(10, Math.min(24, num));
     } catch {/* ignore */}
-    const isMobile = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
+    const isMobile =
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(max-width: 640px)").matches;
     return isMobile ? 12 : 14; // default smaller on mobile
   });
   const box = useRef();
@@ -154,11 +158,22 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
 
   /* ─── Persist font size ───────────────────────────────────────── */
   useEffect(() => {
-    try { localStorage.setItem("logFontSizePx", String(fontSize)); } catch {/* ignore */}
+    try {
+      if (Number.isFinite(fontSize))
+        localStorage.setItem("logFontSizePx", String(fontSize));
+    } catch {/* ignore */}
   }, [fontSize]);
 
-  const zoomIn  = () => setFontSize((s) => Math.min(24, s + 1));
-  const zoomOut = () => setFontSize((s) => Math.max(10, s - 1));
+  const zoomIn = () =>
+    setFontSize((s) => {
+      const base = Number.isFinite(s) ? s : 14;
+      return Math.min(24, base + 1);
+    });
+  const zoomOut = () =>
+    setFontSize((s) => {
+      const base = Number.isFinite(s) ? s : 14;
+      return Math.max(10, base - 1);
+    });
 
   /* ─── Render ───────────────────────────────────────────────────── */
   return (
@@ -218,7 +233,10 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
       </div>
 
       {/* Log lines */}
-      <div className="log-lines" style={{ fontSize: `${fontSize}px`, lineHeight: 1.4 }}>
+      <div
+        className="log-lines"
+        style={{ fontSize: `${Number.isFinite(fontSize) ? fontSize : 14}px`, lineHeight: 1.4 }}
+      >
         {lines.map((l, i) => (
           <div key={i}><Ansi useClasses>{l}</Ansi></div>
         ))}
