@@ -481,6 +481,24 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
   color: var(--ansi-white-fg) !important;
 }
 
+/* ── Responsive: stack toolbar on small screens */
+@media (max-width: 640px) {
+  .log-toolbar {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .log-toolbar-left,
+  .log-toolbar-actions {
+    flex: 1 1 100%;
+  }
+  .log-toolbar-actions {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.1rem;
+  }
+}
+
 /* ---------------- Status pills --------------------------------- */
 .status-pill {
   display      : inline-flex;
