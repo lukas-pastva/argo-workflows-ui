@@ -11,6 +11,7 @@ import {
 } from "chart.js";
 import { listWorkflows } from "../api";
 import Spinner from "./Spinner.jsx";
+import { IconFilterX } from "./icons";
 
 ChartJS.register(
   CategoryScale,
@@ -262,6 +263,9 @@ export default function Chart({ onError = () => {} }) {
           style={{ margin: "0.5rem 1rem" }}
           onClick={clearFilters}
         >
+          <span className="btn-icon" aria-hidden>
+            <IconFilterX />
+          </span>
           Clear filters
         </button>
 

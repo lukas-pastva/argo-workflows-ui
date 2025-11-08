@@ -1,4 +1,5 @@
 import React from "react";
+import { IconClose } from "./icons";
 
 /* ------------------------------------------------------------------ */
 /*  Handy wrapper for one help row (icon + text)                      */
@@ -41,7 +42,7 @@ export default function HelpModal({ onClose }) {
         style={{ maxWidth: 640 }}
       >
         <button className="modal-close" onClick={onClose} aria-label="close">
-          ×
+          <IconClose width={18} height={18} />
         </button>
 
         <h2 style={{ marginBottom: "1.25rem" }}>Quick guide</h2>

@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { IconClose } from "./icons";
 
 /**
  * Error banner that auto‑dismisses after a configurable time.
@@ -43,7 +44,7 @@ export default function ErrorBanner({ message, onClose, duration = 5000 }) {
         onClick={onClose}
         aria-label="close"
       >
-        ×
+        <IconClose width={16} height={16} />
       </button>
     </div>
   );

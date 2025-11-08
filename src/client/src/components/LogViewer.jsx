@@ -1,6 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import Ansi from "ansi-to-react";
 import { getWorkflowLogs } from "../api";
+import {
+  IconZoomIn,
+  IconZoomOut,
+  IconCopy,
+  IconCheck,
+  IconPause,
+  IconPlay,
+  IconDownload,
+  IconClose,
+} from "./icons";
 
 /* ------------------------------------------------------------------ */
 /*  Helper: strip JSON envelope produced by Argo’s log API            */
@@ -233,7 +243,9 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
             title="Decrease text size"
             aria-label="Decrease text size"
           >
-            <span className="btn-icon" aria-hidden>A−</span>
+            <span className="btn-icon" aria-hidden>
+              <IconZoomOut />
+            </span>
           </button>
           <button
             className="btn-light"
@@ -241,7 +253,9 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
             title="Increase text size"
             aria-label="Increase text size"
           >
-            <span className="btn-icon" aria-hidden>A+</span>
+            <span className="btn-icon" aria-hidden>
+              <IconZoomIn />
+            </span>
           </button>
           <button
             className="btn-light"
@@ -249,7 +263,9 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
             title="Copy logs to clipboard"
             aria-label="Copy logs to clipboard"
           >
-            <span className="btn-icon" aria-hidden>{copied ? "✓" : "📋"}</span>
+            <span className="btn-icon" aria-hidden>
+              {copied ? <IconCheck /> : <IconCopy />}
+            </span>
             <span className="btn-label">{copied ? "Copied" : "Copy"}</span>
           </button>
           <button
@@ -258,7 +274,9 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
             title={autoScroll ? "Pause auto-scroll" : "Resume auto-scroll"}
             aria-label={autoScroll ? "Pause auto-scroll" : "Resume auto-scroll"}
           >
-            <span className="btn-icon" aria-hidden>{autoScroll ? "⏸" : "▶"}</span>
+            <span className="btn-icon" aria-hidden>
+              {autoScroll ? <IconPause /> : <IconPlay />}
+            </span>
             <span className="btn-label">Auto-scroll</span>
           </button>
           <button
@@ -267,7 +285,9 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
             title="Download logs"
             aria-label="Download logs"
           >
-            <span className="btn-icon" aria-hidden>⬇︎</span>
+            <span className="btn-icon" aria-hidden>
+              <IconDownload />
+            </span>
             <span className="btn-label">Download</span>
           </button>
           <button
@@ -276,7 +296,9 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
             title="Close logs"
             aria-label="Close logs"
           >
-            <span className="btn-icon" aria-hidden>✕</span>
+            <span className="btn-icon" aria-hidden>
+              <IconClose />
+            </span>
             <span className="btn-label">Close</span>
           </button>
         </div>

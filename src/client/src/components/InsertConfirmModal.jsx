@@ -1,4 +1,5 @@
 import React from "react";
+import { IconClose } from "./icons";
 
 /**
  * Confirmation dialog shown before submitting a new workflow.
@@ -8,7 +9,7 @@ export default function InsertConfirmModal({ template, onConfirm, onCancel }) {
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onCancel} aria-label="close">
-          ×
+          <IconClose width={18} height={18} />
         </button>
 
         <h2>Submit workflow</h2>

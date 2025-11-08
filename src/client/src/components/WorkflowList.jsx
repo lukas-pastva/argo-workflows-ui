@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { IconFilterX } from "./icons";
 import {
   listWorkflowsPaged,
   listWorkflows,      // used for suggestions in Trigger; keep available
@@ -324,6 +325,9 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           style={{ margin: "0.5rem 1rem" }}
           onClick={clearFilters}
         >
+          <span className="btn-icon" aria-hidden>
+            <IconFilterX />
+          </span>
           Clear filters
         </button>
 

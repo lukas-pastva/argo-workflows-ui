@@ -1,11 +1,12 @@
 import React from "react";
+import { IconClose } from "./icons";
 
 export default function DeleteConfirmModal({ names, onConfirm, onCancel }) {
   return (
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onCancel} aria-label="close">
-          ×
+          <IconClose width={18} height={18} />
         </button>
 
         <h2>Delete workflows</h2>

@@ -172,6 +172,15 @@ body {
 }
 .btn-light:hover { background: rgba(24,190,148,0.12); }
 
+/* Icon helper for buttons */
+.btn-icon { margin-right: 0.35rem; }
+.btn-icon svg {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: text-bottom;
+}
+
 /* ---------------- Workflow tables ------------------------------ */
 table.wf-table { width: 100%; border-collapse: collapse; }
 
@@ -471,6 +480,12 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
 /* Icon + label layout for toolbar buttons */
 .log-toolbar .btn-icon { margin-right: 0.35rem; }
 .log-toolbar .btn-label { display: inline; }
+.log-toolbar .btn-icon svg {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: text-bottom;
+}
 
 /* Log line container */
 .log-lines { padding: 0.5rem 1rem 1rem; }
