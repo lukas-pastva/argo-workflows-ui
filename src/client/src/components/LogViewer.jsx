@@ -37,7 +37,7 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
     try {
       const raw = localStorage.getItem("logFontSizePx");
       const num = Number(raw);
-      if (Number.isFinite(num)) return Math.max(8, Math.min(24, num));
+      if (Number.isFinite(num)) return Math.max(6, Math.min(24, num));
     } catch {/* ignore */}
     const isMobile =
       typeof window !== "undefined" &&
@@ -199,7 +199,7 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
   const zoomOut = () =>
     setFontSize((s) => {
       const base = Number.isFinite(s) ? s : 14;
-      return Math.max(8, base - 1);
+      return Math.max(6, base - 1);
     });
 
   /* ─── Render ───────────────────────────────────────────────────── */
