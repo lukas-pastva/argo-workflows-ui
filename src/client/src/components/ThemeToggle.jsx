@@ -11,13 +11,14 @@
 //   remembered per-tab in `sessionStorage` under the key “theme”.
 
 import React, { useEffect, useState } from "react";
+import { IconSun, IconMoon, IconSunMoon } from "./icons";
 
 const THEME_ORDER = ["auto", "light", "dark"];
-const ICON = {
-  auto: "🌓",
-  light: "🌞",
-  dark : "🌙"
-};
+function ThemeIcon({ mode }) {
+  if (mode === "light") return <IconSun />;
+  if (mode === "dark")  return <IconMoon />;
+  return <IconSunMoon />; // auto
+}
 
 // ─── dark between 19:00 and 06:59 local browser time ────────────────
 const DARK_START = 19;   // inclusive
@@ -68,9 +69,12 @@ export default function ThemeToggle() {
       className="btn-light"
       onClick={cycle}
       title={`Theme: ${theme}`}
+      aria-label={`Theme: ${theme}`}
       style={{ marginRight: "0.4rem" }}
     >
-      {ICON[theme]}
+      <span className="btn-icon" aria-hidden>
+        <ThemeIcon mode={theme} />
+      </span>
     </button>
   );
 }

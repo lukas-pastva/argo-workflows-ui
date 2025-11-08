@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { IconFilterX } from "./icons";
+import { IconFilterX, IconChevronsLeft, IconChevronLeft, IconChevronRight } from "./icons";
 import {
   listWorkflowsPaged,
   listWorkflows,      // used for suggestions in Trigger; keep available
@@ -666,9 +666,18 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       <div className="pager-bar" role="navigation" aria-label="Pagination">
         <div className="pager">
           <div className="pager-inner">
-            <button className="btn-light" onClick={goFirst} disabled={pageNum === 1}>⟲ First</button>
-            <button className="btn-light" onClick={goPrev}  disabled={cursorStack.length === 0}>← Prev</button>
-            <button className="btn-light" onClick={goNext}  disabled={!nextCursor}>Next →</button>
+            <button className="btn-light" onClick={goFirst} disabled={pageNum === 1} aria-label="First page">
+              <span className="btn-icon" aria-hidden><IconChevronsLeft /></span>
+              First
+            </button>
+            <button className="btn-light" onClick={goPrev}  disabled={cursorStack.length === 0} aria-label="Previous page">
+              <span className="btn-icon" aria-hidden><IconChevronLeft /></span>
+              Prev
+            </button>
+            <button className="btn-light" onClick={goNext}  disabled={!nextCursor} aria-label="Next page">
+              <span className="btn-icon" aria-hidden><IconChevronRight /></span>
+              Next
+            </button>
             <span style={{ opacity: 0.8, marginLeft: "0.25rem" }}>Page {pageNum}</span>
             <span style={{ marginLeft: "1rem" }}>
               Page size:&nbsp;

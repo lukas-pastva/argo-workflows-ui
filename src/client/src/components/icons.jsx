@@ -99,3 +99,68 @@ export function IconFilterX(props) {
     </svg>
   );
 }
+
+export function IconChevronLeft(props) {
+  return (
+    <svg {...base} {...props}>
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
+}
+
+export function IconChevronRight(props) {
+  return (
+    <svg {...base} {...props}>
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+
+export function IconChevronsLeft(props) {
+  return (
+    <svg {...base} {...props}>
+      <polyline points="11 17 6 12 11 7" />
+      <polyline points="18 17 13 12 18 7" />
+    </svg>
+  );
+}
+
+export function IconSun(props) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="4" />
+      <line x1="12" y1="1" x2="12" y2="4" />
+      <line x1="12" y1="20" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="6.34" y2="6.34" />
+      <line x1="17.66" y1="17.66" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="4" y2="12" />
+      <line x1="20" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="6.34" y2="17.66" />
+      <line x1="17.66" y1="6.34" x2="19.78" y2="4.22" />
+    </svg>
+  );
+}
+
+export function IconMoon(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+    </svg>
+  );
+}
+
+export function IconSunMoon(props) {
+  return (
+    <svg {...base} {...props}>
+      {/* sun half */}
+      <circle cx="9" cy="12" r="4" />
+      <line x1="9" y1="3" x2="9" y2="5" />
+      <line x1="9" y1="19" x2="9" y2="21" />
+      <line x1="2" y1="12" x2="4" y2="12" />
+      <line x1="4.8" y1="6.8" x2="6.2" y2="8.2" />
+      <line x1="4.8" y1="17.2" x2="6.2" y2="15.8" />
+      {/* moon half */}
+      <path d="M19 13.5A5.5 5.5 0 0112.5 7a4.5 4.5 0 106.5 6.5z" />
+    </svg>
+  );
+}
