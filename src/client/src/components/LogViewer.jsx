@@ -37,7 +37,7 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
     try {
       const raw = localStorage.getItem("logFontSizePx");
       const num = Number(raw);
-      if (Number.isFinite(num)) return Math.max(10, Math.min(24, num));
+      if (Number.isFinite(num)) return Math.max(8, Math.min(24, num));
     } catch {/* ignore */}
     const isMobile =
       typeof window !== "undefined" &&
@@ -156,6 +156,33 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
     URL.revokeObjectURL(url);
   };
 
+  /* ─── Copy-to-clipboard helper ───────────────────────────────── */
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    const text = lines.join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      } catch (e) {
+        console.error("Copy failed", e);
+      }
+    }
+  };
+
   /* ─── Persist font size ───────────────────────────────────────── */
   useEffect(() => {
     try {
@@ -172,7 +199,7 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
   const zoomOut = () =>
     setFontSize((s) => {
       const base = Number.isFinite(s) ? s : 14;
-      return Math.max(10, base - 1);
+      return Math.max(8, base - 1);
     });
 
   /* ─── Render ───────────────────────────────────────────────────── */
@@ -215,6 +242,14 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
             aria-label="Increase text size"
           >
             A+
+          </button>
+          <button
+            className="btn-light"
+            onClick={handleCopy}
+            title="Copy logs to clipboard"
+            aria-label="Copy logs to clipboard"
+          >
+            {copied ? "✓ Copied" : "📋 Copy"}
           </button>
           <button
             className="btn-light"
