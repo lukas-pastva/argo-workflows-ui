@@ -233,7 +233,7 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
             title="Decrease text size"
             aria-label="Decrease text size"
           >
-            A−
+            <span className="btn-icon" aria-hidden>A−</span>
           </button>
           <button
             className="btn-light"
@@ -241,7 +241,7 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
             title="Increase text size"
             aria-label="Increase text size"
           >
-            A+
+            <span className="btn-icon" aria-hidden>A+</span>
           </button>
           <button
             className="btn-light"
@@ -249,20 +249,35 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
             title="Copy logs to clipboard"
             aria-label="Copy logs to clipboard"
           >
-            {copied ? "✓ Copied" : "📋 Copy"}
+            <span className="btn-icon" aria-hidden>{copied ? "✓" : "📋"}</span>
+            <span className="btn-label">{copied ? "Copied" : "Copy"}</span>
           </button>
           <button
             className="btn-light"
             onClick={() => setAutoScroll((v) => !v)}
             title={autoScroll ? "Pause auto-scroll" : "Resume auto-scroll"}
+            aria-label={autoScroll ? "Pause auto-scroll" : "Resume auto-scroll"}
           >
-            {autoScroll ? "⏸ Auto-scroll" : "▶ Auto-scroll"}
+            <span className="btn-icon" aria-hidden>{autoScroll ? "⏸" : "▶"}</span>
+            <span className="btn-label">Auto-scroll</span>
           </button>
-          <button className="btn-light" onClick={handleDownload}>
-            ⬇︎ Download
+          <button
+            className="btn-light"
+            onClick={handleDownload}
+            title="Download logs"
+            aria-label="Download logs"
+          >
+            <span className="btn-icon" aria-hidden>⬇︎</span>
+            <span className="btn-label">Download</span>
           </button>
-          <button className="btn-light" onClick={onClose}>
-            ✕ Close
+          <button
+            className="btn-light"
+            onClick={onClose}
+            title="Close logs"
+            aria-label="Close logs"
+          >
+            <span className="btn-icon" aria-hidden>✕</span>
+            <span className="btn-label">Close</span>
           </button>
         </div>
       </div>
