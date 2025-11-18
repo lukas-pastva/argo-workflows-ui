@@ -31,6 +31,12 @@ html { font-size: 90%; }
   --ansi-white-fg : #000000;  /* map “white”  → black on light bg */
 }
 
+/* Darkness fine‑tune for dark theme (3 steps via data-darkness) */
+:root { --brightness-mult: 1; }
+:root[data-darkness="0"] { --brightness-mult: 1; }
+:root[data-darkness="1"] { --brightness-mult: 0.9; }
+:root[data-darkness="2"] { --brightness-mult: 0.8; }
+
 /* ---------- Explicit theme overrides -------------------------- */
 [data-theme="light"] {
   --bg           : #f4f6f8;
@@ -92,6 +98,9 @@ body {
   background : var(--bg);
   color      : var(--text-color);
 }
+
+/* Apply additional dimming only when the effective theme is dark */
+[data-theme="dark"] body { filter: brightness(var(--brightness-mult, 1)); }
 
 /* ---------------- Layout --------------------------------------- */
 .header {
