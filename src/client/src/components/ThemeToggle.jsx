@@ -91,24 +91,26 @@ export default function ThemeToggle() {
         {theme}
       </button>
 
-      {/* Darkness slider: only visually affects dark theme; 3 steps */}
-      <label
-        title="Darkness level"
-        style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
-      >
-        <span style={{ fontSize: "0.8rem", opacity: 0.85 }}>Dim</span>
-        <input
-          type="range"
-          min={0}
-          max={2}
-          step={1}
-          value={darkness}
-          onChange={(e) => setDarkness(Number(e.target.value))}
-          aria-label="Darkness level"
-          style={{ width: 80, accentColor: "currentColor", verticalAlign: "middle" }}
-        />
-        <span style={{ fontSize: "0.8rem", opacity: 0.85 }}>Darker</span>
-      </label>
+      {/* Darkness slider: show only when theme is explicitly "dark" */}
+      {theme === "dark" && (
+        <label
+          title="Darkness level"
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
+        >
+          <span style={{ fontSize: "0.8rem", opacity: 0.85 }}>Dim</span>
+          <input
+            type="range"
+            min={0}
+            max={2}
+            step={1}
+            value={darkness}
+            onChange={(e) => setDarkness(Number(e.target.value))}
+            aria-label="Darkness level"
+            style={{ width: 80, accentColor: "currentColor", verticalAlign: "middle" }}
+          />
+          <span style={{ fontSize: "0.8rem", opacity: 0.85 }}>Darker</span>
+        </label>
+      )}
     </div>
   );
 }
