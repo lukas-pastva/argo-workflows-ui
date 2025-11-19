@@ -243,7 +243,18 @@ async function nodeIdToPodName(workflowName, nodeId) {
 export async function streamLogs(
   name,
   res,
-  { follow = "true", container = "main", nodeId, podName } = {}
+  {
+    follow = "true",
+    container = "main",
+    nodeId,
+    podName,
+    // Optional pass-throughs matching K8s PodLogOptions
+    sinceTime,
+    sinceSeconds,
+    tailLines,
+    timestamps,
+    previous,
+  } = {}
 ) {
   try {
     let finalPodName = podName;
@@ -261,13 +272,25 @@ export async function streamLogs(
     });
 
     if (finalPodName) qs.set("podName", finalPodName);
+    // Map optional filters to upstream param names
+    if (sinceTime)     qs.set("logOptions.sinceTime", String(sinceTime));
+    if (sinceSeconds)  qs.set("logOptions.sinceSeconds", String(sinceSeconds));
+    if (tailLines)     qs.set("logOptions.tailLines", String(tailLines));
+    if (timestamps)    qs.set("logOptions.timestamps", String(timestamps));
+    if (previous)      qs.set("logOptions.previous", String(previous));
 
     const url =
       `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
       `${ARGO_WORKFLOWS_NAMESPACE}/${name}/log?${qs.toString()}`;
 
     if (debug) {
-      console.log("[DEBUG] Streaming", name, finalPodName ? `podName=${finalPodName}` : "workflow-level");
+      console.log(
+        "[DEBUG] Streaming",
+        name,
+        finalPodName ? `podName=${finalPodName}` : "workflow-level",
+        sinceTime ? `(sinceTime=${sinceTime})` : "",
+        sinceSeconds ? `(sinceSeconds=${sinceSeconds})` : ""
+      );
     }
     curlHint(url);
 

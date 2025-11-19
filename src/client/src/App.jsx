@@ -52,22 +52,29 @@ export default function App() {
         style={headerBg ? { background: headerBg } : {}}
       >
         <h1>Argo Workflows</h1>
-
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-          <button
-            className="btn-light"
-            disabled={page === "list"}
-            onClick={() => setPage("list")}
-          >
-            List
-          </button>
-          <button
-            className="btn-light"
-            disabled={page === "chart"}
-            onClick={() => setPage("chart")}
-          >
-            Chart
-          </button>
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+          <div className="tabs" role="tablist" aria-label="Views">
+            <button
+              id="tab-list"
+              role="tab"
+              aria-selected={page === "list"}
+              aria-controls="panel-list"
+              className={`tab ${page === "list" ? "active" : ""}`}
+              onClick={() => setPage("list")}
+            >
+              List
+            </button>
+            <button
+              id="tab-chart"
+              role="tab"
+              aria-selected={page === "chart"}
+              aria-controls="panel-chart"
+              className={`tab ${page === "chart" ? "active" : ""}`}
+              onClick={() => setPage("chart")}
+            >
+              Chart
+            </button>
+          </div>
 
           <ThemeToggle />
           <button className="btn-light" onClick={() => setShowHelp(true)}>
@@ -78,33 +85,41 @@ export default function App() {
 
       <ErrorBanner message={error} onClose={() => setError("")} />
 
-      {page === "list" ? (
-        <>
-          <div className="card">
-            <WorkflowTrigger onError={setError} />
-          </div>
+      {/* Tab panels */}
+      <div
+        id="panel-list"
+        role="tabpanel"
+        aria-labelledby="tab-list"
+        hidden={page !== "list"}
+      >
+        <div className="card">
+          <WorkflowTrigger onError={setError} />
+        </div>
 
-          <div className="card">
-            <WorkflowList
-              onShowLogs={(wf, nodeId = null) =>
-                setLogTarget({ name: wf, nodeId })
-              }
-              onError={setError}
-            />
-          </div>
+        <div className="card">
+          <WorkflowList
+            onShowLogs={(wf, nodeId = null) => setLogTarget({ name: wf, nodeId })}
+            onError={setError}
+          />
+        </div>
 
-          {logTarget && (
-            <LogViewer
-              workflowName={logTarget.name}
-              nodeId={logTarget.nodeId}
-              onClose={() => setLogTarget(null)}
-            />
-          )}
-        </>
-      ) : (
-        /* page === "chart" */
+        {logTarget && (
+          <LogViewer
+            workflowName={logTarget.name}
+            nodeId={logTarget.nodeId}
+            onClose={() => setLogTarget(null)}
+          />
+        )}
+      </div>
+
+      <div
+        id="panel-chart"
+        role="tabpanel"
+        aria-labelledby="tab-chart"
+        hidden={page !== "chart"}
+      >
         <Chart onError={setError} />
-      )}
+      </div>
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </>

@@ -9,7 +9,7 @@ A lightweight, single-container web interface for Kubernetes **Argo Workflows**.
 - **Workflow list** – live table of all runs in the selected namespace.  
 - **Label filters** – grouped by label *key*, expanded by default; groups can be collapsed via an env var.  
 - **Extra label columns** – pick specific labels to show as dedicated columns in the list.  
-- **Full-screen log viewer** – real-time, auto-scrolling logs.  
+- **Full-screen log viewer** – real-time, auto-scrolling logs. Enter an optional pod name and a start timestamp to stream from the first line at or after that time.
 - **Trigger workflows** – choose a template, fill in parameters, hit *Insert*.  
   - 🆕 Submissions support two backends selectable via env:
     - `events` – POST to an Argo Events webhook (default)

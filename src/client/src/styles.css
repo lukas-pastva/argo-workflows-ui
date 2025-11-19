@@ -120,6 +120,25 @@ body {
 }
 .header .btn-light:hover { background: rgba(255,255,255,0.15); }
 
+/* ---------------- Tabs (List / Chart) -------------------------- */
+.tabs {
+  display    : inline-flex;
+  align-items: flex-end;
+  gap        : 0.25rem;
+}
+.tab {
+  background : transparent;
+  border     : none;
+  color      : inherit;
+  padding    : 0.35rem 0.6rem;
+  border-bottom: 2px solid transparent;
+  cursor     : pointer;
+  font-weight: 500;
+  opacity    : 0.9;
+}
+.tab:hover { opacity: 1; }
+.tab.active { border-bottom-color: currentColor; opacity: 1; }
+
 .wf-title {
   padding-left : 1rem;
   margin       : 0.5rem 0;

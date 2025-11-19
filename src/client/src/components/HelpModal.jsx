@@ -61,7 +61,9 @@ export default function HelpModal({ onClose }) {
         <HelpItem icon="📜">
           <strong>View logs&nbsp;–</strong> Click the <em>log icon</em> to open a
           full-screen, auto-scrolling log viewer. ANSI colours are preserved and
-          stay readable in both themes.
+          stay readable in both themes. You can optionally enter a <em>pod name</em>
+          to stream a specific pod, and a <em>start timestamp</em> to begin at the
+          first line at or after that time.
         </HelpItem>
 
         <HelpItem icon="🌓">

@@ -54,11 +54,14 @@ export async function deleteWorkflows(names) { await Promise.all(names.map(delet
 /* ------------------------------------------------------------------ */
 export async function getWorkflowLogs(
   name,
-  { container = "main", nodeId } = {}
+  { container = "main", nodeId, podName, sinceTime, sinceSeconds } = {}
 ) {
   const qs = new URLSearchParams({ follow: "true" });
-  if (nodeId) qs.set("nodeId", nodeId);
-  else        qs.set("container", container);
+  if (podName) qs.set("podName", podName);
+  if (nodeId)  qs.set("nodeId", nodeId);
+  if (!podName && !nodeId) qs.set("container", container);
+  if (sinceTime)    qs.set("sinceTime", sinceTime);
+  if (sinceSeconds) qs.set("sinceSeconds", String(sinceSeconds));
 
   const r = await fetch(`${base}/workflows/${name}/logs?${qs.toString()}`);
   if (!r.ok) {
