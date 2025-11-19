@@ -6,11 +6,10 @@ import { fileURLToPath } from "url";
 import {
   listWorkflows,
   listTemplates,
-  /* use Events webhook instead of argo-server submit */
-  triggerEvent,
   streamLogs,
   deleteWorkflow,
 } from "./argo-workflows.js";
+import { createWorkflow } from "./create/index.js";
 
 dotenv.config();
 const app = express();
@@ -67,9 +66,9 @@ app.get("/api/templates", async (_req, res, next) => {
   try { res.json(await listTemplates()); } catch (e) { next(e); }
 });
 
-/* Submissions go to Argo Events webhook */
+/* Submissions use provider selected by CREATE_MODE (events|k8s) */
 app.post("/api/workflows", async (req, res, next) => {
-  try { res.json(await triggerEvent(req.body)); } catch (e) { next(e); }
+  try { res.json(await createWorkflow(req.body)); } catch (e) { next(e); }
 });
 
 /* ─── Serve compiled front-end ───────────────────────── */

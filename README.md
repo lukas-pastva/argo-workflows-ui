@@ -11,8 +11,10 @@ A lightweight, single-container web interface for Kubernetes **Argo Workflows**.
 - **Extra label columns** – pick specific labels to show as dedicated columns in the list.  
 - **Full-screen log viewer** – real-time, auto-scrolling logs.  
 - **Trigger workflows** – choose a template, fill in parameters, hit *Insert*.  
-  - 🆕 Submissions now **POST to an Argo Events webhook** (EventSource) instead of the argo-server `/submit` API.
-  - 🆕 The **webhook endpoint is derived from the flow name** (`resourceName`, e.g. `event-deploy`).
+  - 🆕 Submissions support two backends selectable via env:
+    - `events` – POST to an Argo Events webhook (default)
+    - `k8s` – create the Workflow via the Kubernetes API
+  - The **webhook endpoint is derived from the flow name** (`resourceName`, e.g. `event-deploy`).
 - **Auto-refresh** – list every 10 s, log stream continuously.  
 - **Self-contained image** – React + Vite front-end and Express back-end in one container.
 
@@ -26,10 +28,15 @@ A lightweight, single-container web interface for Kubernetes **Argo Workflows**.
 | **`ARGO_WORKFLOWS_TOKEN`**       | Bearer token; omit to auto-use the pod’s SA token.                      | *(auto)*                                                                                |
 | **`ARGO_WORKFLOWS_NAMESPACE`**   | Namespace to operate in.                                                | `$POD_NAMESPACE` or `default`                                                            |
 | `DEBUG_LOGS`                     | Verbose server logging.                                                 | `false`                                                                                  |
+| **`CREATE_MODE`**                | Workflow create backend: `events` or `k8s`.                             | `events`                                                                                |
 | **Webhook URL derivation**       | The server derives the webhook URL from `resourceName` (e.g. `event-deploy`). |                                                                                 |
 | `ARGO_EVENTS_SCHEME`             | Webhook scheme.                                                         | `http`                                                                                   |
 | `ARGO_EVENTS_SVC_SUFFIX`         | Suffix appended to `resourceName` to form the Service name.             | `-eventsource-svc`                                                                       |
 | `ARGO_EVENTS_PORT`               | Webhook Service port.                                                   | `12000`                                                                                  |
 | `ARGO_EVENTS_PATH`               | Path on the webhook service.                                            | `/`                                                                                      |
+| **Kubernetes API (when `CREATE_MODE=k8s`)** |                                                                 |                                                                                          |
+| `K8S_API_URL`                    | Kubernetes API base URL.                                                | `https://kubernetes.default.svc`                                                         |
+| `K8S_CA_PATH`                    | Path to cluster CA certificate.                                         | `/var/run/secrets/kubernetes.io/serviceaccount/ca.crt`                                   |
+| `K8S_INSECURE_SKIP_TLS_VERIFY`   | Skip TLS verification if no CA is available.                            | `false`                                                                                  |
 
 
