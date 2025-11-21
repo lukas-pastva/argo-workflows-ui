@@ -420,14 +420,15 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             const durSec = durationSeconds(wf);
             const delOk = wf.status.phase !== "Running";
             const labels = wf.metadata.labels || {};
-            const failureMsg =
-              wf.status?.message ||
-              wf.status?.conditions?.find(
-                (c) => c.type === "Failed" || c.type === "Error"
-              )?.message ||
-              "No reason recorded";
             const phase = wf.status.phase;
             const isFailureLike = phase === "Failed" || phase === "Error";
+            const failureMsg = isFailureLike
+              ? wf.status?.message ||
+                wf.status?.conditions?.find(
+                  (c) => c.type === "Failed" || c.type === "Error"
+                )?.message ||
+                "No reason recorded"
+              : null;
 
             return (
               <React.Fragment key={nm}>
