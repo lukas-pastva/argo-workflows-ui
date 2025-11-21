@@ -229,6 +229,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const allSel     = nonRunning.length > 0 && nonRunning.every((wf) => selected[wf.metadata.name]);
 
   const toggleRow = (wf) => {
+    // running workflows cannot be part of bulk-selection
     if (isRunning(wf)) return;
     setSelected((s) => ({ ...s, [wf.metadata.name]: !s[wf.metadata.name] }));
   };
@@ -242,8 +243,13 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   };
 
   /* ---- delete helpers ------------------------------------------ */
-  const handleSingleDelete = async (name) => {
-    if (!window.confirm(`Delete workflow “${name}”?`)) return;
+  const handleSingleDelete = async (name, phase) => {
+    const baseMsg = `Delete workflow “${name}”?`;
+    const msg =
+      phase === "Running"
+        ? `${baseMsg}\n\nThis workflow is still running and will be terminated.`
+        : baseMsg;
+    if (!window.confirm(msg)) return;
     try {
       await deleteWorkflow(name);
       setItems((it) => it.filter((w) => w.metadata.name !== name));
@@ -418,7 +424,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           {sortedRows.map(({ wf }) => {
             const nm = wf.metadata.name;
             const durSec = durationSeconds(wf);
-            const delOk = wf.status.phase !== "Running";
             const labels = wf.metadata.labels || {};
             const phase = wf.status.phase;
             const isFailureLike = phase === "Failed" || phase === "Error";
@@ -443,7 +448,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     <input
                       type="checkbox"
                       checked={!!selected[nm]}
-                      disabled={!delOk}
+                      disabled={wf.status.phase === "Running"}
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleRow(wf);
@@ -591,10 +596,9 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                       aria-label="Delete"
                       title="Delete"
                       style={{ padding: "0.35rem" }}
-                      disabled={!delOk}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleSingleDelete(nm);
+                        handleSingleDelete(nm, phase);
                       }}
                     >
                       <svg
