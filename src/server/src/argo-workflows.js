@@ -108,8 +108,10 @@ function slimWorkflow(wf) {
       startedAt : wf.status?.startedAt,
       finishedAt: wf.status?.finishedAt,
       message   : wf.status?.message,
-      // keep only Failed condition (used by FailureReasonModal)
-      conditions: (wf.status?.conditions || []).filter((c) => c.type === "Failed")
+      // keep only Failed / Error conditions (used by FailureReasonModal)
+      conditions: (wf.status?.conditions || []).filter(
+        (c) => c.type === "Failed" || c.type === "Error"
+      )
     }
   };
   if (WITH_NODES && wf.status?.nodes) {

@@ -424,8 +424,12 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             const labels = wf.metadata.labels || {};
             const failureMsg =
               wf.status?.message ||
-              wf.status?.conditions?.find((c) => c.type === "Failed")?.message ||
+              wf.status?.conditions?.find(
+                (c) => c.type === "Failed" || c.type === "Error"
+              )?.message ||
               "No reason recorded";
+            const phase = wf.status.phase;
+            const isFailureLike = phase === "Failed" || phase === "Error";
 
             return (
               <React.Fragment key={nm}>
@@ -460,7 +464,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
                   {/* ---------- status pill ---------- */}
                   <td>
-                    {wf.status.phase === "Failed" ? (
+                    {isFailureLike ? (
                       <span
                         className="status-pill status-failed"
                         style={{ cursor: "pointer" }}
@@ -468,7 +472,11 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                           e.stopPropagation();
                           setReasonModal({ name: nm, reason: failureMsg });
                         }}
-                        title="Failed – click to view reason"
+                        title={
+                          phase === "Error"
+                            ? "Error – click to view details"
+                            : "Failed – click to view reason"
+                        }
                       >
                         <svg
                           width="12"
@@ -486,7 +494,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                           <line x1="12" y1="17" x2="12.01" y2="17" />
                         </svg>
                       </span>
-                    ) : wf.status.phase === "Succeeded" ? (
+                    ) : phase === "Succeeded" ? (
                       <span
                         className="status-pill status-succeeded"
                         title="Succeeded"
@@ -505,7 +513,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       </span>
-                    ) : wf.status.phase === "Running" ? (
+                    ) : phase === "Running" ? (
                       <span
                         className="status-pill status-running"
                         title="Running"
@@ -513,7 +521,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                         <Spinner small />
                       </span>
                     ) : (
-                      wf.status.phase
+                      phase
                     )}
                   </td>
 
