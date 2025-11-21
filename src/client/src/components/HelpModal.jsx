@@ -1,5 +1,6 @@
 import React from "react";
 import { IconClose } from "./icons";
+import ModalPortal from "./ModalPortal.jsx";
 
 /* ------------------------------------------------------------------ */
 /*  Handy wrapper for one help row (icon + text)                      */
@@ -35,43 +36,45 @@ function HelpItem({ icon, children }) {
 /* ------------------------------------------------------------------ */
 export default function HelpModal({ onClose }) {
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-dialog"
-        onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: 640 }}
-      >
-        <button className="modal-close" onClick={onClose} aria-label="close">
-          <IconClose width={18} height={18} />
-        </button>
+    <ModalPortal>
+      <div className="modal-overlay" onClick={onClose}>
+        <div
+          className="modal-dialog"
+          onClick={(e) => e.stopPropagation()}
+          style={{ maxWidth: 640 }}
+        >
+          <button className="modal-close" onClick={onClose} aria-label="close">
+            <IconClose width={18} height={18} />
+          </button>
 
-        <h2 style={{ marginBottom: "1.25rem" }}>Quick guide</h2>
+          <h2 style={{ marginBottom: "1.25rem" }}>Quick guide</h2>
 
-        <HelpItem icon="📤">
-          <strong>Trigger a workflow&nbsp;–</strong> Pick a template, fill in the
-          parameters and hit <em>Insert</em>. The special{" "}
-          <code>event-data</code> field comes pre-filled with a JSON placeholder.
-        </HelpItem>
+          <HelpItem icon="📤">
+            <strong>Trigger a workflow&nbsp;–</strong> Pick a template, fill in the
+            parameters and hit <em>Insert</em>. The special{" "}
+            <code>event-data</code> field comes pre-filled with a JSON placeholder.
+          </HelpItem>
 
-        <HelpItem icon="🔄">
-          <strong>Follow runs&nbsp;–</strong> New or running workflows appear in
-          the list automatically; the table refreshes every&nbsp;10&nbsp;seconds.
-        </HelpItem>
+          <HelpItem icon="🔄">
+            <strong>Follow runs&nbsp;–</strong> New or running workflows appear in
+            the list automatically; the table refreshes every&nbsp;10&nbsp;seconds.
+          </HelpItem>
 
-        <HelpItem icon="📜">
-          <strong>View logs&nbsp;–</strong> Click the <em>log icon</em> to open a
-          full-screen, auto-scrolling log viewer. ANSI colours are preserved and
-          stay readable in both themes. You can optionally enter a <em>pod name</em>
-          to stream a specific pod, and a <em>start timestamp</em> to begin at the
-          first line at or after that time.
-        </HelpItem>
+          <HelpItem icon="📜">
+            <strong>View logs&nbsp;–</strong> Click the <em>log icon</em> to open a
+            full-screen, auto-scrolling log viewer. ANSI colours are preserved and
+            stay readable in both themes. You can optionally enter a <em>pod name</em>
+            to stream a specific pod, and a <em>start timestamp</em> to begin at the
+            first line at or after that time.
+          </HelpItem>
 
-        <HelpItem icon="🌓">
-          <strong>Switch theme&nbsp;–</strong> Use the moon/sun button in the
-          header to cycle&nbsp;through <em>auto → light → dark</em>. “Auto”
-          follows your local daytime (light 7-19 h, dark otherwise).
-        </HelpItem>
+          <HelpItem icon="🌓">
+            <strong>Switch theme&nbsp;–</strong> Use the moon/sun button in the
+            header to cycle&nbsp;through <em>auto → light → dark</em>. “Auto”
+            follows your local daytime (light 7-19 h, dark otherwise).
+          </HelpItem>
+        </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 }

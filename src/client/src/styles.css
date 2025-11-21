@@ -100,7 +100,7 @@ body {
 }
 
 /* Apply additional dimming only when the effective theme is dark */
-[data-theme="dark"] body { filter: brightness(var(--brightness-mult, 1)); }
+[data-theme="dark"] #app-shell { filter: brightness(var(--brightness-mult, 1)); }
 
 /* ---------------- Layout --------------------------------------- */
 .header {
