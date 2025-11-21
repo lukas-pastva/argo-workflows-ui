@@ -37,10 +37,17 @@ const RETRY_DELAY_MS = 3000; // 3 s between attempts
 
 /**
  * Full-screen log stream.
- * – `workflowName`  (required)  
- * – `nodeId`        (optional) → pod-level logs; omit for workflow-level
+ * – `workflowName`      (required)
+ * – `nodeId`            (optional) → pod-level logs; omit for workflow-level
+ * – `phase` / `failureMessage` (optional) → show summary above logs
  */
-export default function LogViewer({ workflowName, nodeId = null, onClose }) {
+export default function LogViewer({
+  workflowName,
+  nodeId = null,
+  phase,
+  failureMessage,
+  onClose,
+}) {
   const [lines, setLines] = useState(["Loading …"]);
   const [autoScroll, setAutoScroll] = useState(true);
   // Optional filters/overrides
@@ -350,6 +357,14 @@ export default function LogViewer({ workflowName, nodeId = null, onClose }) {
           </button>
         </div>
       </div>
+
+      {/* Failure / error summary (for failed/error runs) */}
+      {failureMessage && (
+        <div className="log-failure-banner">
+          <strong>{phase || "Failed"}: </strong>
+          <span>{failureMessage}</span>
+        </div>
+      )}
 
       {/* Log lines */}
       <div

@@ -435,7 +435,9 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
               <React.Fragment key={nm}>
                 {/* ---------- main row ---------- */}
                 <tr
-                  onClick={() => onShowLogs(nm, null)}
+                  onClick={() =>
+                    onShowLogs(nm, null, { phase, failureMsg })
+                  }
                   style={{ cursor: "pointer" }}
                 >
                   <td>
@@ -540,7 +542,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                       style={{ padding: "0.35rem" }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onShowLogs(nm, null);
+                        onShowLogs(nm, null, { phase, failureMsg });
                       }}
                     >
                       <svg
@@ -624,7 +626,9 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                       {/* Mini DAG bubbles */}
                       <MiniDag
                         nodes={wf.status.nodes}
-                        onTaskClick={(nodeId) => onShowLogs(nm, nodeId)}
+                        onTaskClick={(nodeId) =>
+                          onShowLogs(nm, nodeId, { phase, failureMsg })
+                        }
                       />
                       <hr
                         style={{

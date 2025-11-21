@@ -98,7 +98,14 @@ export default function App() {
 
         <div className="card">
           <WorkflowList
-            onShowLogs={(wf, nodeId = null) => setLogTarget({ name: wf, nodeId })}
+            onShowLogs={(wf, nodeId = null, meta = {}) =>
+              setLogTarget({
+                name           : wf,
+                nodeId,
+                phase          : meta.phase,
+                failureMessage : meta.failureMsg,
+              })
+            }
             onError={setError}
           />
         </div>
@@ -107,6 +114,8 @@ export default function App() {
           <LogViewer
             workflowName={logTarget.name}
             nodeId={logTarget.nodeId}
+            phase={logTarget.phase}
+            failureMessage={logTarget.failureMessage}
             onClose={() => setLogTarget(null)}
           />
         )}

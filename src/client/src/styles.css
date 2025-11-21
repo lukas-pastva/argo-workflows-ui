@@ -518,6 +518,18 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
 /* Log line container */
 .log-lines { padding: 0.5rem 1rem 1rem; }
 
+/* Failure summary inside the log viewer */
+.log-failure-banner {
+  margin      : 0.5rem 1rem 0.25rem;
+  padding     : 0.4rem 0.6rem;
+  background  : #ffe5e5;
+  color       : #d64543;
+  border      : 1px solid #f5a8a8;
+  border-radius: 4px;
+  font-size   : 0.85rem;
+  white-space : pre-wrap;
+}
+
 /* ---------- ANSI colour overrides for log viewer --------------- */
 .log-viewer .ansi-black-fg,
 .log-viewer .ansi-bright-black-fg {
