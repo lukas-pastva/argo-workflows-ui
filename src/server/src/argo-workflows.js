@@ -20,26 +20,32 @@ const WITH_NODES    = String(API_INCLUDE_NODES).toLowerCase() !== "false";
 
 /* ------------------------------------------------------------------ */
 /*  Helper: obtain the Bearer token (for argo-server API only)        */
+/*          - prefers ARGO_WORKFLOWS_TOKEN env                        */
+/*          - otherwise reads the SA token file on each call so it    */
+/*            keeps working when Kubernetes rotates the token         */
 /* ------------------------------------------------------------------ */
-let saToken = ARGO_WORKFLOWS_TOKEN;
-if (!saToken) {
+const SA_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token";
+
+function getSaToken() {
+  if (ARGO_WORKFLOWS_TOKEN) return ARGO_WORKFLOWS_TOKEN.trim();
+
   try {
-    saToken = fs
-      .readFileSync(
-        "/var/run/secrets/kubernetes.io/serviceaccount/token",
-        "utf8"
-      )
-      .trim();
+    const token = fs.readFileSync(SA_TOKEN_PATH, "utf8").trim();
     if (debug) console.log("[DEBUG] Loaded SA token from file system");
+    return token;
   } catch (e) {
     if (debug) console.log("[DEBUG] No SA token file found:", e.message);
+    return "";
   }
 }
 
-const headers = () => ({
-  "Content-Type": "application/json",
-  ...(saToken ? { Authorization: `Bearer ${saToken}` } : {})
-});
+const headers = () => {
+  const token = getSaToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+};
 
 /* ------------------------------------------------------------------ */
 /*  Curl hints for quick debugging                                    */
