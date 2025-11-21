@@ -65,7 +65,7 @@ export default function LogViewer({
       typeof window !== "undefined" &&
       window.matchMedia &&
       window.matchMedia("(max-width: 640px)").matches;
-    return isMobile ? 12 : 14; // default smaller on mobile
+    return isMobile ? 12 : 16; // default smaller on mobile, larger on desktop
   });
   const box = useRef();
 
@@ -293,22 +293,22 @@ export default function LogViewer({
         <div className="log-toolbar-actions">
           <button
             className="btn-light"
-            onClick={zoomOut}
-            title="Decrease text size"
-            aria-label="Decrease text size"
-          >
-            <span className="btn-icon" aria-hidden>
-              <IconZoomOut />
-            </span>
-          </button>
-          <button
-            className="btn-light"
             onClick={zoomIn}
             title="Increase text size"
             aria-label="Increase text size"
           >
             <span className="btn-icon" aria-hidden>
               <IconZoomIn />
+            </span>
+          </button>
+          <button
+            className="btn-light"
+            onClick={zoomOut}
+            title="Decrease text size"
+            aria-label="Decrease text size"
+          >
+            <span className="btn-icon" aria-hidden>
+              <IconZoomOut />
             </span>
           </button>
           <button

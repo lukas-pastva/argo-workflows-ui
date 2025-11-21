@@ -7,7 +7,6 @@ import {
   deleteWorkflows,
 } from "../api";
 import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
-import FailureReasonModal from "./FailureReasonModal.jsx";
 import Spinner            from "./Spinner.jsx";
 import MiniDag            from "./MiniDag.jsx";
 
@@ -91,7 +90,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [selected, setSelected]         = useState({});
   const [confirmNames, setConfirmNames] = useState(null);
   const [expanded, setExpanded]         = useState({});
-  const [reasonModal, setReasonModal]   = useState(null);
 
   /* ---- paging state --------------------------------------------- */
   const [pageSize, setPageSize]   = useState(100);
@@ -472,7 +470,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                         style={{ cursor: "pointer" }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setReasonModal({ name: nm, reason: failureMsg });
+                          onShowLogs(nm, null, { phase, failureMsg });
                         }}
                         title={
                           phase === "Error"
@@ -662,15 +660,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
           names={confirmNames}
           onConfirm={handleBatchDelete}
           onCancel={() => setConfirmNames(null)}
-        />
-      )}
-
-      {/* ---- failure-reason modal ---- */}
-      {reasonModal && (
-        <FailureReasonModal
-          name={reasonModal.name}
-          reason={reasonModal.reason}
-          onClose={() => setReasonModal(null)}
         />
       )}
 
