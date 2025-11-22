@@ -311,7 +311,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
   return (
     <div className="wf-container">
-      <h3 className="wf-title">List</h3>
+      
 
       {loading && items.length === 0 && (
         <div style={{ textAlign: "center", padding: "2rem" }}><Spinner /></div>
@@ -395,7 +395,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
               style={{ cursor: "pointer" }}
               onClick={() => setSort({ column: "start", dir: nextDir("start") })}
             >
-              {`Start Time${sortIndicator("start")}`}
+              {`Time${sortIndicator("start")}`}
             </th>
             {/* Duration column */}
             <th
