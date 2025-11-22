@@ -50,11 +50,6 @@ export default function LogViewer({
 }) {
   const [lines, setLines] = useState(["Loading …"]);
   const [autoScroll, setAutoScroll] = useState(true);
-  // Optional filters/overrides
-  const [podName, setPodName] = useState("");             // applied
-  const [sinceLocal, setSinceLocal] = useState("");        // applied (datetime-local string)
-  const [podNameInput, setPodNameInput] = useState("");    // editing buffer
-  const [sinceLocalInput, setSinceLocalInput] = useState("");
   const [fontSize, setFontSize] = useState(() => {
     try {
       const raw = localStorage.getItem("logFontSizePx");
@@ -91,9 +86,7 @@ export default function LogViewer({
           setLines(["Loading …"]);
         }
 
-        // Convert local datetime to ISO if present
-        const sinceTime = sinceLocal ? new Date(sinceLocal).toISOString() : undefined;
-        const resp   = await getWorkflowLogs(workflowName, { nodeId, podName: podName.trim() || undefined, sinceTime });
+        const resp   = await getWorkflowLogs(workflowName, { nodeId });
         const reader = resp.body.getReader();
         const dec    = new TextDecoder();
 
@@ -140,7 +133,7 @@ export default function LogViewer({
 
     openStream();
     return () => { cancelled = true; };
-  }, [workflowName, nodeId, podName, sinceLocal]);
+  }, [workflowName, nodeId]);
 
   /* ─── Auto-scroll (toggleable) ─────────────────────────────────── */
   useEffect(() => {
@@ -249,46 +242,6 @@ export default function LogViewer({
             {workflowName}
             {nodeId && <> → <code>{nodeId}</code></>}
           </span>
-          {/* Pod name override */}
-          <label style={{ marginLeft: "0.5rem" }}>
-            <input
-              type="text"
-              placeholder="pod name (optional)"
-              value={podNameInput}
-              onChange={(e) => setPodNameInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") { setPodName(podNameInput); setSinceLocal(sinceLocalInput); } }}
-              style={{ padding: "0.25rem 0.4rem" }}
-            />
-          </label>
-          {/* Start timestamp (youngest >=) */}
-          <label style={{ marginLeft: "0.5rem" }} title="Start at timestamp (>=)">
-            <input
-              type="datetime-local"
-              step="1"
-              value={sinceLocalInput}
-              onChange={(e) => setSinceLocalInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") { setPodName(podNameInput); setSinceLocal(sinceLocalInput); } }}
-              style={{ padding: "0.25rem 0.4rem" }}
-            />
-          </label>
-          <button
-            className="btn-light"
-            style={{ marginLeft: "0.25rem" }}
-            onClick={() => { setPodName(podNameInput); setSinceLocal(sinceLocalInput); }}
-            title="Apply filters"
-          >
-            Apply
-          </button>
-          {(sinceLocal || sinceLocalInput) && (
-            <button
-              className="btn-light"
-              style={{ marginLeft: "0.25rem" }}
-              onClick={() => { setSinceLocal(""); setSinceLocalInput(""); }}
-              title="Clear start timestamp"
-            >
-              Clear time
-            </button>
-          )}
         </div>
         <div className="log-toolbar-actions">
           <button
