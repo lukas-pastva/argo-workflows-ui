@@ -200,6 +200,45 @@ body {
 }
 .btn-light:hover { background: rgba(24,190,148,0.12); }
 
+/* Theme toggle: button that softly fades between tones */
+.theme-toggle-btn {
+  transition:
+    background 0.35s ease,
+    color 0.35s ease,
+    border-color 0.35s ease,
+    box-shadow 0.35s ease,
+    transform 0.1s ease;
+}
+
+.theme-toggle-btn--auto {
+  background: radial-gradient(circle at top left,
+    rgba(248,250,252,0.85),
+    rgba(24,190,148,0.12)
+  );
+}
+
+.theme-toggle-btn--light {
+  background: linear-gradient(135deg,
+    rgba(248,250,252,0.95),
+    rgba(148,163,184,0.22)
+  );
+}
+
+.theme-toggle-btn--dark {
+  background  : linear-gradient(135deg, #0f172a, #1f2937);
+  color       : #f9fafb;
+  border-color: rgba(249,250,251,0.9);
+  box-shadow  : 0 0 0 1px rgba(15,23,42,0.25);
+}
+
+.header .theme-toggle-btn {
+  color       : #ffffff;
+  border-color: #ffffff;
+}
+.header .theme-toggle-btn:hover {
+  background: rgba(255,255,255,0.12);
+}
+
 /* Icon helper for buttons */
 .btn-icon { margin-right: 0.35rem; }
 .btn-icon svg {

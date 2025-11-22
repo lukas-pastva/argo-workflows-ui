@@ -51,7 +51,7 @@ export default function App() {
         className="header"
         style={headerBg ? { background: headerBg } : {}}
       >
-        <h1>Argo Workflows</h1>
+        <h1>Workflows</h1>
         <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
           <div className="tabs" role="tablist" aria-label="Views">
             <button
