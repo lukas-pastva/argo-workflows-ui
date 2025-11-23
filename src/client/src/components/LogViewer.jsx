@@ -344,17 +344,29 @@ export default function LogViewer({
       {/* Meta: labels and pipeline */}
       {wf && (
         <div className="card" style={{ margin: "0.5rem 0 0.75rem" }}>
-          <div style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-            <strong>Labels:</strong>
-            <div className="wf-labels-list" style={{ margin: 0 }}>
-              {Object.entries(wf.metadata?.labels || {}).map(([k, v]) => (
-                <code key={k} title={k}>
-                  <strong>{k}</strong>=<span>{v}</span>
-                </code>
-              ))}
-              {Object.keys(wf.metadata?.labels || {}).length === 0 && <em>No labels</em>}
-            </div>
-          </div>
+          {(() => {
+            const entries = Object.entries(wf.metadata?.labels || {});
+            const count = entries.length;
+            if (count === 0) {
+              return (
+                <div style={{ marginBottom: "0.5rem" }}>
+                  <strong>Labels:</strong> <em>No labels</em>
+                </div>
+              );
+            }
+            return (
+              <details>
+                <summary style={{ cursor: "pointer", fontWeight: 600 }}>Labels ({count})</summary>
+                <div className="wf-labels-list" style={{ margin: "0.5rem 0 0" }}>
+                  {entries.map(([k, v]) => (
+                    <code key={k} title={k}>
+                      <strong>{k}</strong>=<span>{v}</span>
+                    </code>
+                  ))}
+                </div>
+              </details>
+            );
+          })()}
           <div>
             <strong>Pipeline:</strong>
             <div style={{ marginTop: "0.5rem" }}>
