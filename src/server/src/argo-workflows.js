@@ -210,6 +210,20 @@ export async function deleteWorkflow(name) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Get a single workflow (slim)                                       */
+/* ------------------------------------------------------------------ */
+export async function getWorkflow(name) {
+  const url = `${ARGO_WORKFLOWS_URL}/api/v1/workflows/${ARGO_WORKFLOWS_NAMESPACE}/${name}`;
+  if (debug) console.log("[DEBUG] Fetching workflow", name);
+  curlHint(url);
+
+  const r = await fetch(url, { headers: headers() });
+  if (!r.ok) throw new Error(`Argo ${r.status}`);
+  const wf = await r.json();
+  return slimWorkflow(wf);
+}
+
+/* ------------------------------------------------------------------ */
 /*  Helper: map nodeId → podName                                      */
 /* ------------------------------------------------------------------ */
 async function nodeIdToPodName(workflowName, nodeId) {

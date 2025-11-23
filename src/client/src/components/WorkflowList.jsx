@@ -6,9 +6,7 @@ import {
   deleteWorkflow,
   deleteWorkflows,
 } from "../api";
-import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
 import Spinner            from "./Spinner.jsx";
-import MiniDag            from "./MiniDag.jsx";
 
 /* ------------------------------------------------------------------ */
 /*  Runtime env & helpers                                             */
@@ -31,11 +29,7 @@ const trimPrefixes = (env.labelPrefixTrim || "")
   .map((p) => p.trim())
   .filter(Boolean);
 
-/* list of label keys that become table columns */
-const listLabelColumns = (env.listLabelColumns || "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+/* label columns removed from list view */
 
 const trimKey = (k) => {
   for (const pref of trimPrefixes) {
@@ -87,9 +81,6 @@ function fmtDuration(sec) {
 export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [items, setItems]               = useState([]);
   const [loading, setLoading]           = useState(true);
-  const [selected, setSelected]         = useState({});
-  const [confirmNames, setConfirmNames] = useState(null);
-  const [expanded, setExpanded]         = useState({});
 
   /* ---- paging state --------------------------------------------- */
   const [pageSize, setPageSize]   = useState(100);
@@ -223,24 +214,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   };
   const sortedRows = useMemo(() => [...filteredRows].sort(comparator), [filteredRows, sort]);
 
-  /* ---- bulk-selection helpers ---------------------------------- */
-  const isRunning  = (wf) => wf.status.phase === "Running";
-  const nonRunning = sortedRows.map((r) => r.wf).filter((wf) => !isRunning(wf));
-  const allSel     = nonRunning.length > 0 && nonRunning.every((wf) => selected[wf.metadata.name]);
-
-  const toggleRow = (wf) => {
-    // running workflows cannot be part of bulk-selection
-    if (isRunning(wf)) return;
-    setSelected((s) => ({ ...s, [wf.metadata.name]: !s[wf.metadata.name] }));
-  };
-  const toggleSelectAll = () => {
-    setSelected((s) => {
-      const c = { ...s };
-      if (allSel) nonRunning.forEach((wf) => delete c[wf.metadata.name]);
-      else        nonRunning.forEach((wf) => { c[wf.metadata.name] = true; });
-      return c;
-    });
-  };
+  /* ---- simplified actions: rows open detail; per-row delete only */
 
   /* ---- delete helpers ------------------------------------------ */
   const handleSingleDelete = async (name, phase) => {
@@ -255,21 +229,9 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       setItems((it) => it.filter((w) => w.metadata.name !== name));
     } catch (e) { onError(`Failed to delete: ${e.message}`); }
   };
-  const handleBatchDelete = async () => {
-    const names = Object.keys(selected).filter((n) => selected[n]);
-    try {
-      await deleteWorkflows(names);
-      setItems((it) => it.filter((w) => !names.includes(w.metadata.name)));
-      setConfirmNames(null);
-      setSelected({});
-    } catch (e) { onError(`Batch delete failed: ${e.message}`); }
-  };
+  // batch delete removed
 
-  /* ---- expanded row toggle ------------------------------------- */
-  const toggleExpanded = (name, e) => {
-    e.stopPropagation();
-    setExpanded((ex) => ({ ...ex, [name]: !ex[name] }));
-  };
+  // expanded row removed
 
   /* ---- paging actions ------------------------------------------ */
   const goFirst = () => {
@@ -307,7 +269,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   /* ------------------------------------------------------------------ */
   /*  RENDER                                                             */
   /* ------------------------------------------------------------------ */
-  const fullColSpan = 6 + listLabelColumns.length; // checkbox + Name + Start + Duration + Status + labels + Actions
+  // columns: Name, Time, Duration, Status, Actions
 
   return (
     <div className="wf-container">
@@ -364,27 +326,12 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       </details>
 
-      {/* -------- bulk-delete button -------- */}
-      {Object.values(selected).some(Boolean) && (
-        <div style={{ margin: "0.5rem 1rem" }}>
-          <button
-            className="btn-danger"
-            onClick={() =>
-              setConfirmNames(Object.keys(selected).filter((n) => selected[n]))
-            }
-          >
-            Delete selected
-          </button>
-        </div>
-      )}
+      {/* bulk delete removed */}
 
       {/* -------- main table -------- */}
       <table className="wf-table intimate">
         <thead>
           <tr>
-            <th style={{ width: "4rem" }}>
-              <input type="checkbox" checked={allSel} onChange={toggleSelectAll} />
-            </th>
             <th
               style={{ cursor: "pointer" }}
               onClick={() => setSort({ column: "name", dir: nextDir("name") })}
@@ -410,11 +357,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             >
               {`Status${sortIndicator("status")}`}
             </th>
-
-            {/* extra label columns */}
-            {listLabelColumns.map((k) => (
-              <th key={`hdr-${k}`}>{trimKey(k)}</th>
-            ))}
 
             <th>Actions</th>
           </tr>
@@ -444,18 +386,6 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                   }
                   style={{ cursor: "pointer" }}
                 >
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={!!selected[nm]}
-                      disabled={wf.status.phase === "Running"}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleRow(wf);
-                      }}
-                    />
-                  </td>
-
                   <td
                     style={{
                       whiteSpace: "nowrap",
@@ -531,65 +461,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     )}
                   </td>
 
-                  {/* extra label values */}
-                  {listLabelColumns.map((k) => (
-                    <td key={`${nm}-${k}`}>{labels[k] ?? ""}</td>
-                  ))}
-
                   {/* ---------- action buttons ---------- */}
                   <td>
-                    {/* Logs */}
-                    <button
-                      className="btn"
-                      aria-label="Logs"
-                      title="Logs"
-                      style={{ padding: "0.35rem" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onShowLogs(nm, null, { phase, failureMsg });
-                      }}
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16l4-4h6a2 2 0 0 0 2-2V2z" />
-                        <line x1="9" y1="9" x2="13" y2="9" />
-                        <line x1="9" y1="13" x2="13" y2="13" />
-                      </svg>
-                    </button>
-
-                    {/* Labels */}
-                    <button
-                      className="btn-light"
-                      aria-label="Labels"
-                      title="Labels"
-                      style={{ padding: "0.35rem" }}
-                      onClick={(e) => toggleExpanded(nm, e)}
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M20.59 13.41L11 4 4 11l9.59 9.59a2 2 0 0 0 2.82 0l4.18-4.18a2 2 0 0 0 0-2.82z" />
-                        <line x1="7" y1="10" x2="7" y2="10" />
-                      </svg>
-                    </button>
-
                     {/* Delete */}
                     <button
                       className="btn-danger"
@@ -622,51 +495,14 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                   </td>
                 </tr>
 
-                {/* ---------- expanded row (labels + mini-DAG) ---------- */}
-                {expanded[nm] && (
-                  <tr className="tr-labels">
-                    <td colSpan={fullColSpan}>
-                      {/* Mini DAG bubbles */}
-                      <MiniDag
-                        nodes={wf.status.nodes}
-                        onTaskClick={(nodeId) =>
-                          onShowLogs(nm, nodeId, { phase, failureMsg })
-                        }
-                      />
-                      <hr
-                        style={{
-                          border: 0,
-                          borderTop: "1px solid var(--border-color)",
-                          margin: "0.6rem 0",
-                          opacity: 0.4,
-                        }}
-                      />
-                      {/* label list */}
-                      <div className="wf-labels-list">
-                        {Object.entries(labels).map(([k, v]) => (
-                          <code key={k} title={k}>
-                            <strong>{trimKey(k)}</strong>=<span>{v}</span>
-                          </code>
-                        ))}
-                        {Object.keys(labels).length === 0 && <em>No labels</em>}
-                      </div>
-                    </td>
-                  </tr>
-                )}
+                {/* per-row expanded details removed */}
               </React.Fragment>
             );
           })}
         </tbody>
       </table>
 
-      {/* ---- confirm-delete modal ---- */}
-      {confirmNames && (
-        <DeleteConfirmModal
-          names={confirmNames}
-          onConfirm={handleBatchDelete}
-          onCancel={() => setConfirmNames(null)}
-        />
-      )}
+      {/* confirm-delete modal removed */}
 
       {/* ---- fixed bottom pager ---- */}
       <div className="pager-bar" role="navigation" aria-label="Pagination">

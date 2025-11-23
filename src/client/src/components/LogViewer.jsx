@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Ansi from "ansi-to-react";
-import { getWorkflowLogs } from "../api";
+import { getWorkflowLogs, getWorkflow } from "../api";
+import MiniDag from "./MiniDag.jsx";
 import {
   IconZoomIn,
   IconZoomOut,
@@ -50,6 +51,8 @@ export default function LogViewer({
 }) {
   const [lines, setLines] = useState(["Loading …"]);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [wf, setWf] = useState(null); // slim workflow (labels, nodes)
+  const [activeNodeId, setActiveNodeId] = useState(nodeId);
   const [fontSize, setFontSize] = useState(() => {
     try {
       const raw = localStorage.getItem("logFontSizePx");
@@ -71,6 +74,25 @@ export default function LogViewer({
     return () => { document.body.style.overflow = orig; };
   }, []);
 
+  /* ─── Fetch workflow info (labels + nodes) ─────────────────────── */
+  useEffect(() => {
+    let cancelled = false;
+    setWf(null);
+    (async () => {
+      try {
+        const data = await getWorkflow(workflowName);
+        if (!cancelled) setWf(data);
+      } catch (e) {
+        // Optional: ignore errors here; logs still show
+        console.error("Failed to load workflow details", e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [workflowName]);
+
+  // Keep internal node selection in sync with prop on change
+  useEffect(() => { setActiveNodeId(nodeId || null); }, [nodeId]);
+
   /* ─── Stream log lines (with retries) ──────────────────────────── */
   useEffect(() => {
     let cancelled = false;
@@ -86,7 +108,7 @@ export default function LogViewer({
           setLines(["Loading …"]);
         }
 
-        const resp   = await getWorkflowLogs(workflowName, { nodeId });
+        const resp   = await getWorkflowLogs(workflowName, { nodeId: activeNodeId });
         const reader = resp.body.getReader();
         const dec    = new TextDecoder();
 
@@ -133,7 +155,7 @@ export default function LogViewer({
 
     openStream();
     return () => { cancelled = true; };
-  }, [workflowName, nodeId]);
+  }, [workflowName, activeNodeId]);
 
   /* ─── Auto-scroll (toggleable) ─────────────────────────────────── */
   useEffect(() => {
@@ -237,10 +259,10 @@ export default function LogViewer({
       {/* Sticky toolbar */}
       <div className="log-toolbar">
         <div className="log-toolbar-left">
-          <strong>Logs</strong>
+          <strong>Detail</strong>
           <span className="log-toolbar-meta">
             {workflowName}
-            {nodeId && <> → <code>{nodeId}</code></>}
+            {activeNodeId && <> → <code>{activeNodeId}</code></>}
           </span>
         </div>
         <div className="log-toolbar-actions">
@@ -300,8 +322,8 @@ export default function LogViewer({
           <button
             className="btn-light"
             onClick={onClose}
-            title="Close logs"
-            aria-label="Close logs"
+            title="Close"
+            aria-label="Close"
           >
             <span className="btn-icon" aria-hidden>
               <IconClose />
@@ -316,6 +338,43 @@ export default function LogViewer({
         <div className="log-failure-banner">
           <strong>{phase || "Failed"}: </strong>
           <span>{failureMessage}</span>
+        </div>
+      )}
+
+      {/* Meta: labels and pipeline */}
+      {wf && (
+        <div className="card" style={{ margin: "0.5rem 0 0.75rem" }}>
+          <div style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+            <strong>Labels:</strong>
+            <div className="wf-labels-list" style={{ margin: 0 }}>
+              {Object.entries(wf.metadata?.labels || {}).map(([k, v]) => (
+                <code key={k} title={k}>
+                  <strong>{k}</strong>=<span>{v}</span>
+                </code>
+              ))}
+              {Object.keys(wf.metadata?.labels || {}).length === 0 && <em>No labels</em>}
+            </div>
+          </div>
+          <div>
+            <strong>Pipeline:</strong>
+            <div style={{ marginTop: "0.5rem" }}>
+              <MiniDag
+                nodes={wf.status?.nodes || {}}
+                onTaskClick={(nid) => {
+                  setActiveNodeId(nid);
+                  try {
+                    const params = new URLSearchParams(window.location.search);
+                    const d = params.get("detail") || params.get("logs");
+                    if (d) {
+                      const [w] = d.split("/");
+                      params.set("detail", `${w}/${nid}`);
+                      window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+                    }
+                  } catch {/* ignore URL errors */}
+                }}
+              />
+            </div>
+          </div>
         </div>
       )}
 

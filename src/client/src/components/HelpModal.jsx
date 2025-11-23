@@ -61,11 +61,20 @@ export default function HelpModal({ onClose }) {
           </HelpItem>
 
           <HelpItem icon="📜">
-            <strong>View logs&nbsp;–</strong> Click the <em>log icon</em> to open a
-            full-screen, auto-scrolling log viewer. ANSI colours are preserved and
-            stay readable in both themes. You can optionally enter a <em>pod name</em>
-            to stream a specific pod, and a <em>start timestamp</em> to begin at the
-            first line at or after that time.
+            <strong>View detail&nbsp;–</strong> Click any row to open a
+            full-screen detail view containing labels, a mini pipeline view,
+            and live logs. ANSI colours are preserved and stay readable in both
+            themes. You can optionally enter a <em>pod name</em> and a <em>start
+            timestamp</em> to begin at the first line at or after that time.
+          </HelpItem>
+
+          <HelpItem icon="🔗">
+            <strong>Deep links&nbsp;–</strong> You can open details directly via URL.
+            Use <code>?detail=&lt;workflow&gt;</code> to open a specific run, or
+            <code>?ts=&lt;timestamp&gt;&amp;st=&lt;value&gt;</code> to find the workflow whose
+            <code>st</code> parameter equals the given value and was created closest
+            after the timestamp. Timestamp accepts seconds, milliseconds, or ISO
+            strings.
           </HelpItem>
 
           <HelpItem icon="🌓">

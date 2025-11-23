@@ -8,6 +8,7 @@ import {
   listTemplates,
   streamLogs,
   deleteWorkflow,
+  getWorkflow,
 } from "./argo-workflows.js";
 import { createWorkflow } from "./create/index.js";
 
@@ -56,6 +57,10 @@ app.get("/api/workflows/:name/logs", (req, res) =>
   // Forward *all* query-string params (follow, container, nodeId…)
   streamLogs(req.params.name, res, req.query)
 );
+
+app.get("/api/workflows/:name", async (req, res, next) => {
+  try { res.json(await getWorkflow(req.params.name)); } catch (e) { next(e); }
+});
 
 app.delete("/api/workflows/:name", async (req, res, next) => {
   try { await deleteWorkflow(req.params.name); res.json({ deleted: true }); }

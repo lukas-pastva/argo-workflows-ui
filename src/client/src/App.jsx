@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { findWorkflowByParameterAfterTs } from "./api.js";
 import ErrorBanner     from "./components/ErrorBanner.jsx";
 import WorkflowList    from "./components/WorkflowList.jsx";
 import LogViewer       from "./components/LogViewer.jsx";
@@ -10,21 +11,43 @@ import Chart           from "./components/Chart.jsx";
 /* ─── keep log-viewer state in URL so it’s shareable ─────────────── */
 function useLogUrlSync(target, setTarget) {
   useEffect(() => {
-    const p = new URLSearchParams(window.location.search).get("logs");
+    const sp = new URLSearchParams(window.location.search);
+    const p = sp.get("detail") || sp.get("logs"); // accept legacy ?logs
     if (p) {
       const [w, n] = p.split("/");
       setTarget({ name: w, nodeId: n || null });
+    }
+    // If no explicit ?logs= but we have a deep-link search (?ts & ?st),
+    // resolve it client-side and open the matching workflow logs.
+    if (!p) {
+      const params = new URLSearchParams(window.location.search);
+      const ts = params.get("ts") || params.get("timestamp");
+      const st = params.get("st");
+      if (ts && st) {
+        (async () => {
+          try {
+            const wf = await findWorkflowByParameterAfterTs("st", st, ts, {});
+            if (wf?.metadata?.name) setTarget({ name: wf.metadata.name, nodeId: null });
+          } catch (e) {
+            console.error("Deep-link search failed", e);
+          }
+        })();
+      }
     }
   }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (target)
+    if (target) {
       params.set(
-        "logs",
+        "detail",
         target.nodeId ? `${target.name}/${target.nodeId}` : target.name
       );
-    else params.delete("logs");
+      params.delete("logs"); // drop legacy param if present
+    } else {
+      params.delete("detail");
+      params.delete("logs");
+    }
 
     window.history.replaceState(
       null,

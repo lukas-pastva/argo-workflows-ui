@@ -71,3 +71,72 @@ export async function getWorkflowLogs(
   }
   return r;                         // streaming Response
 }
+
+/* Fetch a single (slim) workflow by name */
+export async function getWorkflow(name) {
+  return jsonOrThrow(await fetch(`${base}/workflows/${encodeURIComponent(name)}`));
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helper: find workflow by parameter value closest after timestamp  */
+/* ------------------------------------------------------------------ */
+function parseTs(tsRaw) {
+  if (!tsRaw) return null;
+  const s = String(tsRaw).trim();
+  // numeric seconds/ms
+  if (/^\d+$/.test(s)) {
+    const n = Number(s);
+    if (!Number.isFinite(n)) return null;
+    // Heuristic: < 1e12 is seconds, otherwise ms
+    return n < 1_000_000_000_000 ? n * 1000 : n;
+  }
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? t : null;
+}
+
+export async function findWorkflowByParameterAfterTs(
+  paramName,
+  paramValue,
+  tsRaw,
+  { maxPages = 15, pageLimit } = {}
+) {
+  const tsMs = parseTs(tsRaw);
+  if (!tsMs) return null;
+
+  let cursor = "";
+  let best = null; // { item, delta }
+
+  for (let i = 0; i < maxPages; i++) {
+    const { items, nextCursor } = await listWorkflowsPaged({
+      limit: pageLimit,
+      cursor,
+    });
+
+    if (!Array.isArray(items) || items.length === 0) break;
+
+    let anyAfter = false;
+    for (const it of items) {
+      const startedMs = Date.parse(it.status?.startedAt || 0);
+      if (Number.isFinite(startedMs) && startedMs >= tsMs) anyAfter = true;
+
+      const params = it?.spec?.arguments?.parameters || [];
+      const match = params.some(
+        (p) => p && p.name === paramName && String(p.value) === String(paramValue)
+      );
+      if (!match) continue;
+
+      if (Number.isFinite(startedMs) && startedMs >= tsMs) {
+        const delta = startedMs - tsMs;
+        if (!best || delta < best.delta) best = { item: it, delta };
+      }
+    }
+
+    // Heuristic: upstream pages are chronological; if this page had
+    // no items after ts, further pages will be older → stop.
+    if (!anyAfter) break;
+    if (!nextCursor) break;
+    cursor = nextCursor;
+  }
+
+  return best?.item || null;
+}

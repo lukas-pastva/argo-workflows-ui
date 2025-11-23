@@ -40,3 +40,10 @@ A lightweight, single-container web interface for Kubernetes **Argo Workflows**.
 | `K8S_INSECURE_SKIP_TLS_VERIFY`   | Skip TLS verification if no CA is available.                            | `false`                                                                                  |
 
 
+
+## Deep links
+
+- Open a specific run’s detail with `?detail=<workflow-name>` (optionally `/<nodeId>`).
+- Search by timestamp + parameter and open detail with `?ts=<timestamp>&st=<value>`:
+  - Matches the workflow where parameter `st` equals `<value>` and the run was created closest after `<timestamp>`.
+  - Timestamp accepts Unix seconds, milliseconds, or an ISO datetime string.
