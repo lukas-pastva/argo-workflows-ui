@@ -347,12 +347,27 @@ export default function LogViewer({
 
       {/* Meta: labels and pipeline */}
       {wf && (
-        <div className="card" style={{ margin: "0.5rem 0 0.75rem" }}>
+        <div
+          className="card"
+          style={{
+            margin: "0.5rem 0 0.75rem",
+            paddingTop: "0.5rem",   // less space above labels button
+            paddingBottom: "1rem",   // a bit more space overall
+          }}
+        >
           {(() => {
             const entries = Object.entries(wf.metadata?.labels || {});
             const count = entries.length;
             return (
-              <div style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+              <div
+                style={{
+                  marginBottom: "0.75rem", // more space below labels
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  flexWrap: "wrap",
+                }}
+              >
                 <button
                   className="btn-light"
                   onClick={() => setLabelsOpen((v) => !v)}
@@ -375,8 +390,14 @@ export default function LogViewer({
             );
           })()}
           <div>
-            <strong>Pipeline:</strong>
-            <div style={{ marginTop: "0.5rem" }}>
+            <div
+              style={{
+                marginTop: "0.25rem",
+                borderTop: "1px solid var(--border-color)",
+                borderBottom: "1px solid var(--border-color)",
+                padding: "0.5rem 0", // subtle breathing room for the mini pipeline
+              }}
+            >
               <MiniDag
                 nodes={wf.status?.nodes || {}}
                 selectedId={activeNodeId}
@@ -390,7 +411,11 @@ export default function LogViewer({
                       const [w] = d.split("/");
                       if (nid) params.set("detail", `${w}/${nid}`);
                       else      params.set("detail", w);
-                      window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+                      window.history.replaceState(
+                        null,
+                        "",
+                        `${window.location.pathname}?${params.toString()}`
+                      );
                     }
                   } catch {/* ignore URL errors */}
                 }}
