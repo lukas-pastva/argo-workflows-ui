@@ -53,6 +53,7 @@ export default function LogViewer({
   const [autoScroll, setAutoScroll] = useState(true);
   const [wf, setWf] = useState(null); // slim workflow (labels, nodes)
   const [activeNodeId, setActiveNodeId] = useState(nodeId);
+  const [labelsOpen, setLabelsOpen] = useState(false);
   const [fontSize, setFontSize] = useState(() => {
     try {
       const raw = localStorage.getItem("logFontSizePx");
@@ -74,20 +75,23 @@ export default function LogViewer({
     return () => { document.body.style.overflow = orig; };
   }, []);
 
-  /* ─── Fetch workflow info (labels + nodes) ─────────────────────── */
+  /* ─── Fetch workflow info (labels + nodes) and poll ────────────── */
   useEffect(() => {
     let cancelled = false;
     setWf(null);
-    (async () => {
+
+    async function fetchOnce() {
       try {
         const data = await getWorkflow(workflowName);
         if (!cancelled) setWf(data);
       } catch (e) {
-        // Optional: ignore errors here; logs still show
-        console.error("Failed to load workflow details", e);
+        if (!cancelled) console.error("Failed to load workflow details", e);
       }
-    })();
-    return () => { cancelled = true; };
+    }
+
+    fetchOnce();
+    const id = setInterval(fetchOnce, 5000);
+    return () => { cancelled = true; clearInterval(id); };
   }, [workflowName]);
 
   // Keep internal node selection in sync with prop on change
@@ -347,24 +351,27 @@ export default function LogViewer({
           {(() => {
             const entries = Object.entries(wf.metadata?.labels || {});
             const count = entries.length;
-            if (count === 0) {
-              return (
-                <div style={{ marginBottom: "0.5rem" }}>
-                  <strong>Labels:</strong> <em>No labels</em>
-                </div>
-              );
-            }
             return (
-              <details>
-                <summary style={{ cursor: "pointer", fontWeight: 600 }}>Labels ({count})</summary>
-                <div className="wf-labels-list" style={{ margin: "0.5rem 0 0" }}>
-                  {entries.map(([k, v]) => (
-                    <code key={k} title={k}>
-                      <strong>{k}</strong>=<span>{v}</span>
-                    </code>
-                  ))}
-                </div>
-              </details>
+              <div style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                <button
+                  className="btn-light"
+                  onClick={() => setLabelsOpen((v) => !v)}
+                  aria-expanded={labelsOpen}
+                  disabled={count === 0}
+                  title={count ? (labelsOpen ? "Hide labels" : "Show labels") : "No labels"}
+                >
+                  {count ? (labelsOpen ? `Hide labels (${count})` : `Labels (${count})`) : "Labels (0)"}
+                </button>
+                {labelsOpen && count > 0 && (
+                  <div className="wf-labels-list" style={{ margin: 0 }}>
+                    {entries.map(([k, v]) => (
+                      <code key={k} title={k}>
+                        <strong>{k}</strong>=<span>{v}</span>
+                      </code>
+                    ))}
+                  </div>
+                )}
+              </div>
             );
           })()}
           <div>
