@@ -360,6 +360,8 @@ export default function LogViewer({
             <div style={{ marginTop: "0.5rem" }}>
               <MiniDag
                 nodes={wf.status?.nodes || {}}
+                selectedId={activeNodeId}
+                showAll={true}
                 onTaskClick={(nid) => {
                   setActiveNodeId(nid);
                   try {
@@ -367,7 +369,8 @@ export default function LogViewer({
                     const d = params.get("detail") || params.get("logs");
                     if (d) {
                       const [w] = d.split("/");
-                      params.set("detail", `${w}/${nid}`);
+                      if (nid) params.set("detail", `${w}/${nid}`);
+                      else      params.set("detail", w);
                       window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
                     }
                   } catch {/* ignore URL errors */}

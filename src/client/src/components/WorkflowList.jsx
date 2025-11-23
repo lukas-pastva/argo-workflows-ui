@@ -1,11 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { IconFilterX, IconChevronsLeft, IconChevronLeft, IconChevronRight } from "./icons";
-import {
-  listWorkflowsPaged,
-  listWorkflows,      // used for suggestions in Trigger; keep available
-  deleteWorkflow,
-  deleteWorkflows,
-} from "../api";
+import { listWorkflowsPaged, deleteWorkflow } from "../api";
 import Spinner            from "./Spinner.jsx";
 
 /* ------------------------------------------------------------------ */

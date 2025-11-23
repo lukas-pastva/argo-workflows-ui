@@ -678,6 +678,15 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
 
 .dag-arrow { opacity: 0.6; }
 
+/* selection highlight for current step */
+.dag-node-wrap.selected .dag-node {
+  box-shadow: 0 0 0 2px var(--primary-dark);
+}
+.dag-node-wrap.selected .dag-caption {
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
 /* ===== Fixed bottom pager ===================================== */
 .pager-bar {
   position: fixed;
