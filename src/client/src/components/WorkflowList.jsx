@@ -131,11 +131,16 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
   // Ensure selection tracks only visible items on the current page
   useEffect(() => {
-    const namesOnPage = new Set(items.map((w) => w.metadata.name));
+    // Only keep selection for items on this page that are not Running
+    const selectableOnPage = new Set(
+      items
+        .filter((w) => (w?.status?.phase || "") !== "Running")
+        .map((w) => w.metadata.name)
+    );
     setSelected((prev) => {
       if (prev.size === 0) return prev;
       const next = new Set();
-      prev.forEach((n) => { if (namesOnPage.has(n)) next.add(n); });
+      prev.forEach((n) => { if (selectableOnPage.has(n)) next.add(n); });
       return next.size === prev.size ? prev : next;
     });
   }, [items]);
@@ -455,6 +460,8 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     <input
                       type="checkbox"
                       aria-label={`Select ${nm}`}
+                      disabled={phase === "Running"}
+                      title={phase === "Running" ? "Cannot select a running workflow" : undefined}
                       checked={selected.has(nm)}
                       onChange={(e) => {
                         const checked = e.target.checked;
