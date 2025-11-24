@@ -598,9 +598,21 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
   /* On mobile, show icon-only buttons in the log toolbar */
   .log-toolbar .btn-label { display: none; }
   .log-toolbar .btn-icon { margin-right: 0; }
-  .log-toolbar .btn,
-  .log-toolbar .btn-light,
-  .log-toolbar .btn-danger { padding: 0.4rem 0.55rem; }
+.log-toolbar .btn,
+.log-toolbar .btn-light,
+.log-toolbar .btn-danger { padding: 0.4rem 0.55rem; }
+}
+
+/* Sticky meta panel (labels + mini pipeline) under the log toolbar */
+.log-meta {
+  position     : sticky;
+  top          : 0;
+  z-index      : 0; /* below .log-toolbar (z-index:1) */
+  margin       : 0; /* avoid jumpy spacing when sticking */
+  padding      : 0.5rem 1rem 0.75rem; /* a bit tighter than default card */
+  background   : var(--log-bg);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow   : 0 2px 6px rgba(0,0,0,0.06);
 }
 
 /* ---------------- Status pills --------------------------------- */

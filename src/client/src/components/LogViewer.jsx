@@ -345,16 +345,9 @@ export default function LogViewer({
         </div>
       )}
 
-      {/* Meta: labels and pipeline */}
+      {/* Meta: labels and pipeline (sticky under the toolbar) */}
       {wf && (
-        <div
-          className="card"
-          style={{
-            margin: "0.5rem 0 0.75rem",
-            paddingTop: "0.5rem",   // less space above labels button
-            paddingBottom: "1rem",   // a bit more space overall
-          }}
-        >
+        <div className="log-meta card">
           {(() => {
             const entries = Object.entries(wf.metadata?.labels || {});
             const count = entries.length;
