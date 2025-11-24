@@ -222,6 +222,17 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     const sTime = (r) => new Date(r.wf.status.startedAt).getTime();
     const dur   = (r) => durationSeconds(r.wf);
 
+    // Dynamic sort: label columns
+    if (column && column.startsWith("label:")) {
+      const key = column.slice("label:".length);
+      const av = a.wf?.metadata?.labels?.[key] ?? "";
+      const bv = b.wf?.metadata?.labels?.[key] ?? "";
+      const cmp = av.localeCompare(bv);
+      if (cmp !== 0) return mul * cmp;
+      // stable fallback by start time desc (latest first)
+      return -sTime(a) + sTime(b);
+    }
+
     switch (column) {
       case "name"     : return mul * a.wf.metadata.name.localeCompare(b.wf.metadata.name);
       case "start"    : return mul * (sTime(a) - sTime(b));
@@ -416,7 +427,14 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             </th>
             {/* Dynamically configured label columns */}
             {listLabelColumns.map((k) => (
-              <th key={`lbl-col:${k}`}>{trimKey(k)}</th>
+              <th
+                key={`lbl-col:${k}`}
+                style={{ cursor: "pointer" }}
+                onClick={() => setSort({ column: `label:${k}`, dir: nextDir(`label:${k}`) })}
+                title={k !== trimKey(k) ? k : undefined}
+              >
+                {`${trimKey(k)}${sortIndicator(`label:${k}`)}`}
+              </th>
             ))}
             <th
               style={{ cursor: "pointer" }}
