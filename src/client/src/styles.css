@@ -526,19 +526,23 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
   color     : var(--text-color);
 }
 
-/* Sticky toolbar within the log viewer */
+/* Single sticky block: toolbar + meta */
+.log-sticky {
+  position     : sticky;
+  top          : 0;
+  z-index      : 1;
+  background   : var(--log-bg);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow   : 0 2px 6px rgba(0,0,0,0.06);
+}
+
+/* Toolbar (no longer sticky on its own) */
 .log-toolbar {
-  position   : sticky;
-  top        : 0;
-  z-index    : 1;
   display    : flex;
   align-items: center;
   justify-content: space-between;
   gap        : 0.75rem;
   padding    : 0.5rem 1rem;
-  background : var(--log-bg);
-  border-bottom: 1px solid var(--border-color);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
 }
 .log-toolbar-left { display: flex; align-items: center; gap: 0.5rem; }
 .log-toolbar-meta { opacity: 0.8; }
@@ -603,16 +607,10 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
 .log-toolbar .btn-danger { padding: 0.4rem 0.55rem; }
 }
 
-/* Sticky meta panel (labels + mini pipeline) under the log toolbar */
+/* Meta panel (labels + mini pipeline) inside the sticky block */
 .log-meta {
-  position     : sticky;
-  top          : 0;
-  z-index      : 0; /* below .log-toolbar (z-index:1) */
-  margin       : 0; /* avoid jumpy spacing when sticking */
-  padding      : 0.5rem 1rem 0.75rem; /* a bit tighter than default card */
-  background   : var(--log-bg);
-  border-bottom: 1px solid var(--border-color);
-  box-shadow   : 0 2px 6px rgba(0,0,0,0.06);
+  margin  : 0;
+  padding : 0.25rem 1rem 0.75rem;
 }
 
 /* ---------------- Status pills --------------------------------- */

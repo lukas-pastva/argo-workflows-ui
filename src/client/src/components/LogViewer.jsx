@@ -260,81 +260,156 @@ export default function LogViewer({
       }}
       ref={box}
     >
-      {/* Sticky toolbar */}
-      <div className="log-toolbar">
-        <div className="log-toolbar-left">
-          <strong>Detail</strong>
-          <span className="log-toolbar-meta">
-            {workflowName}
-            {activeNodeId && <> → <code>{activeNodeId}</code></>}
-          </span>
+      {/* Sticky container: buttons + labels/pipeline */}
+      <div className="log-sticky">
+        <div className="log-toolbar">
+          <div className="log-toolbar-left">
+            <strong>Detail</strong>
+            <span className="log-toolbar-meta">
+              {workflowName}
+              {activeNodeId && <> → <code>{activeNodeId}</code></>}
+            </span>
+          </div>
+          <div className="log-toolbar-actions">
+            <button
+              className="btn-light"
+              onClick={zoomIn}
+              title="Increase text size"
+              aria-label="Increase text size"
+            >
+              <span className="btn-icon" aria-hidden>
+                <IconZoomIn />
+              </span>
+            </button>
+            <button
+              className="btn-light"
+              onClick={zoomOut}
+              title="Decrease text size"
+              aria-label="Decrease text size"
+            >
+              <span className="btn-icon" aria-hidden>
+                <IconZoomOut />
+              </span>
+            </button>
+            <button
+              className="btn-light"
+              onClick={handleCopy}
+              title="Copy logs to clipboard"
+              aria-label="Copy logs to clipboard"
+            >
+              <span className="btn-icon" aria-hidden>
+                {copied ? <IconCheck /> : <IconCopy />}
+              </span>
+              <span className="btn-label">{copied ? "Copied" : "Copy"}</span>
+            </button>
+            <button
+              className="btn-light"
+              onClick={() => setAutoScroll((v) => !v)}
+              title={autoScroll ? "Pause auto-scroll" : "Resume auto-scroll"}
+              aria-label={autoScroll ? "Pause auto-scroll" : "Resume auto-scroll"}
+            >
+              <span className="btn-icon" aria-hidden>
+                {autoScroll ? <IconPause /> : <IconPlay />}
+              </span>
+              <span className="btn-label">Auto-scroll</span>
+            </button>
+            <button
+              className="btn-light"
+              onClick={handleDownload}
+              title="Download logs"
+              aria-label="Download logs"
+            >
+              <span className="btn-icon" aria-hidden>
+                <IconDownload />
+              </span>
+              <span className="btn-label">Download</span>
+            </button>
+            <button
+              className="btn-light"
+              onClick={onClose}
+              title="Close"
+              aria-label="Close"
+            >
+              <span className="btn-icon" aria-hidden>
+                <IconClose />
+              </span>
+              <span className="btn-label">Close</span>
+            </button>
+          </div>
         </div>
-        <div className="log-toolbar-actions">
-          <button
-            className="btn-light"
-            onClick={zoomIn}
-            title="Increase text size"
-            aria-label="Increase text size"
-          >
-            <span className="btn-icon" aria-hidden>
-              <IconZoomIn />
-            </span>
-          </button>
-          <button
-            className="btn-light"
-            onClick={zoomOut}
-            title="Decrease text size"
-            aria-label="Decrease text size"
-          >
-            <span className="btn-icon" aria-hidden>
-              <IconZoomOut />
-            </span>
-          </button>
-          <button
-            className="btn-light"
-            onClick={handleCopy}
-            title="Copy logs to clipboard"
-            aria-label="Copy logs to clipboard"
-          >
-            <span className="btn-icon" aria-hidden>
-              {copied ? <IconCheck /> : <IconCopy />}
-            </span>
-            <span className="btn-label">{copied ? "Copied" : "Copy"}</span>
-          </button>
-          <button
-            className="btn-light"
-            onClick={() => setAutoScroll((v) => !v)}
-            title={autoScroll ? "Pause auto-scroll" : "Resume auto-scroll"}
-            aria-label={autoScroll ? "Pause auto-scroll" : "Resume auto-scroll"}
-          >
-            <span className="btn-icon" aria-hidden>
-              {autoScroll ? <IconPause /> : <IconPlay />}
-            </span>
-            <span className="btn-label">Auto-scroll</span>
-          </button>
-          <button
-            className="btn-light"
-            onClick={handleDownload}
-            title="Download logs"
-            aria-label="Download logs"
-          >
-            <span className="btn-icon" aria-hidden>
-              <IconDownload />
-            </span>
-            <span className="btn-label">Download</span>
-          </button>
-          <button
-            className="btn-light"
-            onClick={onClose}
-            title="Close"
-            aria-label="Close"
-          >
-            <span className="btn-icon" aria-hidden>
-              <IconClose />
-            </span>
-            <span className="btn-label">Close</span>
-          </button>
-        </div>
+
+        {/* Labels + mini pipeline directly under the toolbar */}
+        {wf && (
+          <div className="log-meta">
+            {(() => {
+              const entries = Object.entries(wf.metadata?.labels || {});
+              const count = entries.length;
+              return (
+                <div
+                  style={{
+                    marginBottom: "0.75rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <button
+                    className="btn-light"
+                    onClick={() => setLabelsOpen((v) => !v)}
+                    aria-expanded={labelsOpen}
+                    disabled={count === 0}
+                    title={count ? (labelsOpen ? "Hide labels" : "Show labels") : "No labels"}
+                  >
+                    {count ? (labelsOpen ? `Hide labels (${count})` : `Labels (${count})`) : "Labels (0)"}
+                  </button>
+                  {labelsOpen && count > 0 && (
+                    <div className="wf-labels-list" style={{ margin: 0 }}>
+                      {entries.map(([k, v]) => (
+                        <code key={k} title={k}>
+                          <strong>{k}</strong>=<span>{v}</span>
+                        </code>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            <div>
+              <div
+                style={{
+                  marginTop: "0.25rem",
+                  borderTop: "1px solid var(--border-color)",
+                  borderBottom: "1px solid var(--border-color)",
+                  padding: "0.5rem 0",
+                }}
+              >
+                <MiniDag
+                  nodes={wf.status?.nodes || {}}
+                  selectedId={activeNodeId}
+                  showAll={true}
+                  onTaskClick={(nid) => {
+                    setActiveNodeId(nid);
+                    try {
+                      const params = new URLSearchParams(window.location.search);
+                      const d = params.get("detail") || params.get("logs");
+                      if (d) {
+                        const [w] = d.split("/");
+                        if (nid) params.set("detail", `${w}/${nid}`);
+                        else      params.set("detail", w);
+                        window.history.replaceState(
+                          null,
+                          "",
+                          `${window.location.pathname}?${params.toString()}`
+                        );
+                      }
+                    } catch {/* ignore URL errors */}
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Failure / error summary (for failed/error runs) */}
@@ -345,78 +420,7 @@ export default function LogViewer({
         </div>
       )}
 
-      {/* Meta: labels and pipeline (sticky under the toolbar) */}
-      {wf && (
-        <div className="log-meta card">
-          {(() => {
-            const entries = Object.entries(wf.metadata?.labels || {});
-            const count = entries.length;
-            return (
-              <div
-                style={{
-                  marginBottom: "0.75rem", // more space below labels
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  flexWrap: "wrap",
-                }}
-              >
-                <button
-                  className="btn-light"
-                  onClick={() => setLabelsOpen((v) => !v)}
-                  aria-expanded={labelsOpen}
-                  disabled={count === 0}
-                  title={count ? (labelsOpen ? "Hide labels" : "Show labels") : "No labels"}
-                >
-                  {count ? (labelsOpen ? `Hide labels (${count})` : `Labels (${count})`) : "Labels (0)"}
-                </button>
-                {labelsOpen && count > 0 && (
-                  <div className="wf-labels-list" style={{ margin: 0 }}>
-                    {entries.map(([k, v]) => (
-                      <code key={k} title={k}>
-                        <strong>{k}</strong>=<span>{v}</span>
-                      </code>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-          <div>
-            <div
-              style={{
-                marginTop: "0.25rem",
-                borderTop: "1px solid var(--border-color)",
-                borderBottom: "1px solid var(--border-color)",
-                padding: "0.5rem 0", // subtle breathing room for the mini pipeline
-              }}
-            >
-              <MiniDag
-                nodes={wf.status?.nodes || {}}
-                selectedId={activeNodeId}
-                showAll={true}
-                onTaskClick={(nid) => {
-                  setActiveNodeId(nid);
-                  try {
-                    const params = new URLSearchParams(window.location.search);
-                    const d = params.get("detail") || params.get("logs");
-                    if (d) {
-                      const [w] = d.split("/");
-                      if (nid) params.set("detail", `${w}/${nid}`);
-                      else      params.set("detail", w);
-                      window.history.replaceState(
-                        null,
-                        "",
-                        `${window.location.pathname}?${params.toString()}`
-                      );
-                    }
-                  } catch {/* ignore URL errors */}
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Meta moved inside .log-sticky above */}
 
       {/* Log lines */}
       <div
