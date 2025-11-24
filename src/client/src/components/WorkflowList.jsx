@@ -25,7 +25,13 @@ const trimPrefixes = (env.labelPrefixTrim || "")
   .map((p) => p.trim())
   .filter(Boolean);
 
-/* label columns removed from list view */
+/* extra label columns visible in the list (from env) */
+const listLabelColumns = (
+  env.listLabelColumns || import.meta.env.VITE_LIST_LABEL_COLUMNS || ""
+)
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 const trimKey = (k) => {
   for (const pref of trimPrefixes) {
@@ -408,6 +414,10 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
             >
               {`Name${sortIndicator("name")}`}
             </th>
+            {/* Dynamically configured label columns */}
+            {listLabelColumns.map((k) => (
+              <th key={`lbl-col:${k}`}>{trimKey(k)}</th>
+            ))}
             <th
               style={{ cursor: "pointer" }}
               onClick={() => setSort({ column: "start", dir: nextDir("start") })}
@@ -482,6 +492,12 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                   >
                     {nm}
                   </td>                  
+                  {/* values for configured label columns */}
+                  {listLabelColumns.map((k) => (
+                    <td key={`lbl-val:${nm}:${k}`}>
+                      {(labels && labels[k]) || ""}
+                    </td>
+                  ))}
                   <td>{fmtTime(wf.status.startedAt)}</td>
                   <td>{fmtDuration(durSec)}</td>
 
