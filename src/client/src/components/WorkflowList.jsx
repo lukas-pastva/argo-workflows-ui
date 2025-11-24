@@ -287,11 +287,22 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const clearFilters  = () => setFilters({});
 
   // ---- selection helpers -----------------------------------------
-  const allVisibleNames   = useMemo(() => sortedRows.map(({ wf }) => wf.metadata.name), [sortedRows]);
-  const allSelected       = allVisibleNames.length > 0 && allVisibleNames.every((n) => selected.has(n));
-  const anySelected       = allVisibleNames.some((n) => selected.has(n));
-  const someNotAll        = anySelected && !allSelected;
-  const selectAllRef      = useRef(null);
+  // For "Select all": only include non-running workflows
+  const selectableVisibleNames = useMemo(
+    () =>
+      sortedRows
+        .filter(({ wf }) => (wf?.status?.phase || "") !== "Running")
+        .map(({ wf }) => wf.metadata.name),
+    [sortedRows]
+  );
+  const selectedCountInSelectable = useMemo(
+    () => selectableVisibleNames.filter((n) => selected.has(n)).length,
+    [selectableVisibleNames, selected]
+  );
+  const allSelected         = selectableVisibleNames.length > 0 && selectedCountInSelectable === selectableVisibleNames.length;
+  const someNotAll          = selectedCountInSelectable > 0 && !allSelected;
+  const anySelectedVisible  = selected.size > 0;
+  const selectAllRef        = useRef(null);
   useEffect(() => {
     if (selectAllRef.current) selectAllRef.current.indeterminate = someNotAll;
   }, [someNotAll]);
@@ -357,7 +368,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       </details>
 
       {/* selection toolbar */}
-      {anySelected && (
+      {anySelectedVisible && (
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", margin: "0.5rem 0" }}>
           <span>{Array.from(selected).length} selected</span>
           <button
@@ -379,12 +390,10 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                 type="checkbox"
                 aria-label="Select all"
                 checked={allSelected}
+                disabled={selectableVisibleNames.length === 0}
                 onChange={(e) => {
                   const checked = e.target.checked;
-                  setSelected(() => {
-                    if (!checked) return new Set();
-                    return new Set(allVisibleNames);
-                  });
+                  setSelected(() => (checked ? new Set(selectableVisibleNames) : new Set()));
                 }}
               />
             </th>
