@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { IconFilterX, IconChevronsLeft, IconChevronLeft, IconChevronRight } from "./icons";
-import { listWorkflowsPaged, deleteWorkflow } from "../api";
+import { listWorkflowsPaged, deleteWorkflow, deleteWorkflows } from "../api";
+import DeleteConfirmModal from "./DeleteConfirmModal.jsx";
 import Spinner            from "./Spinner.jsx";
 
 /* ------------------------------------------------------------------ */
@@ -76,6 +77,8 @@ function fmtDuration(sec) {
 export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [items, setItems]               = useState([]);
   const [loading, setLoading]           = useState(true);
+  const [selected, setSelected]         = useState(() => new Set()); // names selected on current page
+  const [confirmNames, setConfirmNames] = useState(null);            // null | string[]
 
   /* ---- paging state --------------------------------------------- */
   const [pageSize, setPageSize]   = useState(100);
@@ -125,6 +128,17 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     const id = setInterval(fetchPage, 10_000);
     return () => { cancelled = true; clearInterval(id); };
   }, [onError, pageSize, cursor]);
+
+  // Ensure selection tracks only visible items on the current page
+  useEffect(() => {
+    const namesOnPage = new Set(items.map((w) => w.metadata.name));
+    setSelected((prev) => {
+      if (prev.size === 0) return prev;
+      const next = new Set();
+      prev.forEach((n) => { if (namesOnPage.has(n)) next.add(n); });
+      return next.size === prev.size ? prev : next;
+    });
+  }, [items]);
 
   /* ---- build label groups -------------------------------------- */
   const labelGroups = useMemo(() => {
@@ -226,6 +240,17 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   };
   // batch delete removed
 
+  const handleBulkDelete = async (names) => {
+    if (!Array.isArray(names) || names.length === 0) return;
+    try {
+      await deleteWorkflows(names);
+      setItems((it) => it.filter((w) => !names.includes(w.metadata.name)));
+      setSelected(new Set());
+    } catch (e) {
+      onError(`Failed to delete: ${e.message}`);
+    }
+  };
+
   // expanded row removed
 
   /* ---- paging actions ------------------------------------------ */
@@ -260,6 +285,16 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const sortIndicator = (c) => (sort.column === c ? (sort.dir === "asc" ? " ▲" : " ▼") : "");
   const nextDir       = (c) => (sort.column === c ? (sort.dir === "asc" ? "desc" : "asc") : "asc");
   const clearFilters  = () => setFilters({});
+
+  // ---- selection helpers -----------------------------------------
+  const allVisibleNames   = useMemo(() => sortedRows.map(({ wf }) => wf.metadata.name), [sortedRows]);
+  const allSelected       = allVisibleNames.length > 0 && allVisibleNames.every((n) => selected.has(n));
+  const anySelected       = allVisibleNames.some((n) => selected.has(n));
+  const someNotAll        = anySelected && !allSelected;
+  const selectAllRef      = useRef(null);
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = someNotAll;
+  }, [someNotAll]);
 
   /* ------------------------------------------------------------------ */
   /*  RENDER                                                             */
@@ -321,12 +356,38 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </div>
       </details>
 
-      {/* bulk delete removed */}
+      {/* selection toolbar */}
+      {anySelected && (
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", margin: "0.5rem 0" }}>
+          <span>{Array.from(selected).length} selected</span>
+          <button
+            className="btn-danger"
+            onClick={() => setConfirmNames(Array.from(selected))}
+          >
+            Delete selected
+          </button>
+        </div>
+      )}
 
       {/* -------- main table -------- */}
       <table className="wf-table intimate">
         <thead>
           <tr>
+            <th style={{ width: "1%" }}>
+              <input
+                ref={selectAllRef}
+                type="checkbox"
+                aria-label="Select all"
+                checked={allSelected}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setSelected(() => {
+                    if (!checked) return new Set();
+                    return new Set(allVisibleNames);
+                  });
+                }}
+              />
+            </th>
             <th
               style={{ cursor: "pointer" }}
               onClick={() => setSort({ column: "name", dir: nextDir("name") })}
@@ -381,6 +442,21 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                   }
                   style={{ cursor: "pointer" }}
                 >
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${nm}`}
+                      checked={selected.has(nm)}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setSelected((prev) => {
+                          const next = new Set(prev);
+                          if (checked) next.add(nm); else next.delete(nm);
+                          return next;
+                        });
+                      }}
+                    />
+                  </td>
                   <td
                     style={{
                       whiteSpace: "nowrap",
@@ -497,7 +573,17 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
         </tbody>
       </table>
 
-      {/* confirm-delete modal removed */}
+      {Array.isArray(confirmNames) && (
+        <DeleteConfirmModal
+          names={confirmNames}
+          onConfirm={() => {
+            const names = confirmNames;
+            setConfirmNames(null);
+            handleBulkDelete(names);
+          }}
+          onCancel={() => setConfirmNames(null)}
+        />
+      )}
 
       {/* ---- fixed bottom pager ---- */}
       <div className="pager-bar" role="navigation" aria-label="Pagination">
