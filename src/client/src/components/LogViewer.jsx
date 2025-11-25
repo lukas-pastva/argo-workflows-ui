@@ -419,7 +419,7 @@ export default function LogViewer({
                     setActiveNodeId(nid);
                     try {
                       const params = new URLSearchParams(window.location.search);
-                      const d = params.get("detail") || params.get("logs");
+                      const d = params.get("detail");
                       if (d) {
                         const [w] = d.split("/");
                         if (nid) params.set("detail", `${w}/${nid}`);

@@ -104,7 +104,7 @@ export async function findWorkflowByParameterAfterTs(
   if (!tsMs) return null;
 
   let cursor = "";
-  let best = null; // { item, delta }
+  // Exact match only: startedAt must equal the timestamp (ms precision)
 
   for (let i = 0; i < maxPages; i++) {
     const { items, nextCursor } = await listWorkflowsPaged({
@@ -124,19 +124,86 @@ export async function findWorkflowByParameterAfterTs(
         (p) => p && p.name === paramName && String(p.value) === String(paramValue)
       );
       if (!match) continue;
-
-      if (Number.isFinite(startedMs) && startedMs >= tsMs) {
-        const delta = startedMs - tsMs;
-        if (!best || delta < best.delta) best = { item: it, delta };
+      if (Number.isFinite(startedMs) && startedMs === tsMs) {
+        return it; // exact match found
       }
     }
 
-    // Heuristic: upstream pages are chronological; if this page had
-    // no items after ts, further pages will be older → stop.
+    // Heuristic: if no items at/after ts on this page, further pages are older → stop
     if (!anyAfter) break;
     if (!nextCursor) break;
     cursor = nextCursor;
   }
 
-  return best?.item || null;
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Helper: find workflow by LABEL key/value closest after timestamp  */
+/* ------------------------------------------------------------------ */
+export async function findWorkflowByLabelAfterTs(
+  labelKey,
+  labelValue,
+  tsRaw,
+  { maxPages = 15, pageLimit } = {}
+){
+  const tsMs = parseTs(tsRaw);
+  if (!tsMs) return null;
+
+  // Support matching by exact key or by key after trimming configured prefixes
+  const env = (typeof window !== "undefined" && window.__ENV__) || {};
+  const trimPrefixes = (
+    env.labelPrefixTrim || (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_LABEL_PREFIX_TRIM) || ""
+  )
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const trimKey = (k) => {
+    for (const pref of trimPrefixes) {
+      if (k.startsWith(pref)) return k.slice(pref.length);
+    }
+    return k;
+  };
+
+  let cursor = "";
+  // Exact match only: startedAt must equal the timestamp (ms precision)
+
+  for (let i = 0; i < maxPages; i++) {
+    const { items, nextCursor } = await listWorkflowsPaged({
+      limit: pageLimit,
+      cursor,
+    });
+
+    if (!Array.isArray(items) || items.length === 0) break;
+
+    let anyAfter = false;
+    for (const it of items) {
+      const startedMs = Date.parse(it.status?.startedAt || 0);
+      if (Number.isFinite(startedMs) && startedMs >= tsMs) anyAfter = true;
+
+      const lbl = it?.metadata?.labels || {};
+      let matches = false;
+      if (String(lbl[labelKey]) === String(labelValue)) {
+        matches = true;
+      } else {
+        for (const [k, v] of Object.entries(lbl)) {
+          if (trimKey(k) === labelKey && String(v) === String(labelValue)) {
+            matches = true;
+            break;
+          }
+        }
+      }
+      if (!matches) continue;
+
+      if (Number.isFinite(startedMs) && startedMs === tsMs) {
+        return it; // exact match found
+      }
+    }
+
+    if (!anyAfter) break;
+    if (!nextCursor) break;
+    cursor = nextCursor;
+  }
+
+  return null;
 }

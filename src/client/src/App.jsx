@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { findWorkflowByParameterAfterTs } from "./api.js";
+import { findWorkflowByLabelAfterTs } from "./api.js";
 import ErrorBanner     from "./components/ErrorBanner.jsx";
 import WorkflowList    from "./components/WorkflowList.jsx";
 import LogViewer       from "./components/LogViewer.jsx";
@@ -12,22 +12,48 @@ import Chart           from "./components/Chart.jsx";
 function useLogUrlSync(target, setTarget) {
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
-    const p = sp.get("detail") || sp.get("logs"); // accept legacy ?logs
+    const p = sp.get("detail");
     if (p) {
       const [w, n] = p.split("/");
       setTarget({ name: w, nodeId: n || null });
     }
-    // If no explicit ?logs= but we have a deep-link search (?ts & ?st),
-    // resolve it client-side and open the matching workflow logs.
+    // If no explicit ?detail= but we have a deep-link search, resolve it
+    // client-side and open the matching workflow logs.
     if (!p) {
       const params = new URLSearchParams(window.location.search);
       const ts = params.get("ts") || params.get("timestamp");
-      const st = params.get("st");
-      if (ts && st) {
+      if (ts) {
         (async () => {
           try {
-            const wf = await findWorkflowByParameterAfterTs("st", st, ts, {});
-            if (wf?.metadata?.name) setTarget({ name: wf.metadata.name, nodeId: null });
+            // Recognize only configured extra list columns as keys.
+            const env = window.__ENV__ || {};
+            const listCols = (env.listLabelColumns || import.meta.env.VITE_LIST_LABEL_COLUMNS || "")
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean);
+            // Prepare trimmed aliases so ?application= works even if real key is prefixed
+            const trimPrefixes = (env.labelPrefixTrim || import.meta.env.VITE_LABEL_PREFIX_TRIM || "")
+              .split(",")
+              .map((p) => p.trim())
+              .filter(Boolean);
+            const trimKey = (k) => {
+              for (const pref of trimPrefixes) if (k.startsWith(pref)) return k.slice(pref.length);
+              return k;
+            };
+            const keysToCheck = Array.from(new Set([
+              ...listCols,
+              ...listCols.map(trimKey),
+            ]));
+
+            for (const key of keysToCheck) {
+              const value = params.get(key);
+              if (!value) continue;
+              const wf = await findWorkflowByLabelAfterTs(key, value, ts, {});
+              if (wf?.metadata?.name) {
+                setTarget({ name: wf.metadata.name, nodeId: null });
+                break;
+              }
+            }
           } catch (e) {
             console.error("Deep-link search failed", e);
           }
@@ -43,10 +69,8 @@ function useLogUrlSync(target, setTarget) {
         "detail",
         target.nodeId ? `${target.name}/${target.nodeId}` : target.name
       );
-      params.delete("logs"); // drop legacy param if present
     } else {
       params.delete("detail");
-      params.delete("logs");
     }
 
     window.history.replaceState(

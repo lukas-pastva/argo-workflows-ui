@@ -69,12 +69,16 @@ export default function HelpModal({ onClose }) {
           </HelpItem>
 
           <HelpItem icon="🔗">
-            <strong>Deep links&nbsp;–</strong> You can open details directly via URL.
-            Use <code>?detail=&lt;workflow&gt;</code> to open a specific run, or
-            <code>?ts=&lt;timestamp&gt;&amp;st=&lt;value&gt;</code> to find the workflow whose
-            <code>st</code> parameter equals the given value and was created closest
-            after the timestamp. Timestamp accepts seconds, milliseconds, or ISO
-            strings.
+            <strong>Deep links&nbsp;–</strong> Open details directly via URL.
+            Use <code>?detail=&lt;workflow&gt;</code> or <code>?detail=&lt;workflow&gt;/&lt;nodeId&gt;</code>.
+            Or filter by an exact start time plus one of the extra columns shown in the list:
+            <br />
+            <code>?ts=&lt;timestamp&gt;&amp;&lt;columnKey&gt;=&lt;value&gt;</code>
+            <br />
+            Example: <code>?ts=2025-11-25T05:51:40Z&amp;application=o4be-dev-cpc</code>
+            <br />
+            The match is exact on timestamp (ms precision). Timestamp accepts seconds,
+            milliseconds, or ISO strings.
           </HelpItem>
 
           <HelpItem icon="🌓">
