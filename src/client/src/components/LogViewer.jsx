@@ -51,6 +51,7 @@ export default function LogViewer({
 }) {
   const [lines, setLines] = useState(["Loading …"]);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [wrapLines, setWrapLines] = useState(true);
   const [wf, setWf] = useState(null); // slim workflow (labels, nodes)
   const [activeNodeId, setActiveNodeId] = useState(nodeId);
   const [labelsOpen, setLabelsOpen] = useState(false);
@@ -66,7 +67,7 @@ export default function LogViewer({
       window.matchMedia("(max-width: 640px)").matches;
     return isMobile ? 12 : 16; // default smaller on mobile, larger on desktop
   });
-  const box = useRef();
+  const linesBox = useRef();
 
   /* ─── Disable body scroll while viewer is open ─────────────────── */
   useEffect(() => {
@@ -164,13 +165,13 @@ export default function LogViewer({
   /* ─── Auto-scroll (toggleable) ─────────────────────────────────── */
   useEffect(() => {
     if (!autoScroll) return;
-    if (box.current) box.current.scrollTop = box.current.scrollHeight;
+    if (linesBox.current) linesBox.current.scrollTop = linesBox.current.scrollHeight;
   }, [lines, autoScroll]);
 
   // When re-enabling autoscroll, jump to bottom immediately
   useEffect(() => {
-    if (autoScroll && box.current) {
-      box.current.scrollTop = box.current.scrollHeight;
+    if (autoScroll && linesBox.current) {
+      linesBox.current.scrollTop = linesBox.current.scrollHeight;
     }
   }, [autoScroll]);
 
@@ -253,12 +254,13 @@ export default function LogViewer({
         position   : "fixed",
         inset      : 0,
         padding    : "0.75rem 0 1rem",
-        overflow   : "auto",
+        display    : "flex",
+        flexDirection: "column",
+        overflow   : "hidden",
         fontFamily : "monospace",
-        whiteSpace : "pre-wrap",
         zIndex     : 2000,
       }}
-      ref={box}
+      
     >
       {/* Sticky container: buttons + labels/pipeline */}
       <div className="log-sticky">
@@ -290,6 +292,31 @@ export default function LogViewer({
               <span className="btn-icon" aria-hidden>
                 <IconZoomOut />
               </span>
+            </button>
+            <button
+              className="btn-light"
+              onClick={() => setWrapLines((v) => !v)}
+              title={wrapLines ? "Disable wrapping" : "Enable wrapping"}
+              aria-label={wrapLines ? "Disable wrapping" : "Enable wrapping"}
+              aria-pressed={wrapLines}
+            >
+              <span className="btn-icon" aria-hidden>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="4" y1="6"  x2="20" y2="6" />
+                  <line x1="4" y1="12" x2="14" y2="12" />
+                  <polyline points="14 12 14 18 20 18" />
+                </svg>
+              </span>
+              <span className="btn-label">{wrapLines ? "Wrap: On" : "Wrap: Off"}</span>
             </button>
             <button
               className="btn-light"
@@ -425,7 +452,16 @@ export default function LogViewer({
       {/* Log lines */}
       <div
         className="log-lines"
-        style={{ fontSize: `${Number.isFinite(fontSize) ? fontSize : 14}px`, lineHeight: 1.4 }}
+        ref={linesBox}
+        style={{
+          fontSize   : `${Number.isFinite(fontSize) ? fontSize : 14}px`,
+          lineHeight : 1.4,
+          overflowY  : "auto",
+          overflowX  : "auto",
+          whiteSpace : wrapLines ? "pre-wrap" : "pre",
+          flex       : "1 1 auto",
+          minHeight  : 0,
+        }}
       >
         {lines.map((l, i) => (
           <div key={i}><Ansi useClasses>{l}</Ansi></div>
