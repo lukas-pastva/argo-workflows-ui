@@ -78,7 +78,7 @@ export async function getWorkflow(name) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Helper: find workflow by parameter value closest after timestamp  */
+/*  Helper: find workflow by parameter value closest at/after timestamp  */
 /* ------------------------------------------------------------------ */
 function parseTs(tsRaw) {
   if (!tsRaw) return null;
@@ -104,7 +104,9 @@ export async function findWorkflowByParameterAfterTs(
   if (!tsMs) return null;
 
   let cursor = "";
-  // Exact match only: startedAt must equal the timestamp (ms precision)
+  // Choose the run with the smallest startedAt >= ts (ms precision)
+  let best = null;
+  let bestDelta = Infinity;
 
   for (let i = 0; i < maxPages; i++) {
     const { items, nextCursor } = await listWorkflowsPaged({
@@ -124,8 +126,13 @@ export async function findWorkflowByParameterAfterTs(
         (p) => p && p.name === paramName && String(p.value) === String(paramValue)
       );
       if (!match) continue;
-      if (Number.isFinite(startedMs) && startedMs === tsMs) {
-        return it; // exact match found
+      if (Number.isFinite(startedMs) && startedMs >= tsMs) {
+        const delta = startedMs - tsMs;
+        if (delta === 0) return it; // exact match is optimal
+        if (delta < bestDelta) {
+          best = it;
+          bestDelta = delta;
+        }
       }
     }
 
@@ -135,11 +142,11 @@ export async function findWorkflowByParameterAfterTs(
     cursor = nextCursor;
   }
 
-  return null;
+  return best;
 }
 
 /* ------------------------------------------------------------------ */
-/*  Helper: find workflow by LABEL key/value closest after timestamp  */
+/*  Helper: find workflow by LABEL key/value closest at/after timestamp  */
 /* ------------------------------------------------------------------ */
 export async function findWorkflowByLabelAfterTs(
   labelKey,
@@ -166,7 +173,9 @@ export async function findWorkflowByLabelAfterTs(
   };
 
   let cursor = "";
-  // Exact match only: startedAt must equal the timestamp (ms precision)
+  // Choose the run with the smallest startedAt >= ts (ms precision)
+  let best = null;
+  let bestDelta = Infinity;
 
   for (let i = 0; i < maxPages; i++) {
     const { items, nextCursor } = await listWorkflowsPaged({
@@ -195,8 +204,13 @@ export async function findWorkflowByLabelAfterTs(
       }
       if (!matches) continue;
 
-      if (Number.isFinite(startedMs) && startedMs === tsMs) {
-        return it; // exact match found
+      if (Number.isFinite(startedMs) && startedMs >= tsMs) {
+        const delta = startedMs - tsMs;
+        if (delta === 0) return it; // exact match is optimal
+        if (delta < bestDelta) {
+          best = it;
+          bestDelta = delta;
+        }
       }
     }
 
@@ -205,5 +219,5 @@ export async function findWorkflowByLabelAfterTs(
     cursor = nextCursor;
   }
 
-  return null;
+  return best;
 }

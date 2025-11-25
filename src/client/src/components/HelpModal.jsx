@@ -71,13 +71,14 @@ export default function HelpModal({ onClose }) {
           <HelpItem icon="🔗">
             <strong>Deep links&nbsp;–</strong> Open details directly via URL.
             Use <code>?detail=&lt;workflow&gt;</code> or <code>?detail=&lt;workflow&gt;/&lt;nodeId&gt;</code>.
-            Or filter by an exact start time plus one of the extra columns shown in the list:
+            Or filter by a start time plus one of the extra columns shown in the list:
             <br />
             <code>?ts=&lt;timestamp&gt;&amp;&lt;columnKey&gt;=&lt;value&gt;</code>
             <br />
             Example: <code>?ts=2025-11-25T05:51:40Z&amp;application=o4be-dev-cpc</code>
             <br />
-            The match is exact on timestamp (ms precision). Timestamp accepts seconds,
+            The UI picks the run whose start time is closest at or after the
+            given timestamp (ms precision). Timestamp accepts seconds,
             milliseconds, or ISO strings.
           </HelpItem>
 
