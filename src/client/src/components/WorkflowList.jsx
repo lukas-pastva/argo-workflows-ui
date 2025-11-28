@@ -85,6 +85,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [loading, setLoading]           = useState(true);
   const [selected, setSelected]         = useState(() => new Set()); // names selected on current page
   const [confirmNames, setConfirmNames] = useState(null);            // null | string[]
+  const [openIo, setOpenIo]             = useState(() => new Set()); // names with I/O details expanded
 
   /* ---- paging state --------------------------------------------- */
   const [pageSize, setPageSize]   = useState(100);
@@ -308,6 +309,31 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const nextDir       = (c) => (sort.column === c ? (sort.dir === "asc" ? "desc" : "asc") : "asc");
   const clearFilters  = () => setFilters({});
 
+  // ---- I/O helpers ------------------------------------------------
+  const toggleIo = (name) =>
+    setOpenIo((prev) => {
+      const next = new Set(prev);
+      next.has(name) ? next.delete(name) : next.add(name);
+      return next;
+    });
+
+  const collectInputs = (wf) =>
+    (wf?.spec?.arguments?.parameters || []).map((p) => ({ name: p.name, value: p.value }));
+
+  const collectOutputs = (wf) => {
+    const out = new Map();
+    const nodes = wf?.status?.nodes || {};
+    Object.values(nodes).forEach((n) => {
+      (n?.outputs?.parameters || []).forEach((pp) => {
+        const key = String(pp.name || "").replace(/^var_/, "");
+        const val = pp.value == null ? "" : String(pp.value);
+        if (!out.has(key)) out.set(key, new Set());
+        if (val !== "") out.get(key).add(val);
+      });
+    });
+    return Array.from(out.entries()).map(([name, set]) => ({ name, values: Array.from(set) }));
+  };
+
   // ---- selection helpers -----------------------------------------
   // For "Select all": only include non-running workflows
   const selectableVisibleNames = useMemo(
@@ -474,6 +500,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                 )?.message ||
                 "No reason recorded"
               : null;
+            const isIoOpen = openIo.has(nm);
 
             return (
               <React.Fragment key={nm}>
@@ -584,6 +611,16 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
                   {/* ---------- action buttons ---------- */}
                   <td>
+                    {/* I/O toggle */}
+                    <button
+                      className="btn-light"
+                      aria-label={isIoOpen ? "Hide inputs/outputs" : "Show inputs/outputs"}
+                      title={isIoOpen ? "Hide inputs/outputs" : "Show inputs/outputs"}
+                      style={{ padding: "0.35rem", marginRight: "0.35rem" }}
+                      onClick={(e) => { e.stopPropagation(); toggleIo(nm); }}
+                    >
+                      {isIoOpen ? "Hide I/O" : "Show I/O"}
+                    </button>
                     {/* Delete */}
                     <button
                       className="btn-danger"
@@ -615,8 +652,84 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                     </button>
                   </td>
                 </tr>
+                {/* ---------- expanded I/O details row ---------- */}
+                {isIoOpen && (
+                  <tr onClick={(e) => e.stopPropagation()}>
+                    <td />
+                    <td colSpan={
+                      1 +
+                      listLabelColumns.length +
+                      3 +
+                      1
+                    }>
+                      <div style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 6,
+                        padding: "0.75rem",
+                        margin: "0.35rem 0 0.75rem 0",
+                        background: "#f8fafc"
+                      }}>
+                        {/* Inputs */}
+                        <div style={{ marginBottom: "0.5rem" }}>
+                          <div style={{ fontWeight: 600, marginBottom: 4 }}>Inputs</div>
+                          {collectInputs(wf).length === 0 ? (
+                            <div style={{ opacity: 0.7 }}>No inputs</div>
+                          ) : (
+                            <ul style={{ margin: 0, paddingLeft: "1rem" }}>
+                              {collectInputs(wf).map(({ name, value }) => (
+                                <li key={`in:${nm}:${name}`}
+                                    style={{ wordBreak: "break-word" }}>
+                                  <code style={{ fontWeight: 600 }}>{name}</code>
+                                  <span>: </span>
+                                  {(() => {
+                                    const v = value == null ? "" : String(value);
+                                    if (name === "event-data") {
+                                      try {
+                                        const obj = JSON.parse(v);
+                                        return (
+                                          <pre style={{
+                                            whiteSpace: "pre-wrap",
+                                            margin: "0.25rem 0 0 0",
+                                            background: "#fff",
+                                            border: "1px solid #e2e8f0",
+                                            borderRadius: 4,
+                                            padding: "0.5rem"
+                                          }}>{JSON.stringify(obj, null, 2)}</pre>
+                                        );
+                                      } catch {
+                                        return <span>{v}</span>;
+                                      }
+                                    }
+                                    return <span>{v}</span>;
+                                  })()}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
 
-                {/* per-row expanded details removed */}
+                        {/* Outputs */}
+                        <div>
+                          <div style={{ fontWeight: 600, marginBottom: 4 }}>Outputs</div>
+                          {collectOutputs(wf).length === 0 ? (
+                            <div style={{ opacity: 0.7 }}>No outputs</div>
+                          ) : (
+                            <ul style={{ margin: 0, paddingLeft: "1rem" }}>
+                              {collectOutputs(wf).map(({ name, values }) => (
+                                <li key={`out:${nm}:${name}`}
+                                    style={{ wordBreak: "break-word" }}>
+                                  <code style={{ fontWeight: 600 }}>{name}</code>
+                                  <span>: </span>
+                                  <span>{values.join(", ")}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </React.Fragment>
             );
           })}
