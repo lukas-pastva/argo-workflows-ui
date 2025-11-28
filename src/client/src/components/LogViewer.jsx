@@ -55,6 +55,7 @@ export default function LogViewer({
   const [wf, setWf] = useState(null); // slim workflow (labels, nodes)
   const [activeNodeId, setActiveNodeId] = useState(nodeId);
   const [labelsOpen, setLabelsOpen] = useState(false);
+  const [ioOpen, setIoOpen] = useState(false);
   const [fontSize, setFontSize] = useState(() => {
     try {
       const raw = localStorage.getItem("logFontSizePx");
@@ -365,7 +366,7 @@ export default function LogViewer({
           </div>
         </div>
 
-        {/* Labels + mini pipeline directly under the toolbar */}
+        {/* Labels + I/O + mini pipeline directly under the toolbar */}
         {wf && (
           <div className="log-meta">
             {(() => {
@@ -397,6 +398,109 @@ export default function LogViewer({
                           <strong>{k}</strong>=<span>{v}</span>
                         </code>
                       ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Inputs / Outputs toggle + panel */}
+            {(() => {
+              const inputs = (wf?.spec?.arguments?.parameters || []).map((p) => ({ name: p.name, value: p.value }));
+              // Aggregate outputs across nodes, dedupe values, trim var_ prefix
+              const outMap = new Map();
+              const nodes = wf?.status?.nodes || {};
+              Object.values(nodes).forEach((n) =>
+                (n?.outputs?.parameters || []).forEach((pp) => {
+                  const key = String(pp.name || "").replace(/^var_/, "");
+                  const val = pp.value == null ? "" : String(pp.value);
+                  if (!outMap.has(key)) outMap.set(key, new Set());
+                  if (val !== "") outMap.get(key).add(val);
+                })
+              );
+              const outputs = Array.from(outMap.entries()).map(([name, set]) => ({ name, values: Array.from(set) }));
+              const inCount = inputs.length;
+              const outCount = outputs.length;
+
+              return (
+                <div style={{ marginBottom: "0.5rem" }}>
+                  <button
+                    className="btn-light"
+                    onClick={() => setIoOpen((v) => !v)}
+                    aria-expanded={ioOpen}
+                    disabled={inCount + outCount === 0}
+                    title={ioOpen ? "Hide inputs/outputs" : "Show inputs/outputs"}
+                  >
+                    {inCount + outCount === 0
+                      ? "I/O (0)"
+                      : ioOpen
+                        ? `Hide I/O (${inCount} in, ${outCount} out)`
+                        : `I/O (${inCount} in, ${outCount} out)`}
+                  </button>
+                  {ioOpen && (
+                    <div style={{
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 6,
+                      padding: "0.75rem",
+                      marginTop: "0.5rem",
+                      background: "#f8fafc",
+                      fontFamily: "var(--font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace)"
+                    }}>
+                      {/* Inputs */}
+                      <div style={{ marginBottom: "0.5rem" }}>
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>Inputs</div>
+                        {inCount === 0 ? (
+                          <div style={{ opacity: 0.7 }}>No inputs</div>
+                        ) : (
+                          <ul style={{ margin: 0, paddingLeft: "1rem" }}>
+                            {inputs.map(({ name, value }) => (
+                              <li key={`in:${name}`} style={{ wordBreak: "break-word" }}>
+                                <code style={{ fontWeight: 600 }}>{name}</code>
+                                <span>: </span>
+                                {(() => {
+                                  const v = value == null ? "" : String(value);
+                                  if (name === "event-data") {
+                                    try {
+                                      const obj = JSON.parse(v);
+                                      return (
+                                        <pre style={{
+                                          whiteSpace: "pre-wrap",
+                                          margin: "0.25rem 0 0 0",
+                                          background: "#fff",
+                                          border: "1px solid #e2e8f0",
+                                          borderRadius: 4,
+                                          padding: "0.5rem"
+                                        }}>{JSON.stringify(obj, null, 2)}</pre>
+                                      );
+                                    } catch {
+                                      return <span>{v}</span>;
+                                    }
+                                  }
+                                  return <span>{v}</span>;
+                                })()}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+
+                      {/* Outputs */}
+                      <div>
+                        <div style={{ fontWeight: 600, marginBottom: 4 }}>Outputs</div>
+                        {outCount === 0 ? (
+                          <div style={{ opacity: 0.7 }}>No outputs</div>
+                        ) : (
+                          <ul style={{ margin: 0, paddingLeft: "1rem" }}>
+                            {outputs.map(({ name, values }) => (
+                              <li key={`out:${name}`} style={{ wordBreak: "break-word" }}>
+                                <code style={{ fontWeight: 600 }}>{name}</code>
+                                <span>: </span>
+                                <span>{values.join(", ")}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
