@@ -85,7 +85,8 @@ export default function HelpModal({ onClose }) {
           <HelpItem icon="🌓">
             <strong>Switch theme&nbsp;–</strong> Use the moon/sun button in the
             header to cycle&nbsp;through <em>auto → light → dark</em>. “Auto”
-            follows your local daytime (light 7-19 h, dark otherwise).
+            follows your OS/browser preference (including sunset→sunrise
+            schedules).
           </HelpItem>
         </div>
       </div>

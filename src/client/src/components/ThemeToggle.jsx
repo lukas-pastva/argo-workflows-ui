@@ -1,32 +1,21 @@
 // ThemeToggle – cycles between auto → light → dark
 //
-// * “auto” now follows **local time of day**
-//     • dark mode 19:00 – 06:59 (browser time)
-//     • light mode 07:00 – 18:59
-//   The check reruns every 30 min so the UI flips automatically when the
-//   boundary is crossed.
+// * “auto” follows the OS/browser preference via `prefers-color-scheme`.
+//   In auto mode we do NOT set `data-theme` so CSS can pick the scheme and
+//   react to live changes (including scheduled sunset→sunrise).
 //
-// * The effective choice is written to the root <html> element as
-//   `data-theme="light|dark"` (or kept from a manual selection) and is
-//   remembered per-tab in `sessionStorage` under the key “theme”.
+// * For explicit selections (light|dark) we set `data-theme` on <html> and
+//   remember the choice per-tab in sessionStorage under the key “theme”.
 
 import React, { useEffect, useState } from "react";
 import { IconSun, IconMoon, IconSunMoon } from "./icons";
 
 const THEME_ORDER = ["auto", "light", "dark"];
+
 function ThemeIcon({ mode }) {
   if (mode === "light") return <IconSun />;
-  if (mode === "dark")  return <IconMoon />;
+  if (mode === "dark") return <IconMoon />;
   return <IconSunMoon />; // auto
-}
-
-// ─── dark between 19:00 and 06:59 local browser time ────────────────
-const DARK_START = 19;   // inclusive
-const DARK_END   = 6;    // inclusive
-
-function isDarkByClock() {
-  const h = new Date().getHours();
-  return h >= DARK_START || h <= DARK_END;
 }
 
 export default function ThemeToggle() {
@@ -35,30 +24,27 @@ export default function ThemeToggle() {
     return sessionStorage.getItem("theme") || "auto";
   });
 
-  /* ─── Apply / refresh theme ─────────────────────────────────── */
+  // Apply / refresh theme
   useEffect(() => {
     const root = document.documentElement;
 
     const apply = () => {
       if (theme === "auto") {
-        root.setAttribute("data-theme", isDarkByClock() ? "dark" : "light");
+        // Let CSS @media (prefers-color-scheme) decide
+        root.removeAttribute("data-theme");
       } else {
         root.setAttribute("data-theme", theme);
       }
     };
 
-    apply();                       // initial run
+    apply();
     sessionStorage.setItem("theme", theme);
 
-    let timer = null;
-    if (theme === "auto") {
-      // re-check every 30 min in case the user keeps the page open
-      timer = setInterval(apply, 30 * 60 * 1000);
-    }
-    return () => timer && clearInterval(timer);
+    // No interval needed; OS preference changes are handled by CSS.
+    return undefined;
   }, [theme]);
 
-  /* ─── Cycle on click ────────────────────────────────────────── */
+  // Cycle on click
   const cycle = () => {
     const idx = THEME_ORDER.indexOf(theme);
     setTheme(THEME_ORDER[(idx + 1) % THEME_ORDER.length]);
@@ -87,3 +73,4 @@ export default function ThemeToggle() {
     </div>
   );
 }
+

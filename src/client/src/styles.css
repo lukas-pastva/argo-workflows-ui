@@ -85,7 +85,7 @@ html { font-size: 90%; }
     --row-hover-intimate  : #3a3a3d;
     --labels-row-bg       : #303033;
 
-    --ansi-black-fg : #e5e55;
+    --ansi-black-fg : #e5e5e5;
     --ansi-white-fg : #ffffff;
   }
 }
@@ -101,6 +101,11 @@ body {
 
 /* Apply additional dimming only when the effective theme is dark */
 [data-theme="dark"] #app-shell { filter: brightness(var(--brightness-mult, 1)); }
+
+/* Apply the same dimming for auto-dark (OS preference) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) #app-shell { filter: brightness(var(--brightness-mult, 1)); }
+}
 
 /* ---------------- Layout --------------------------------------- */
 .header {
