@@ -439,11 +439,11 @@ export default function LogViewer({
                   </button>
                   {ioOpen && (
                     <div style={{
-                      border: "1px solid #e2e8f0",
+                      border: "1px solid var(--border-color)",
                       borderRadius: 6,
                       padding: "0.75rem",
                       marginTop: "0.5rem",
-                      background: "#f8fafc",
+                      background: "var(--card-bg)",
                       fontFamily: "var(--font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace)"
                     }}>
                       {/* Inputs */}
@@ -466,8 +466,8 @@ export default function LogViewer({
                                         <pre style={{
                                           whiteSpace: "pre-wrap",
                                           margin: "0.25rem 0 0 0",
-                                          background: "#fff",
-                                          border: "1px solid #e2e8f0",
+                                          background: "var(--card-bg)",
+                                          border: "1px solid var(--border-color)",
                                           borderRadius: 4,
                                           padding: "0.5rem"
                                         }}>{JSON.stringify(obj, null, 2)}</pre>
