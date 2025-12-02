@@ -48,7 +48,7 @@ If you place oauth2-proxy in front of this app and forward the user’s group cl
 - `READWRITE_GROUPS` – comma-separated or JSON array of group IDs that should be read-write
 
 Details:
-- The server inspects group headers from oauth2-proxy: `X-Auth-Request-Groups` (preferred) or `X-Forwarded-Groups`.
+- The server inspects group headers from oauth2-proxy via nginx auth_request: `X-Auth-Request-Groups`.
 - Requests from users in `READONLY_GROUPS` cannot submit new workflows (POST /api/workflows) or delete workflows (DELETE /api/workflows/:name).
 - The UI hides the “Insert” panel and delete actions when in read-only mode.
 - If neither env var is set, behavior defaults to read-write to preserve current behavior.
@@ -71,24 +71,6 @@ Run the UI container with:
 READONLY_GROUPS=652dc5a6-310a-4a24-bf56-f8cc2693244e \
 READWRITE_GROUPS=28861a26-da66-4a89-ac9c-87d2dfc31192 \
 ...
-```
-
-### Debugging oauth headers
-
-To see what oauth-related headers reach the app and how they are interpreted:
-
-- Set `DEBUG_AUTH=true` to log oauth-related headers (with tokens/cookies redacted), parsed groups, and the resolved role for each request.
-- Call `GET /debug/auth` to return a JSON snapshot for the current request.
-
-Examples:
-
-```
-# One-shot JSON of headers/groups/role seen by the app
-curl -s http://<ui-host>/debug/auth | jq .
-
-# Simulate groups without oauth2-proxy
-curl -s http://<ui-host>/debug/auth \
-  -H 'X-Auth-Request-Groups: group-a,group-b' | jq .
 ```
 
 
