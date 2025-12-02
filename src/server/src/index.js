@@ -18,6 +18,82 @@ const DEBUG_LOGS = process.env.DEBUG_LOGS === "true";
 
 app.use(express.json());
 
+/* ─── Auth/role helpers (derived from oauth2-proxy headers) ──────── */
+function parseListEnv(name) {
+  const raw = process.env[name];
+  if (!raw) return [];
+  const s = String(raw).trim();
+  if (!s) return [];
+  try {
+    const arr = JSON.parse(s);
+    if (Array.isArray(arr)) return arr.map((x) => String(x).trim()).filter(Boolean);
+  } catch {/* not JSON */}
+  return s
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+const READONLY_GROUPS  = parseListEnv("READONLY_GROUPS");
+const READWRITE_GROUPS = parseListEnv("READWRITE_GROUPS");
+
+function parseGroupsHeader(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.flatMap(parseGroupsHeader);
+  const s = String(val).trim();
+  if (!s) return [];
+  // try JSON array first (some proxies pass JSON in header value)
+  if (s.startsWith("[") && s.endsWith("]")) {
+    try {
+      const arr = JSON.parse(s);
+      if (Array.isArray(arr)) return arr.map((x) => String(x).trim()).filter(Boolean);
+    } catch {/* fallthrough */}
+  }
+  // otherwise assume comma-separated
+  return s.split(",").map((x) => x.trim()).filter(Boolean);
+}
+
+function requestGroups(req) {
+  const h = req.headers || {};
+  // Prefer X-Auth-Request-Groups (nginx auth_request), fallback to X-Forwarded-Groups
+  const candidates = [
+    h["x-auth-request-groups"],
+    h["x-forwarded-groups"],
+    h["x-groups"],
+  ];
+  const groups = candidates.flatMap(parseGroupsHeader).filter(Boolean);
+  // Deduplicate
+  return Array.from(new Set(groups));
+}
+
+function decideRole(groups) {
+  const hasWrite = READWRITE_GROUPS.length > 0 && groups.some((g) => READWRITE_GROUPS.includes(g));
+  const hasRead  = READONLY_GROUPS.length  > 0 && groups.some((g) => READONLY_GROUPS.includes(g));
+  if (hasWrite) return "readwrite";
+  if (hasRead)  return "readonly";
+  // If no env configured, default to readwrite to preserve current behavior
+  if (READONLY_GROUPS.length === 0 && READWRITE_GROUPS.length === 0) return "readwrite";
+  // Env configured but user not in any → readonly by default
+  return "readonly";
+}
+
+function attachAuth(req, _res, next) {
+  const groups = requestGroups(req);
+  req.auth = {
+    groups,
+    role: decideRole(groups),
+  };
+  next();
+}
+
+function requireWriteAccess(req, res, next) {
+  const role = req?.auth?.role || decideRole(requestGroups(req));
+  if (role !== "readwrite") return res.status(403).json({ error: "Forbidden" });
+  next();
+}
+
+app.use(attachAuth);
+
 /* ─── tiny request logger when DEBUG_LOGS=true ───────────────────── */
 if (DEBUG_LOGS) {
   app.use((req, _res, next) => {
@@ -29,7 +105,7 @@ if (DEBUG_LOGS) {
 }
 
 /* ─── Runtime config exposed for the SPA ─────────────────────────── */
-app.get("/env.js", (_req, res) => {
+app.get("/env.js", (req, res) => {
   const cfg = {
     skipLabels           : process.env.VITE_SKIP_LABELS            || "",
     collapsedLabelGroups : process.env.VITE_COLLAPSED_LABEL_GROUPS || "",
@@ -37,7 +113,12 @@ app.get("/env.js", (_req, res) => {
     headerBg             : process.env.VITE_HEADER_BG              || "",
     listLabelColumns     : process.env.VITE_LIST_LABEL_COLUMNS     || "",
     useUtcTime           : process.env.VITE_USE_UTC_TIME           || "",
+    // Permissions derived from oauth2-proxy group headers
+    role                 : (req?.auth?.role) || decideRole(requestGroups(req)),
   };
+  // Convenience booleans for UI logic
+  cfg.canSubmit = cfg.role !== "readonly";
+  cfg.canDelete = cfg.role !== "readonly";
   res.setHeader("Content-Type", "application/javascript");
   res.send(`window.__ENV__ = ${JSON.stringify(cfg)};`);
 });
@@ -62,7 +143,7 @@ app.get("/api/workflows/:name", async (req, res, next) => {
   try { res.json(await getWorkflow(req.params.name)); } catch (e) { next(e); }
 });
 
-app.delete("/api/workflows/:name", async (req, res, next) => {
+app.delete("/api/workflows/:name", requireWriteAccess, async (req, res, next) => {
   try { await deleteWorkflow(req.params.name); res.json({ deleted: true }); }
   catch (e) { next(e); }
 });
@@ -72,7 +153,7 @@ app.get("/api/templates", async (_req, res, next) => {
 });
 
 /* Submissions use provider selected by CREATE_MODE (events|k8s) */
-app.post("/api/workflows", async (req, res, next) => {
+app.post("/api/workflows", requireWriteAccess, async (req, res, next) => {
   try { res.json(await createWorkflow(req.body)); } catch (e) { next(e); }
 });
 

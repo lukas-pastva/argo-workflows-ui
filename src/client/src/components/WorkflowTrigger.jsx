@@ -127,6 +127,8 @@ function SuggestInput({ listId, value, onChange, style = {} }) {
 /*  Main component                                                    */
 /* ================================================================== */
 export default function WorkflowTrigger({ onError = () => {} }) {
+  const runtime = (typeof window !== "undefined" && window.__ENV__) || {};
+  const canSubmit = String(runtime.canSubmit ?? "true").toLowerCase() === "true";
   const [templates,   setTemplates]   = useState([]);
   const [selected,    setSelected]    = useState("");
   const [params,      setParams]      = useState({});
@@ -221,6 +223,14 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   const visibleTemplates = templates.filter(
     (t) => !(hideTemp && t.metadata.name.startsWith("template-"))
   );
+
+  if (!canSubmit) {
+    return (
+      <div style={{ padding: "0.75rem 1rem", opacity: 0.8 }}>
+        You don\'t have permission to submit workflows.
+      </div>
+    );
+  }
 
   return (
     <>

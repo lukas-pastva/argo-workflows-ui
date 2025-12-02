@@ -40,6 +40,40 @@ A lightweight, single-container web interface for Kubernetes **Argo Workflows**.
 | `K8S_INSECURE_SKIP_TLS_VERIFY`   | Skip TLS verification if no CA is available.                            | `false`                                                                                  |
 
 
+### Role-based access (with oauth2-proxy)
+
+If you place oauth2-proxy in front of this app and forward the user’s group claim, you can enforce read-only vs. read-write:
+
+- `READONLY_GROUPS` – comma-separated or JSON array of group IDs that should be read-only
+- `READWRITE_GROUPS` – comma-separated or JSON array of group IDs that should be read-write
+
+Details:
+- The server inspects group headers from oauth2-proxy: `X-Auth-Request-Groups` (preferred) or `X-Forwarded-Groups`.
+- Requests from users in `READONLY_GROUPS` cannot submit new workflows (POST /api/workflows) or delete workflows (DELETE /api/workflows/:name).
+- The UI hides the “Insert” panel and delete actions when in read-only mode.
+- If neither env var is set, behavior defaults to read-write to preserve current behavior.
+
+Example (oauth2-proxy snippet):
+
+```
+oidc_groups_claim = "groups"
+pass_user_headers = true
+set_xauthrequest  = true
+allowed_groups = [
+  "652dc5a6-310a-4a24-bf56-f8cc2693244e",  # readonly
+  "28861a26-da66-4a89-ac9c-87d2dfc31192"   # readwrite
+]
+```
+
+Run the UI container with:
+
+```
+READONLY_GROUPS=652dc5a6-310a-4a24-bf56-f8cc2693244e \
+READWRITE_GROUPS=28861a26-da66-4a89-ac9c-87d2dfc31192 \
+...
+```
+
+
 
 ## Deep links
 

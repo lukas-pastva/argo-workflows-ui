@@ -8,6 +8,7 @@ import Spinner            from "./Spinner.jsx";
 /*  Runtime env & helpers                                             */
 /* ------------------------------------------------------------------ */
 const env = window.__ENV__ || {};
+const canDelete = String(env.canDelete ?? "true").toLowerCase() === "true";
 
 /* choose between browser-local (default) and UTC */
 const useUtcTime =
@@ -393,35 +394,37 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       </details>
 
       {/* selection toolbar */}
-      {anySelectedVisible && (
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", margin: "0.5rem 0" }}>
-          <span>{Array.from(selected).length} selected</span>
-          <button
-            className="btn-danger"
-            onClick={() => setConfirmNames(Array.from(selected))}
-          >
-            Delete selected
-          </button>
-        </div>
-      )}
+  {anySelectedVisible && canDelete && (
+    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", margin: "0.5rem 0" }}>
+      <span>{Array.from(selected).length} selected</span>
+      <button
+        className="btn-danger"
+        onClick={() => setConfirmNames(Array.from(selected))}
+      >
+        Delete selected
+      </button>
+    </div>
+  )}
 
       {/* -------- main table -------- */}
       <table className="wf-table intimate">
         <thead>
           <tr>
-            <th style={{ width: "1%" }}>
-              <input
-                ref={selectAllRef}
-                type="checkbox"
-                aria-label="Select all"
-                checked={allSelected}
-                disabled={selectableVisibleNames.length === 0}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setSelected(() => (checked ? new Set(selectableVisibleNames) : new Set()));
-                }}
-              />
-            </th>
+            {canDelete && (
+              <th style={{ width: "1%" }}>
+                <input
+                  ref={selectAllRef}
+                  type="checkbox"
+                  aria-label="Select all"
+                  checked={allSelected}
+                  disabled={selectableVisibleNames.length === 0}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setSelected(() => (checked ? new Set(selectableVisibleNames) : new Set()));
+                  }}
+                />
+              </th>
+            )}
             <th
               style={{ cursor: "pointer" }}
               onClick={() => setSort({ column: "name", dir: nextDir("name") })}
@@ -459,7 +462,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
               {`Status${sortIndicator("status")}`}
             </th>
 
-            <th>Actions</th>
+            {canDelete && <th>Actions</th>}
           </tr>
         </thead>
 
@@ -488,23 +491,25 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                   }
                   style={{ cursor: "pointer" }}
                 >
-                  <td onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      aria-label={`Select ${nm}`}
-                      disabled={phase === "Running"}
-                      title={phase === "Running" ? "Cannot select a running workflow" : undefined}
-                      checked={selected.has(nm)}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setSelected((prev) => {
-                          const next = new Set(prev);
-                          if (checked) next.add(nm); else next.delete(nm);
-                          return next;
-                        });
-                      }}
-                    />
-                  </td>
+                  {canDelete && (
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${nm}`}
+                        disabled={phase === "Running"}
+                        title={phase === "Running" ? "Cannot select a running workflow" : undefined}
+                        checked={selected.has(nm)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setSelected((prev) => {
+                            const next = new Set(prev);
+                            if (checked) next.add(nm); else next.delete(nm);
+                            return next;
+                          });
+                        }}
+                      />
+                    </td>
+                  )}
                   <td
                     style={{
                       whiteSpace: "nowrap",
@@ -587,38 +592,39 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                   </td>
 
                   {/* ---------- action buttons ---------- */}
-                  <td>
-                    
-                    {/* Delete */}
-                    <button
-                      className="btn-danger"
-                      aria-label="Delete"
-                      title="Delete"
-                      style={{ padding: "0.35rem" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSingleDelete(nm, phase);
-                      }}
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
+                  {canDelete && (
+                    <td>
+                      {/* Delete */}
+                      <button
+                        className="btn-danger"
+                        aria-label="Delete"
+                        title="Delete"
+                        style={{ padding: "0.35rem" }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSingleDelete(nm, phase);
+                        }}
                       >
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6l-2 14H7L5 6" />
-                        <line x1="10" y1="11" x2="10" y2="17" />
-                        <line x1="14" y1="11" x2="14" y2="17" />
-                        <path d="M5 6V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
-                      </svg>
-                    </button>
-                  </td>
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-2 14H7L5 6" />
+                          <line x1="10" y1="11" x2="10" y2="17" />
+                          <line x1="14" y1="11" x2="14" y2="17" />
+                          <path d="M5 6V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
+                    </td>
+                  )}
                 </tr>
                 
               </React.Fragment>
