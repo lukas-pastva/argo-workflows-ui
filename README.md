@@ -73,6 +73,24 @@ READWRITE_GROUPS=28861a26-da66-4a89-ac9c-87d2dfc31192 \
 ...
 ```
 
+### Debugging oauth headers
+
+To see what oauth-related headers reach the app and how they are interpreted:
+
+- Set `DEBUG_AUTH=true` to log oauth-related headers (with tokens/cookies redacted), parsed groups, and the resolved role for each request.
+- Call `GET /debug/auth` to return a JSON snapshot for the current request.
+
+Examples:
+
+```
+# One-shot JSON of headers/groups/role seen by the app
+curl -s http://<ui-host>/debug/auth | jq .
+
+# Simulate groups without oauth2-proxy
+curl -s http://<ui-host>/debug/auth \
+  -H 'X-Auth-Request-Groups: group-a,group-b' | jq .
+```
+
 
 
 ## Deep links

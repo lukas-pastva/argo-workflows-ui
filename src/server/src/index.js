@@ -15,6 +15,7 @@ import { createWorkflow } from "./create/index.js";
 dotenv.config();
 const app = express();
 const DEBUG_LOGS = process.env.DEBUG_LOGS === "true";
+const DEBUG_AUTH = process.env.DEBUG_AUTH === "true";
 
 app.use(express.json());
 
@@ -94,6 +95,45 @@ function requireWriteAccess(req, res, next) {
 
 app.use(attachAuth);
 
+/* ─── Optional auth header debug ─────────────────────────────────── */
+function collectAuthDebug(req) {
+  const outHeaders = {};
+  const headers = req.headers || {};
+  for (const [name, value] of Object.entries(headers)) {
+    const key = String(name).toLowerCase();
+    const isAuthHeader =
+      key.startsWith("x-auth-request-") ||
+      key.startsWith("x-forwarded-") ||
+      key === "x-groups" ||
+      key === "authorization" ||
+      key === "cookie";
+    if (!isAuthHeader) continue;
+    const shouldRedact = key.includes("token") || key === "authorization" || key === "cookie";
+    outHeaders[name] = shouldRedact ? "[redacted]" : value;
+  }
+  const groups = requestGroups(req);
+  return {
+    headers: outHeaders,
+    groups,
+    env: { READONLY_GROUPS, READWRITE_GROUPS },
+    role: decideRole(groups),
+  };
+}
+
+if (DEBUG_AUTH) {
+  app.use((req, _res, next) => {
+    try {
+      const info = collectAuthDebug(req);
+      console.log(
+        `[AUTH DEBUG] ${new Date().toISOString()} ${req.method} ${req.originalUrl} ${JSON.stringify(info)}`
+      );
+    } catch (e) {
+      console.warn("[AUTH DEBUG] failed to collect auth info", e);
+    }
+    next();
+  });
+}
+
 /* ─── tiny request logger when DEBUG_LOGS=true ───────────────────── */
 if (DEBUG_LOGS) {
   app.use((req, _res, next) => {
@@ -121,6 +161,11 @@ app.get("/env.js", (req, res) => {
   cfg.canDelete = cfg.role !== "readonly";
   res.setHeader("Content-Type", "application/javascript");
   res.send(`window.__ENV__ = ${JSON.stringify(cfg)};`);
+});
+
+// Returns parsed oauth-related headers, groups and resolved role
+app.get("/debug/auth", (req, res) => {
+  res.json(collectAuthDebug(req));
 });
 
 /* ─── API routes ─────────────────────────────────────── */
