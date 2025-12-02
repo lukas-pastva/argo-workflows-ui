@@ -60,16 +60,16 @@ oidc_groups_claim = "groups"
 pass_user_headers = true
 set_xauthrequest  = true
 allowed_groups = [
-  "652dc5a6-310a-4a24-bf56-f8cc2693244e",  # readonly
-  "28861a26-da66-4a89-ac9c-87d2dfc31192"   # readwrite
+  "READONLY_GROUP_ID",  # readonly
+  "READWRITE_GROUP_ID"   # readwrite
 ]
 ```
 
 Run the UI container with:
 
 ```
-READONLY_GROUPS=652dc5a6-310a-4a24-bf56-f8cc2693244e \
-READWRITE_GROUPS=28861a26-da66-4a89-ac9c-87d2dfc31192 \
+READONLY_GROUPS=READONLY_GROUP_ID \
+READWRITE_GROUPS=READWRITE_GROUP_ID \
 ...
 ```
 
