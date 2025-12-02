@@ -91,6 +91,7 @@ export default function App() {
 
   const runtime  = window.__ENV__ || {};
   const headerBg = runtime.headerBg || import.meta.env.VITE_HEADER_BG;
+  const canSubmit = String(runtime.canSubmit ?? "true").toLowerCase() === "true";
 
   return (
     <>
@@ -139,9 +140,11 @@ export default function App() {
         aria-labelledby="tab-list"
         hidden={page !== "list"}
       >
-        <div className="card">
-          <WorkflowTrigger onError={setError} />
-        </div>
+        {canSubmit && (
+          <div className="card">
+            <WorkflowTrigger onError={setError} />
+          </div>
+        )}
 
         <div className="card">
           <WorkflowList

@@ -224,13 +224,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
     (t) => !(hideTemp && t.metadata.name.startsWith("template-"))
   );
 
-  if (!canSubmit) {
-    return (
-      <div style={{ padding: "0.75rem 1rem", opacity: 0.8 }}>
-        You don\'t have permission to submit workflows.
-      </div>
-    );
-  }
+  if (!canSubmit) return null;
 
   return (
     <>
