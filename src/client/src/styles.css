@@ -618,6 +618,20 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
   padding : 0.25rem 1rem 0.75rem;
 }
 
+/* I/O list rows inside the log viewer */
+.io-list { list-style: none; margin: 0; padding-left: 0; }
+.io-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.15rem 0.25rem;
+  border-radius: 4px;
+}
+.io-row:hover { background: var(--row-hover-intimate); }
+.io-row .io-text { flex: 1 1 auto; word-break: break-word; }
+.io-row .io-actions { flex: 0 0 auto; margin-left: 0.5rem; }
+.io-row .btn-light { padding: 0.15rem 0.35rem; }
+
 /* ---------------- Status pills --------------------------------- */
 .status-pill {
   display      : inline-flex;
