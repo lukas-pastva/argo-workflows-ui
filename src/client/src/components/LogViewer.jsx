@@ -228,6 +228,31 @@ export default function LogViewer({
     }
   };
 
+  // Copy helper for individual items inside I/O panel
+  const [copiedKey, setCopiedKey] = useState(null);
+  const copyItem = async (key, text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+      } catch (e) {
+        console.error("Copy failed", e);
+        return;
+      }
+    }
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 1500);
+  };
+
   /* ─── Persist font size ───────────────────────────────────────── */
   useEffect(() => {
     try {
@@ -444,7 +469,9 @@ export default function LogViewer({
                       padding: "0.75rem",
                       marginTop: "0.5rem",
                       background: "var(--card-bg)",
-                      fontFamily: "var(--font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace)"
+                      fontFamily: "var(--font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace)",
+                      maxHeight: "40vh",
+                      overflow: "auto"
                     }}>
                       {/* Inputs */}
                       <div style={{ marginBottom: "0.5rem" }}>
@@ -453,33 +480,48 @@ export default function LogViewer({
                           <div style={{ opacity: 0.7 }}>No inputs</div>
                         ) : (
                           <ul style={{ margin: 0, paddingLeft: "1rem" }}>
-                            {inputs.map(({ name, value }) => (
-                              <li key={`in:${name}`} style={{ wordBreak: "break-word" }}>
-                                <code style={{ fontWeight: 600 }}>{name}</code>
-                                <span>: </span>
-                                {(() => {
-                                  const v = value == null ? "" : String(value);
-                                  if (name === "event-data") {
-                                    try {
-                                      const obj = JSON.parse(v);
-                                      return (
-                                        <pre style={{
-                                          whiteSpace: "pre-wrap",
-                                          margin: "0.25rem 0 0 0",
-                                          background: "var(--card-bg)",
-                                          border: "1px solid var(--border-color)",
-                                          borderRadius: 4,
-                                          padding: "0.5rem"
-                                        }}>{JSON.stringify(obj, null, 2)}</pre>
-                                      );
-                                    } catch {
-                                      return <span>{v}</span>;
+                            {inputs.map(({ name, value }) => {
+                              const v = value == null ? "" : String(value);
+                              const key = `in:${name}`;
+                              const isCopied = copiedKey === key;
+                              return (
+                                <li key={key} style={{ wordBreak: "break-word" }}>
+                                  <code style={{ fontWeight: 600 }}>{name}</code>
+                                  <span>: </span>
+                                  <button
+                                    className="btn-light"
+                                    style={{ marginLeft: "0.35rem", padding: "0.1rem 0.35rem" }}
+                                    title="Copy value"
+                                    aria-label={`Copy ${name}`}
+                                    onClick={() => copyItem(key, v)}
+                                  >
+                                    <span className="btn-icon" aria-hidden>
+                                      {isCopied ? <IconCheck /> : <IconCopy />}
+                                    </span>
+                                  </button>
+                                  {(() => {
+                                    if (name === "event-data") {
+                                      try {
+                                        const obj = JSON.parse(v);
+                                        return (
+                                          <pre style={{
+                                            whiteSpace: "pre-wrap",
+                                            margin: "0.25rem 0 0 0",
+                                            background: "var(--card-bg)",
+                                            border: "1px solid var(--border-color)",
+                                            borderRadius: 4,
+                                            padding: "0.5rem"
+                                          }}>{JSON.stringify(obj, null, 2)}</pre>
+                                        );
+                                      } catch {
+                                        return <span>{v}</span>;
+                                      }
                                     }
-                                  }
-                                  return <span>{v}</span>;
-                                })()}
-                              </li>
-                            ))}
+                                    return <span>{v}</span>;
+                                  })()}
+                                </li>
+                              );
+                            })}
                           </ul>
                         )}
                       </div>
@@ -491,13 +533,29 @@ export default function LogViewer({
                           <div style={{ opacity: 0.7 }}>No outputs</div>
                         ) : (
                           <ul style={{ margin: 0, paddingLeft: "1rem" }}>
-                            {outputs.map(({ name, values }) => (
-                              <li key={`out:${name}`} style={{ wordBreak: "break-word" }}>
-                                <code style={{ fontWeight: 600 }}>{name}</code>
-                                <span>: </span>
-                                <span>{values.join(", ")}</span>
-                              </li>
-                            ))}
+                            {outputs.map(({ name, values }) => {
+                              const joined = values.join(", ");
+                              const key = `out:${name}`;
+                              const isCopied = copiedKey === key;
+                              return (
+                                <li key={key} style={{ wordBreak: "break-word" }}>
+                                  <code style={{ fontWeight: 600 }}>{name}</code>
+                                  <span>: </span>
+                                  <button
+                                    className="btn-light"
+                                    style={{ marginLeft: "0.35rem", padding: "0.1rem 0.35rem" }}
+                                    title="Copy value"
+                                    aria-label={`Copy ${name}`}
+                                    onClick={() => copyItem(key, joined)}
+                                  >
+                                    <span className="btn-icon" aria-hidden>
+                                      {isCopied ? <IconCheck /> : <IconCopy />}
+                                    </span>
+                                  </button>
+                                  <span>{joined}</span>
+                                </li>
+                              );
+                            })}
                           </ul>
                         )}
                       </div>
