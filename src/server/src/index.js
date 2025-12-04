@@ -179,9 +179,16 @@ app.get("/api/workflows", async (req, res, next) => {
     const role = req?.auth?.role || decideRole(requestGroups(req));
     const filters = Array.isArray(req?.auth?.nameFilters) ? req.auth.nameFilters : [];
     if (role === "readonly" && filters.length > 0) {
-      const anyMatch = (name) =>
-        filters.some((s) => String(name || "").includes(s));
-      const filteredItems = (result.items || []).filter((it) => anyMatch(it?.metadata?.name));
+      const anyMatchValue = (val) => filters.some((s) => String(val ?? "").includes(s));
+      const itemMatches = (it) => {
+        if (anyMatchValue(it?.metadata?.name)) return true;
+        const params = it?.spec?.arguments?.parameters || [];
+        for (const p of params) {
+          if (anyMatchValue(p?.value)) return true;
+        }
+        return false;
+      };
+      const filteredItems = (result.items || []).filter(itemMatches);
       res.json({ items: filteredItems, nextCursor: result.nextCursor || null });
     } else {
       res.json(result);
@@ -189,28 +196,50 @@ app.get("/api/workflows", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-app.get("/api/workflows/:name/logs", (req, res) => {
-  const role = req?.auth?.role || decideRole(requestGroups(req));
-  const filters = Array.isArray(req?.auth?.nameFilters) ? req.auth.nameFilters : [];
-  if (role === "readonly" && filters.length > 0) {
-    const name = String(req.params.name || "");
-    const allowed = filters.some((s) => name.includes(s));
-    if (!allowed) return res.status(403).json({ error: "Forbidden" });
-  }
-  // Forward *all* query-string params (follow, container, nodeId…)
-  return streamLogs(req.params.name, res, req.query);
+app.get("/api/workflows/:name/logs", async (req, res, next) => {
+  try {
+    const role = req?.auth?.role || decideRole(requestGroups(req));
+    const filters = Array.isArray(req?.auth?.nameFilters) ? req.auth.nameFilters : [];
+    if (role === "readonly" && filters.length > 0) {
+      const name = String(req.params.name || "");
+      const anyMatchValue = (val) => filters.some((s) => String(val ?? "").includes(s));
+      let allowed = anyMatchValue(name);
+      if (!allowed) {
+        // Fetch slim workflow to inspect parameters for permission check
+        try {
+          const wf = await getWorkflow(name);
+          const params = wf?.spec?.arguments?.parameters || [];
+          allowed = params.some((p) => anyMatchValue(p?.value));
+        } catch (e) {
+          return res.status(404).json({ error: "Not Found" });
+        }
+      }
+      if (!allowed) return res.status(403).json({ error: "Forbidden" });
+    }
+    // Forward *all* query-string params (follow, container, nodeId…)
+    return streamLogs(req.params.name, res, req.query);
+  } catch (e) { next(e); }
 });
 
 app.get("/api/workflows/:name", async (req, res, next) => {
   try {
     const role = req?.auth?.role || decideRole(requestGroups(req));
     const filters = Array.isArray(req?.auth?.nameFilters) ? req.auth.nameFilters : [];
+    const name = String(req.params.name || "");
     if (role === "readonly" && filters.length > 0) {
-      const name = String(req.params.name || "");
-      const allowed = filters.some((s) => name.includes(s));
-      if (!allowed) return res.status(403).json({ error: "Forbidden" });
+      const anyMatchValue = (val) => filters.some((s) => String(val ?? "").includes(s));
+      let allowedByName = anyMatchValue(name);
+      if (!allowedByName) {
+        // Fetch once, both to check parameters and to return if allowed
+        const wf = await getWorkflow(name);
+        const params = wf?.spec?.arguments?.parameters || [];
+        const allowedByParams = params.some((p) => anyMatchValue(p?.value));
+        if (!allowedByParams) return res.status(403).json({ error: "Forbidden" });
+        return res.json(wf);
+      }
     }
-    res.json(await getWorkflow(req.params.name));
+    // Not readonly or allowed by name: just fetch and return
+    res.json(await getWorkflow(name));
   } catch (e) { next(e); }
 });
 
