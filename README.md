@@ -46,6 +46,10 @@ If you place oauth2-proxy in front of this app and forward the user’s group cl
 
 - `READONLY_GROUPS` – comma-separated or JSON array of group IDs that should be read-only
 - `READWRITE_GROUPS` – comma-separated or JSON array of group IDs that should be read-write
+- `READONLY_NAME_FILTERS` – optional per-group workflow name substring filters for readonly users.
+  - Accepts a JSON object mapping group → filter(s). Values may be a string or an array of strings.
+  - Non-JSON shortcut syntax is also supported: `groupA=foo,groupB:bar|baz`.
+  - When a readonly user matches one or more groups in this map, only workflows whose name contains at least one of the configured substrings are listed and accessible (detail/logs). If none of the user’s groups are in the map, the user retains normal readonly visibility.
 
 Details:
 - The server inspects group headers from oauth2-proxy via nginx auth_request: `X-Auth-Request-Groups`.
@@ -73,7 +77,11 @@ READWRITE_GROUPS=READWRITE_GROUP_ID \
 ...
 ```
 
+Example: restrict readonly group to workflows with names containing a prefix
 
+```
+READONLY_NAME_FILTERS='{"READONLY_GROUP_ID":"project-x-"}'
+```
 
 ## Deep links
 

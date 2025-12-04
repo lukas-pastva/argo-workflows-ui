@@ -34,8 +34,58 @@ function parseListEnv(name) {
     .filter(Boolean);
 }
 
+// Map parser: supports JSON object or comma/semicolon separated pairs like
+// "group1=foo,group2:bar". Values can be delimited by "|" for multiple filters.
+function parseMapEnv(name) {
+  const raw = process.env[name];
+  if (!raw) return {};
+  const s = String(raw).trim();
+  if (!s) return {};
+  // Prefer JSON object
+  try {
+    const obj = JSON.parse(s);
+    if (obj && typeof obj === "object" && !Array.isArray(obj)) return obj;
+  } catch {/* not JSON */}
+  const out = {};
+  // Split into entries by comma or semicolon
+  const entries = s.split(/[;,]/).map((x) => x.trim()).filter(Boolean);
+  for (const e of entries) {
+    const m = e.split(/[:=]/);
+    if (m.length >= 2) {
+      const k = String(m.shift()).trim();
+      const v = m.join(":").trim();
+      if (!k) continue;
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
 const READONLY_GROUPS  = parseListEnv("READONLY_GROUPS");
 const READWRITE_GROUPS = parseListEnv("READWRITE_GROUPS");
+// Optional: fine-grained readonly filters mapping group -> name substring(s)
+// Accepts JSON object { "group": "substr" } or { "group": ["a","b"] }
+// Also supports simple text like: group=sub|other=foo|bar
+const READONLY_NAME_FILTERS_RAW = parseMapEnv("READONLY_NAME_FILTERS");
+
+function normalizeFiltersMap(obj) {
+  const out = {};
+  for (const [g, val] of Object.entries(obj || {})) {
+    if (Array.isArray(val)) {
+      const list = val.map((x) => String(x).trim()).filter(Boolean);
+      if (list.length) out[g] = list;
+    } else if (typeof val === "string") {
+      // allow "foo|bar" to express multiple values in non-JSON syntax
+      const list = val
+        .split("|")
+        .map((x) => x.trim())
+        .filter(Boolean);
+      if (list.length) out[g] = list;
+    }
+  }
+  return out;
+}
+const READONLY_NAME_FILTERS = normalizeFiltersMap(READONLY_NAME_FILTERS_RAW);
 
 function parseGroupsHeader(val) {
   if (!val) return [];
@@ -66,9 +116,17 @@ function decideRole(groups) {
 
 function attachAuth(req, _res, next) {
   const groups = requestGroups(req);
+  // Compute name filters for readonly users if any of their groups are present
+  // Union filters from all matching groups
+  const filters = [];
+  for (const g of groups) {
+    const arr = READONLY_NAME_FILTERS[g];
+    if (Array.isArray(arr)) filters.push(...arr);
+  }
   req.auth = {
     groups,
     role: decideRole(groups),
+    nameFilters: filters,
   };
   next();
 }
@@ -118,17 +176,42 @@ app.get("/api/workflows", async (req, res, next) => {
     const limit  = req.query?.limit  ? Math.max(1, parseInt(req.query.limit, 10)  || 0) : undefined;
     const cursor = typeof req.query?.cursor === "string" ? req.query.cursor : "";
     const result = await listWorkflows({ limit, cursor });
-    res.json(result);
+    const role = req?.auth?.role || decideRole(requestGroups(req));
+    const filters = Array.isArray(req?.auth?.nameFilters) ? req.auth.nameFilters : [];
+    if (role === "readonly" && filters.length > 0) {
+      const anyMatch = (name) =>
+        filters.some((s) => String(name || "").includes(s));
+      const filteredItems = (result.items || []).filter((it) => anyMatch(it?.metadata?.name));
+      res.json({ items: filteredItems, nextCursor: result.nextCursor || null });
+    } else {
+      res.json(result);
+    }
   } catch (e) { next(e); }
 });
 
-app.get("/api/workflows/:name/logs", (req, res) =>
+app.get("/api/workflows/:name/logs", (req, res) => {
+  const role = req?.auth?.role || decideRole(requestGroups(req));
+  const filters = Array.isArray(req?.auth?.nameFilters) ? req.auth.nameFilters : [];
+  if (role === "readonly" && filters.length > 0) {
+    const name = String(req.params.name || "");
+    const allowed = filters.some((s) => name.includes(s));
+    if (!allowed) return res.status(403).json({ error: "Forbidden" });
+  }
   // Forward *all* query-string params (follow, container, nodeId…)
-  streamLogs(req.params.name, res, req.query)
-);
+  return streamLogs(req.params.name, res, req.query);
+});
 
 app.get("/api/workflows/:name", async (req, res, next) => {
-  try { res.json(await getWorkflow(req.params.name)); } catch (e) { next(e); }
+  try {
+    const role = req?.auth?.role || decideRole(requestGroups(req));
+    const filters = Array.isArray(req?.auth?.nameFilters) ? req.auth.nameFilters : [];
+    if (role === "readonly" && filters.length > 0) {
+      const name = String(req.params.name || "");
+      const allowed = filters.some((s) => name.includes(s));
+      if (!allowed) return res.status(403).json({ error: "Forbidden" });
+    }
+    res.json(await getWorkflow(req.params.name));
+  } catch (e) { next(e); }
 });
 
 app.delete("/api/workflows/:name", requireWriteAccess, async (req, res, next) => {
