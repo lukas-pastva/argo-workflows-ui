@@ -86,6 +86,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
   const [loading, setLoading]           = useState(true);
   const [selected, setSelected]         = useState(() => new Set()); // names selected on current page
   const [confirmNames, setConfirmNames] = useState(null);            // null | string[]
+  const [smartBusy, setSmartBusy]       = useState(false);           // smart delete in progress
   
 
   /* ---- paging state --------------------------------------------- */
@@ -272,6 +273,41 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
       setSelected(new Set());
     } catch (e) {
       onError(`Failed to delete: ${e.message}`);
+    }
+  };
+
+  // Smart delete: delete all workflows older than 48 hours (non-running)
+  const handleSmartDelete = async () => {
+    try {
+      setSmartBusy(true);
+      const cutoff = Date.now() - 48 * 3600 * 1000; // 48 hours in ms
+      let cursorAll = "";
+      const names = [];
+      for (let i = 0; i < 10000; i++) { // safety upper bound
+        const { items: pageItems, nextCursor } = await listWorkflowsPaged({ limit: 200, cursor: cursorAll });
+        if (!Array.isArray(pageItems) || pageItems.length === 0) break;
+        for (const it of pageItems) {
+          const phase = it?.status?.phase || "";
+          if (phase === "Running") continue; // avoid terminating active workflows
+          const startedMs = Date.parse(it?.status?.startedAt || 0);
+          if (Number.isFinite(startedMs) && startedMs < cutoff) {
+            const nm = it?.metadata?.name;
+            if (nm) names.push(nm);
+          }
+        }
+        if (!nextCursor) break;
+        cursorAll = nextCursor;
+      }
+
+      if (names.length === 0) {
+        window.alert("No workflows older than 48 hours found.");
+        return;
+      }
+      setConfirmNames(names);
+    } catch (e) {
+      onError(`Failed to prepare smart delete: ${e.message}`);
+    } finally {
+      setSmartBusy(false);
     }
   };
 
@@ -670,6 +706,37 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
                 <option value={200}>200</option>
               </select>
             </span>
+
+            {canDelete && (
+              <button
+                className="btn-danger smart-delete"
+                title="Delete workflows older than 48 hours"
+                aria-label="Smart delete: delete workflows older than 48 hours"
+                disabled={smartBusy}
+                onClick={handleSmartDelete}
+              >
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-2 14H7L5 6" />
+                    <line x1="10" y1="11" x2="10" y2="17" />
+                    <line x1="14" y1="11" x2="14" y2="17" />
+                    <path d="M5 6V4a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
+                  </svg>
+                  <span>{smartBusy ? "Scanning…" : "Smart Delete"}</span>
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </div>

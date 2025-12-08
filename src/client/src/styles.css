@@ -292,11 +292,14 @@ table.wf-table td:last-child {
   background   : var(--card-bg);
 }
 
+/* Reduce extra whitespace above the Insert panel inside cards */
+.card > .filter-panel { margin-top: 0.25rem; }
+
 /* -----------------------------------------------------------------
    Collapsible panels – “Expand | Collapse” pills
    ----------------------------------------------------------------- */
 .filter-panel summary.filter-title {
-  padding     : 0.75rem 2.5rem 0.75rem 5.25rem;
+  padding     : 0.5rem 2.5rem 0.5rem 5.25rem;
   font-weight : 600;
   cursor      : pointer;
   list-style  : none;
@@ -730,8 +733,9 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
 }
 
 .pager {
-  max-width: 1280px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .pager-inner {
@@ -740,9 +744,26 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
   gap: 0.5rem;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 0.4rem 0.75rem;
   font-size: 0.85rem; /* a tad smaller */
+  width: 100%;
+}
+
+/* right-aligned action that appears on hover */
+.pager-inner .smart-delete {
+  margin-left: auto;          /* push to right */
+  opacity: 0;                 /* hidden by default */
+  pointer-events: none;       /* ignore clicks when hidden */
+  transition: opacity 120ms ease-in-out;
+}
+.pager-inner:hover .smart-delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+.pager-inner:focus-within .smart-delete {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* make the buttons in the pager slightly smaller too */
