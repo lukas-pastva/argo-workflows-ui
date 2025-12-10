@@ -9,6 +9,7 @@ import {
   streamLogs,
   deleteWorkflow,
   getWorkflow,
+  listPodEventsForWorkflow,
 } from "./argo-workflows.js";
 import { createWorkflow } from "./create/index.js";
 
@@ -218,6 +219,32 @@ app.get("/api/workflows/:name/logs", async (req, res, next) => {
     }
     // Forward *all* query-string params (follow, container, nodeId…)
     return streamLogs(req.params.name, res, req.query);
+  } catch (e) { next(e); }
+});
+
+app.get("/api/workflows/:name/events", async (req, res, next) => {
+  try {
+    const role = req?.auth?.role || decideRole(requestGroups(req));
+    const filters = Array.isArray(req?.auth?.nameFilters) ? req.auth.nameFilters : [];
+    if (role === "readonly" && filters.length > 0) {
+      const name = String(req.params.name || "");
+      const anyMatchValue = (val) => filters.some((s) => String(val ?? "").includes(s));
+      let allowed = anyMatchValue(name);
+      if (!allowed) {
+        try {
+          const wf = await getWorkflow(name);
+          const params = wf?.spec?.arguments?.parameters || [];
+          allowed = params.some((p) => anyMatchValue(p?.value));
+        } catch (e) {
+          return res.status(404).json({ error: "Not Found" });
+        }
+      }
+      if (!allowed) return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const { nodeId, podName } = req.query || {};
+    const result = await listPodEventsForWorkflow(req.params.name, { nodeId, podName });
+    res.json(result);
   } catch (e) { next(e); }
 });
 

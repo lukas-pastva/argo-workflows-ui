@@ -78,6 +78,22 @@ export async function getWorkflow(name) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Pod events for a workflow's task pod                               */
+/* ------------------------------------------------------------------ */
+export async function getPodEvents(name, { nodeId, podName } = {}) {
+  const qs = new URLSearchParams();
+  if (nodeId)  qs.set("nodeId", nodeId);
+  if (podName) qs.set("podName", podName);
+  const url = `${base}/workflows/${encodeURIComponent(name)}/events${qs.toString() ? `?${qs}` : ""}`;
+  const data = await jsonOrThrow(await fetch(url));
+  // Return normalized list and podName for convenience
+  return {
+    podName: data?.podName || podName || null,
+    items  : Array.isArray(data?.items) ? data.items : [],
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /*  Helper: find workflow by parameter value closest at/after timestamp  */
 /* ------------------------------------------------------------------ */
 function parseTs(tsRaw) {

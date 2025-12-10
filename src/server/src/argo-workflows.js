@@ -1,5 +1,6 @@
 import fetch from "node-fetch";
 import fs    from "fs";
+import https from "https";
 
 /* ------------------------------------------------------------------ */
 /*  Environment & debug flag                                          */
@@ -17,6 +18,13 @@ const {
 const debug = DEBUG_LOGS === "true";
 const DEFAULT_LIMIT = Math.max(1, parseInt(API_LIST_LIMIT, 10) || 200);
 const WITH_NODES    = String(API_INCLUDE_NODES).toLowerCase() !== "false";
+
+// K8s API (used for Events)
+const {
+  K8S_API_URL = "https://kubernetes.default.svc",
+  K8S_CA_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+  K8S_INSECURE_SKIP_TLS_VERIFY = "false",
+} = process.env;
 
 /* ------------------------------------------------------------------ */
 /*  Helper: obtain the Bearer token (for argo-server API only)        */
@@ -46,6 +54,21 @@ const headers = () => {
     ...(token ? { Authorization: `Bearer ${token}` } : {})
   };
 };
+
+function k8sHttpsAgent() {
+  try {
+    if (fs.existsSync(K8S_CA_PATH)) {
+      const ca = fs.readFileSync(K8S_CA_PATH, "utf8");
+      if (debug) console.log("[DEBUG] K8s: Using cluster CA at", K8S_CA_PATH);
+      return new https.Agent({ ca });
+    }
+  } catch {/* ignore */}
+  if (String(K8S_INSECURE_SKIP_TLS_VERIFY).toLowerCase() === "true") {
+    if (debug) console.log("[DEBUG] K8s: INSECURE skip TLS verify");
+    return new https.Agent({ rejectUnauthorized: false });
+  }
+  return undefined;
+}
 
 /* ------------------------------------------------------------------ */
 /*  Curl hints for quick debugging                                    */
@@ -328,4 +351,54 @@ export async function streamLogs(
     console.error(e);
     res.status(500).json({ error: e.message || "Stream error" });
   }
+}
+
+/* ------------------------------------------------------------------ */
+/*  List Kubernetes Events for a workflow's Pod                       */
+/* ------------------------------------------------------------------ */
+export async function listPodEventsForWorkflow(
+  workflowName,
+  { nodeId, podName } = {}
+) {
+  let finalPod = podName;
+  if (!finalPod && nodeId) {
+    finalPod = await nodeIdToPodName(workflowName, nodeId);
+  }
+  if (!finalPod) throw new Error("Missing podName or nodeId");
+
+  const fieldSel = [
+    `involvedObject.kind=Pod`,
+    `involvedObject.name=${finalPod}`,
+    `involvedObject.namespace=${ARGO_WORKFLOWS_NAMESPACE}`,
+  ].join(",");
+
+  const url = `${K8S_API_URL}/api/v1/namespaces/${ARGO_WORKFLOWS_NAMESPACE}/events?fieldSelector=${encodeURIComponent(fieldSel)}`;
+  if (debug) console.log("[DEBUG] K8s: Listing events for pod", finalPod);
+
+  const r = await fetch(url, { headers: headers(), agent: k8sHttpsAgent() });
+  if (!r.ok) {
+    const text = await r.text().catch(() => "");
+    throw new Error(`K8s events ${r.status}${text ? `: ${text}` : ""}`);
+  }
+  const j = await r.json();
+  const items = Array.isArray(j.items) ? j.items : [];
+
+  // Normalize for UI: keep commonly useful fields and sort newest→oldest
+  const norm = items.map((e) => ({
+    type       : e.type,
+    reason     : e.reason,
+    message    : e.message,
+    count      : e.count,
+    firstTimestamp: e.firstTimestamp || e.eventTime || e.metadata?.creationTimestamp,
+    lastTimestamp : e.lastTimestamp  || e.eventTime || e.metadata?.creationTimestamp,
+    source     : e.source?.component || e.reportingComponent || "",
+    involvedObject: {
+      kind: e.involvedObject?.kind,
+      name: e.involvedObject?.name,
+      uid : e.involvedObject?.uid,
+    },
+  }));
+
+  norm.sort((a, b) => new Date(b.lastTimestamp || 0) - new Date(a.lastTimestamp || 0));
+  return { podName: finalPod, items: norm };
 }

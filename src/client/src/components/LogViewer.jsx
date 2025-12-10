@@ -12,6 +12,8 @@ import {
   IconDownload,
   IconClose,
 } from "./icons";
+import { IconList } from "./icons";
+import PodEventsModal from "./PodEventsModal.jsx";
 
 /* ------------------------------------------------------------------ */
 /*  Helper: strip JSON envelope produced by Argo’s log API            */
@@ -69,6 +71,7 @@ export default function LogViewer({
     return isMobile ? 12 : 16; // default smaller on mobile, larger on desktop
   });
   const linesBox = useRef();
+  const [showEvents, setShowEvents] = useState(false);
 
   /* ─── Disable body scroll while viewer is open ─────────────────── */
   useEffect(() => {
@@ -379,6 +382,18 @@ export default function LogViewer({
             </button>
             <button
               className="btn-light"
+              onClick={() => setShowEvents(true)}
+              title={activeNodeId ? "Show pod events for this task" : "Select a task node to view pod events"}
+              aria-label="Show pod events"
+              disabled={!activeNodeId}
+            >
+              <span className="btn-icon" aria-hidden>
+                <IconList />
+              </span>
+              <span className="btn-label">Events</span>
+            </button>
+            <button
+              className="btn-light"
               onClick={onClose}
               title="Close"
               aria-label="Close"
@@ -635,6 +650,14 @@ export default function LogViewer({
           <div key={i}><Ansi useClasses>{l}</Ansi></div>
         ))}
       </div>
+
+      {showEvents && activeNodeId && (
+        <PodEventsModal
+          workflowName={workflowName}
+          nodeId={activeNodeId}
+          onClose={() => setShowEvents(false)}
+        />
+      )}
     </div>
   );
 }
