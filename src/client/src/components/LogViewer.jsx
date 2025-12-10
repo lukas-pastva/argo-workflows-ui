@@ -439,8 +439,47 @@ export default function LogViewer({
         {/* Tabs + meta + mini pipeline under toolbar */}
         {wf && (
           <div className="log-meta">
-            {/* Tabs */}
-            <div className="tabs" role="tablist" aria-label="Detail Views" style={{ marginBottom: "0.35rem" }}>
+            {/* Mini pipeline first */}
+            <div
+              style={{
+                marginTop: "0.25rem",
+                borderTop: "1px solid var(--border-color)",
+                borderBottom: "1px solid var(--border-color)",
+                padding: "0.5rem 0",
+              }}
+            >
+              <MiniDag
+                nodes={wf.status?.nodes || {}}
+                selectedId={activeNodeId}
+                showAll={true}
+                onTaskClick={(nid) => {
+                  setActiveNodeId(nid);
+                  // Clear events state on node switch; reload if on Events tab
+                  setEvents([]);
+                  setEventsPod("");
+                  if (activeTab === "events") {
+                    setTimeout(() => { loadEventsIfNeeded(); }, 0);
+                  }
+                  try {
+                    const params = new URLSearchParams(window.location.search);
+                    const d = params.get("detail");
+                    if (d) {
+                      const [w] = d.split("/");
+                      if (nid) params.set("detail", `${w}/${nid}`);
+                      else      params.set("detail", w);
+                      window.history.replaceState(
+                        null,
+                        "",
+                        `${window.location.pathname}?${params.toString()}`
+                      );
+                    }
+                  } catch {/* ignore URL errors */}
+                }}
+              />
+            </div>
+
+            {/* Tabs under pipeline */}
+            <div className="tabs" role="tablist" aria-label="Detail Views" style={{ marginTop: "0.35rem" }}>
               {[
                 ["logs", "Logs"],
                 ["events", "Events"],
@@ -458,266 +497,6 @@ export default function LogViewer({
                 </button>
               ))}
             </div>
-
-            {/* Labels panel */}
-            {activeTab === "labels" && (() => {
-              const entries = Object.entries(wf.metadata?.labels || {});
-              const count = entries.length;
-              return (
-                <div style={{ marginBottom: "0.5rem" }}>
-                  <div style={{ fontWeight: 600, marginBottom: 4 }}>Labels ({count})</div>
-                  {count === 0 ? (
-                    <div style={{ opacity: 0.7 }}>No labels</div>
-                  ) : (
-                    <div className="wf-labels-list" style={{ margin: 0 }}>
-                      {entries.map(([k, v]) => (
-                        <code key={k} title={k}>
-                          <strong>{k}</strong>=<span>{v}</span>
-                        </code>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* Inputs / Outputs panel */}
-            {activeTab === "io" && (() => {
-              const inputs = (wf?.spec?.arguments?.parameters || []).map((p) => ({ name: p.name, value: p.value }));
-              // Aggregate outputs across nodes, dedupe values, trim var_ prefix
-              const outMap = new Map();
-              const nodes = wf?.status?.nodes || {};
-              Object.values(nodes).forEach((n) =>
-                (n?.outputs?.parameters || []).forEach((pp) => {
-                  const key = String(pp.name || "").replace(/^var_/, "");
-                  const val = pp.value == null ? "" : String(pp.value);
-                  if (!outMap.has(key)) outMap.set(key, new Set());
-                  if (val !== "") outMap.get(key).add(val);
-                })
-              );
-              const outputs = Array.from(outMap.entries()).map(([name, set]) => ({ name, values: Array.from(set) }));
-              const inCount = inputs.length;
-              const outCount = outputs.length;
-
-              return (
-                <div style={{ marginBottom: "0.5rem" }}>
-                  <div style={{ fontWeight: 600, marginBottom: 4 }}>I/O ({inCount} in, {outCount} out)</div>
-                  <div style={{
-                      border: "1px solid var(--border-color)",
-                      borderRadius: 6,
-                      padding: "0.75rem",
-                      marginTop: "0.5rem",
-                      background: "var(--card-bg)",
-                      fontFamily: "var(--font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace)",
-                      maxHeight: "40vh",
-                      overflow: "auto"
-                    }}>
-                      {/* Inputs */}
-                      <div style={{ marginBottom: "0.5rem" }}>
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>Inputs</div>
-                        {inCount === 0 ? (
-                          <div style={{ opacity: 0.7 }}>No inputs</div>
-                        ) : (
-                          <ul className="io-list" style={{ margin: 0 }}>
-                            {inputs.map(({ name, value }) => {
-                              const v = value == null ? "" : String(value);
-                              const key = `in:${name}`;
-                              const isCopied = copiedKey === key;
-                              return (
-                                <li key={key} className="io-row">
-                                  <div className="io-text">
-                                    <code style={{ fontWeight: 600 }}>{name}</code>
-                                    <span>: </span>
-                                    {(() => {
-                                      if (name === "event-data") {
-                                        try {
-                                          const obj = JSON.parse(v);
-                                          return (
-                                            <pre style={{
-                                              whiteSpace: "pre-wrap",
-                                              margin: "0.25rem 0 0 0",
-                                              background: "var(--card-bg)",
-                                              border: "1px solid var(--border-color)",
-                                              borderRadius: 4,
-                                              padding: "0.5rem"
-                                            }}>{JSON.stringify(obj, null, 2)}</pre>
-                                          );
-                                        } catch {
-                                          return <span>{v}</span>;
-                                        }
-                                      }
-                                      return <span>{v}</span>;
-                                    })()}
-                                  </div>
-                                  <div className="io-actions">
-                                    <button
-                                      className="btn-light"
-                                      title="Copy value"
-                                      aria-label={`Copy ${name}`}
-                                      onClick={() => copyItem(key, v)}
-                                    >
-                                      <span className="btn-icon" aria-hidden>
-                                        {isCopied ? <IconCheck /> : <IconCopy />}
-                                      </span>
-                                    </button>
-                                  </div>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        )}
-                      </div>
-
-                      {/* Outputs */}
-                      <div>
-                        <div style={{ fontWeight: 600, marginBottom: 4 }}>Outputs</div>
-                        {outCount === 0 ? (
-                          <div style={{ opacity: 0.7 }}>No outputs</div>
-                        ) : (
-                          <ul className="io-list" style={{ margin: 0 }}>
-                            {outputs.map(({ name, values }) => {
-                              const joined = values.join(", ");
-                              const key = `out:${name}`;
-                              const isCopied = copiedKey === key;
-                              return (
-                                <li key={key} className="io-row">
-                                  <div className="io-text">
-                                    <code style={{ fontWeight: 600 }}>{name}</code>
-                                    <span>: </span>
-                                    <span>{joined}</span>
-                                  </div>
-                                  <div className="io-actions">
-                                    <button
-                                      className="btn-light"
-                                      title="Copy value"
-                                      aria-label={`Copy ${name}`}
-                                      onClick={() => copyItem(key, joined)}
-                                    >
-                                      <span className="btn-icon" aria-hidden>
-                                        {isCopied ? <IconCheck /> : <IconCopy />}
-                                      </span>
-                                    </button>
-                                  </div>
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        )}
-                      </div>
-                    </div>
-                </div>
-              );
-            })()}
-
-            {/* Events panel */}
-            {activeTab === "events" && (
-              <div style={{
-                border: "1px solid var(--border-color)",
-                borderRadius: 6,
-                padding: "0.75rem",
-                marginTop: "0.25rem",
-                background: "var(--card-bg)",
-                width: "100%",
-                maxHeight: "40vh",
-                overflow: "auto"
-              }}>
-                {!activeNodeId ? (
-                  <div style={{ opacity: 0.8 }}>Select a task node to view pod events.</div>
-                ) : (
-                  <>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                      <div style={{ fontWeight: 600 }}>
-                        {eventsPod ? <>Pod <code>{eventsPod}</code></> : "Pod events"}
-                      </div>
-                      <div>
-                        <button
-                          className="btn-light"
-                          onClick={loadEventsIfNeeded}
-                          disabled={eventsLoading}
-                          title="Refresh events"
-                        >
-                          {eventsLoading ? "Refreshing…" : "Refresh"}
-                        </button>
-                      </div>
-                    </div>
-                    {eventsError && (
-                      <div style={{ color: "#d64543", background: "#ffe5e5", border: "1px solid #f5a8a8", padding: "0.5rem", borderRadius: 4, marginBottom: "0.5rem" }}>
-                        {eventsError}
-                      </div>
-                    )}
-                    {!eventsError && eventsLoading && (
-                      <div style={{ opacity: 0.8 }}>Loading…</div>
-                    )}
-                    {!eventsError && !eventsLoading && (events?.length || 0) === 0 && (
-                      <div style={{ opacity: 0.8 }}>No events found for this task pod.</div>
-                    )}
-                    {!eventsError && !eventsLoading && (events?.length || 0) > 0 && (
-                      <table className="wf-table intimate" style={{ width: "100%" }}>
-                        <thead>
-                          <tr>
-                            <th>Time</th>
-                            <th>Type</th>
-                            <th>Reason</th>
-                            <th>Message</th>
-                            <th>Count</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {events.map((e, i) => (
-                            <tr key={i}>
-                              <td style={{ whiteSpace: "nowrap" }}>{fmtTime(e.lastTimestamp || e.firstTimestamp)}</td>
-                              <td>{e.type || ""}</td>
-                              <td>{e.reason || ""}</td>
-                              <td style={{ maxWidth: 520, whiteSpace: "normal", wordBreak: "break-word" }}>{e.message || ""}</td>
-                              <td style={{ textAlign: "right" }}>{e.count || 1}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-            <div>
-              <div
-                style={{
-                  marginTop: "0.25rem",
-                  borderTop: "1px solid var(--border-color)",
-                  borderBottom: "1px solid var(--border-color)",
-                  padding: "0.5rem 0",
-                }}
-              >
-                <MiniDag
-                  nodes={wf.status?.nodes || {}}
-                  selectedId={activeNodeId}
-                  showAll={true}
-                  onTaskClick={(nid) => {
-                    setActiveNodeId(nid);
-                    // Clear events state on node switch; reload if on Events tab
-                    setEvents([]);
-                    setEventsPod("");
-                    if (activeTab === "events") {
-                      setTimeout(() => { loadEventsIfNeeded(); }, 0);
-                    }
-                    try {
-                      const params = new URLSearchParams(window.location.search);
-                      const d = params.get("detail");
-                      if (d) {
-                        const [w] = d.split("/");
-                        if (nid) params.set("detail", `${w}/${nid}`);
-                        else      params.set("detail", w);
-                        window.history.replaceState(
-                          null,
-                          "",
-                          `${window.location.pathname}?${params.toString()}`
-                        );
-                      }
-                    } catch {/* ignore URL errors */}
-                  }}
-                />
-              </div>
-            </div>
           </div>
         )}
       </div>
@@ -731,6 +510,221 @@ export default function LogViewer({
       )}
 
       {/* Meta moved inside .log-sticky above */}
+
+      {/* Labels tab content */}
+      {activeTab === "labels" && wf && (() => {
+        const entries = Object.entries(wf.metadata?.labels || {});
+        const count = entries.length;
+        return (
+          <div style={{ padding: "0.5rem 1rem 1rem" }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Labels ({count})</div>
+            {count === 0 ? (
+              <div style={{ opacity: 0.7 }}>No labels</div>
+            ) : (
+              <div className="wf-labels-list" style={{ margin: 0 }}>
+                {entries.map(([k, v]) => (
+                  <code key={k} title={k}>
+                    <strong>{k}</strong>=<span>{v}</span>
+                  </code>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* I/O tab content */}
+      {activeTab === "io" && wf && (() => {
+        const inputs = (wf?.spec?.arguments?.parameters || []).map((p) => ({ name: p.name, value: p.value }));
+        const outMap = new Map();
+        const nodes = wf?.status?.nodes || {};
+        Object.values(nodes).forEach((n) =>
+          (n?.outputs?.parameters || []).forEach((pp) => {
+            const key = String(pp.name || "").replace(/^var_/, "");
+            const val = pp.value == null ? "" : String(pp.value);
+            if (!outMap.has(key)) outMap.set(key, new Set());
+            if (val !== "") outMap.get(key).add(val);
+          })
+        );
+        const outputs = Array.from(outMap.entries()).map(([name, set]) => ({ name, values: Array.from(set) }));
+        const inCount = inputs.length;
+        const outCount = outputs.length;
+        return (
+          <div style={{ padding: "0.5rem 1rem 1rem" }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>I/O ({inCount} in, {outCount} out)</div>
+            <div style={{
+              border: "1px solid var(--border-color)",
+              borderRadius: 6,
+              padding: "0.75rem",
+              marginTop: "0.5rem",
+              background: "var(--card-bg)",
+              fontFamily: "var(--font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace)",
+              maxHeight: "40vh",
+              overflow: "auto"
+            }}>
+              <div style={{ marginBottom: "0.5rem" }}>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>Inputs</div>
+                {inCount === 0 ? (
+                  <div style={{ opacity: 0.7 }}>No inputs</div>
+                ) : (
+                  <ul className="io-list" style={{ margin: 0 }}>
+                    {inputs.map(({ name, value }) => {
+                      const v = value == null ? "" : String(value);
+                      const key = `in:${name}`;
+                      const isCopied = copiedKey === key;
+                      return (
+                        <li key={key} className="io-row">
+                          <div className="io-text">
+                            <code style={{ fontWeight: 600 }}>{name}</code>
+                            <span>: </span>
+                            {(() => {
+                              if (name === "event-data") {
+                                try {
+                                  const obj = JSON.parse(v);
+                                  return (
+                                    <pre style={{
+                                      whiteSpace: "pre-wrap",
+                                      margin: "0.25rem 0 0 0",
+                                      background: "var(--card-bg)",
+                                      border: "1px solid var(--border-color)",
+                                      borderRadius: 4,
+                                      padding: "0.5rem"
+                                    }}>{JSON.stringify(obj, null, 2)}</pre>
+                                  );
+                                } catch {
+                                  return <span>{v}</span>;
+                                }
+                              }
+                              return <span>{v}</span>;
+                            })()}
+                          </div>
+                          <div className="io-actions">
+                            <button
+                              className="btn-light"
+                              title="Copy value"
+                              aria-label={`Copy ${name}`}
+                              onClick={() => copyItem(key, v)}
+                            >
+                              <span className="btn-icon" aria-hidden>
+                                {isCopied ? <IconCheck /> : <IconCopy />}
+                              </span>
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>Outputs</div>
+                {outCount === 0 ? (
+                  <div style={{ opacity: 0.7 }}>No outputs</div>
+                ) : (
+                  <ul className="io-list" style={{ margin: 0 }}>
+                    {outputs.map(({ name, values }) => {
+                      const joined = values.join(", ");
+                      const key = `out:${name}`;
+                      const isCopied = copiedKey === key;
+                      return (
+                        <li key={key} className="io-row">
+                          <div className="io-text">
+                            <code style={{ fontWeight: 600 }}>{name}</code>
+                            <span>: </span>
+                            <span>{joined}</span>
+                          </div>
+                          <div className="io-actions">
+                            <button
+                              className="btn-light"
+                              title="Copy value"
+                              aria-label={`Copy ${name}`}
+                              onClick={() => copyItem(key, joined)}
+                            >
+                              <span className="btn-icon" aria-hidden>
+                                {isCopied ? <IconCheck /> : <IconCopy />}
+                              </span>
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Events tab content */}
+      {activeTab === "events" && (
+        <div style={{ padding: "0.5rem 1rem 1rem" }}>
+          {!activeNodeId ? (
+            <div style={{ opacity: 0.8 }}>Select a task node to view pod events.</div>
+          ) : (
+            <div style={{
+              border: "1px solid var(--border-color)",
+              borderRadius: 6,
+              padding: "0.75rem",
+              background: "var(--card-bg)",
+              maxHeight: "40vh",
+              overflow: "auto"
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                <div style={{ fontWeight: 600 }}>
+                  {eventsPod ? <>Pod <code>{eventsPod}</code></> : "Pod events"}
+                </div>
+                <div>
+                  <button
+                    className="btn-light"
+                    onClick={loadEventsIfNeeded}
+                    disabled={eventsLoading}
+                    title="Refresh events"
+                  >
+                    {eventsLoading ? "Refreshing…" : "Refresh"}
+                  </button>
+                </div>
+              </div>
+              {eventsError && (
+                <div style={{ color: "#d64543", background: "#ffe5e5", border: "1px solid #f5a8a8", padding: "0.5rem", borderRadius: 4, marginBottom: "0.5rem" }}>
+                  {eventsError}
+                </div>
+              )}
+              {!eventsError && eventsLoading && (
+                <div style={{ opacity: 0.8 }}>Loading…</div>
+              )}
+              {!eventsError && !eventsLoading && (events?.length || 0) === 0 && (
+                <div style={{ opacity: 0.8 }}>No events found for this task pod.</div>
+              )}
+              {!eventsError && !eventsLoading && (events?.length || 0) > 0 && (
+                <table className="wf-table intimate" style={{ width: "100%" }}>
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Type</th>
+                      <th>Reason</th>
+                      <th>Message</th>
+                      <th>Count</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {events.map((e, i) => (
+                      <tr key={i}>
+                        <td style={{ whiteSpace: "nowrap" }}>{fmtTime(e.lastTimestamp || e.firstTimestamp)}</td>
+                        <td>{e.type || ""}</td>
+                        <td>{e.reason || ""}</td>
+                        <td style={{ maxWidth: 520, whiteSpace: "normal", wordBreak: "break-word" }}>{e.message || ""}</td>
+                        <td style={{ textAlign: "right" }}>{e.count || 1}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Log lines */}
       {activeTab === "logs" && (
