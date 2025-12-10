@@ -13,7 +13,6 @@ import {
   IconClose,
 } from "./icons";
 import { IconList } from "./icons";
-import PodEventsModal from "./PodEventsModal.jsx";
 
 /* ------------------------------------------------------------------ */
 /*  Helper: strip JSON envelope produced by Argo’s log API            */
@@ -71,7 +70,41 @@ export default function LogViewer({
     return isMobile ? 12 : 16; // default smaller on mobile, larger on desktop
   });
   const linesBox = useRef();
-  const [showEvents, setShowEvents] = useState(false);
+  // Pod events panel state
+  const [eventsOpen, setEventsOpen] = useState(false);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsError, setEventsError] = useState("");
+  const [events, setEvents] = useState([]);
+  const [eventsPod, setEventsPod] = useState("");
+
+  const runtime = (typeof window !== "undefined" && window.__ENV__) || {};
+  const useUtcTime = String(runtime.useUtcTime || "").toLowerCase() === "true";
+  function fmtTime(ts) {
+    if (!ts) return "";
+    const d = new Date(ts);
+    return useUtcTime
+      ? d.toLocaleString("en-GB", { hour12: false, timeZone: "UTC" }).replace(",", "") + " UTC"
+      : d.toLocaleString(undefined, { hour12: false });
+  }
+
+  async function loadEventsIfNeeded() {
+    if (!eventsOpen) return;
+    if (!activeNodeId) return;
+    try {
+      setEventsLoading(true);
+      setEventsError("");
+      const { getPodEvents } = await import("../api.js");
+      const res = await getPodEvents(workflowName, { nodeId: activeNodeId });
+      setEvents(Array.isArray(res.items) ? res.items : []);
+      setEventsPod(res.podName || "");
+    } catch (e) {
+      setEventsError(e?.message || "Failed to load events");
+      setEvents([]);
+      setEventsPod("");
+    } finally {
+      setEventsLoading(false);
+    }
+  }
 
   /* ─── Disable body scroll while viewer is open ─────────────────── */
   useEffect(() => {
@@ -382,18 +415,6 @@ export default function LogViewer({
             </button>
             <button
               className="btn-light"
-              onClick={() => setShowEvents(true)}
-              title={activeNodeId ? "Show pod events for this task" : "Select a task node to view pod events"}
-              aria-label="Show pod events"
-              disabled={!activeNodeId}
-            >
-              <span className="btn-icon" aria-hidden>
-                <IconList />
-              </span>
-              <span className="btn-label">Events</span>
-            </button>
-            <button
-              className="btn-light"
               onClick={onClose}
               title="Close"
               aria-label="Close"
@@ -431,6 +452,22 @@ export default function LogViewer({
                   >
                     {count ? (labelsOpen ? `Hide labels (${count})` : `Labels (${count})`) : "Labels (0)"}
                   </button>
+                  <button
+                    className="btn-light"
+                    onClick={async () => {
+                      const next = !eventsOpen;
+                      setEventsOpen(next);
+                      if (next) await loadEventsIfNeeded();
+                    }}
+                    aria-expanded={eventsOpen}
+                    disabled={!activeNodeId}
+                    title={activeNodeId ? (eventsOpen ? "Hide events" : "Show events for selected task") : "Select a task node to view events"}
+                  >
+                    <span className="btn-icon" aria-hidden>
+                      <IconList />
+                    </span>
+                    <span className="btn-label">Events{eventsOpen && ` (${events?.length || 0})`}</span>
+                  </button>
                   {labelsOpen && count > 0 && (
                     <div className="wf-labels-list" style={{ margin: 0 }}>
                       {entries.map(([k, v]) => (
@@ -438,6 +475,69 @@ export default function LogViewer({
                           <strong>{k}</strong>=<span>{v}</span>
                         </code>
                       ))}
+                    </div>
+                  )}
+                  {eventsOpen && (
+                    <div style={{
+                      border: "1px solid var(--border-color)",
+                      borderRadius: 6,
+                      padding: "0.75rem",
+                      marginTop: "0.5rem",
+                      background: "var(--card-bg)",
+                      width: "100%",
+                      maxHeight: "40vh",
+                      overflow: "auto"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                        <div style={{ fontWeight: 600 }}>
+                          {eventsPod ? <>Pod <code>{eventsPod}</code></> : "Pod events"}
+                        </div>
+                        <div>
+                          <button
+                            className="btn-light"
+                            onClick={loadEventsIfNeeded}
+                            disabled={!activeNodeId || eventsLoading}
+                            title="Refresh events"
+                          >
+                            {eventsLoading ? "Refreshing…" : "Refresh"}
+                          </button>
+                        </div>
+                      </div>
+                      {eventsError && (
+                        <div style={{ color: "#d64543", background: "#ffe5e5", border: "1px solid #f5a8a8", padding: "0.5rem", borderRadius: 4, marginBottom: "0.5rem" }}>
+                          {eventsError}
+                        </div>
+                      )}
+                      {!eventsError && eventsLoading && (
+                        <div style={{ opacity: 0.8 }}>Loading…</div>
+                      )}
+                      {!eventsError && !eventsLoading && (events?.length || 0) === 0 && (
+                        <div style={{ opacity: 0.8 }}>No events found for this task pod.</div>
+                      )}
+                      {!eventsError && !eventsLoading && (events?.length || 0) > 0 && (
+                        <table className="wf-table intimate" style={{ width: "100%" }}>
+                          <thead>
+                            <tr>
+                              <th>Time</th>
+                              <th>Type</th>
+                              <th>Reason</th>
+                              <th>Message</th>
+                              <th>Count</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {events.map((e, i) => (
+                              <tr key={i}>
+                                <td style={{ whiteSpace: "nowrap" }}>{fmtTime(e.lastTimestamp || e.firstTimestamp)}</td>
+                                <td>{e.type || ""}</td>
+                                <td>{e.reason || ""}</td>
+                                <td style={{ maxWidth: 520, whiteSpace: "normal", wordBreak: "break-word" }}>{e.message || ""}</td>
+                                <td style={{ textAlign: "right" }}>{e.count || 1}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
                     </div>
                   )}
                 </div>
@@ -600,6 +700,13 @@ export default function LogViewer({
                   showAll={true}
                   onTaskClick={(nid) => {
                     setActiveNodeId(nid);
+                    // Clear events state on node switch
+                    setEvents([]);
+                    setEventsPod("");
+                    if (eventsOpen) {
+                      // Fetch new node's events
+                      setTimeout(() => { loadEventsIfNeeded(); }, 0);
+                    }
                     try {
                       const params = new URLSearchParams(window.location.search);
                       const d = params.get("detail");
@@ -651,13 +758,6 @@ export default function LogViewer({
         ))}
       </div>
 
-      {showEvents && activeNodeId && (
-        <PodEventsModal
-          workflowName={workflowName}
-          nodeId={activeNodeId}
-          onClose={() => setShowEvents(false)}
-        />
-      )}
     </div>
   );
 }
