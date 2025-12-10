@@ -516,16 +516,26 @@ export default function LogViewer({
         const entries = Object.entries(wf.metadata?.labels || {});
         const count = entries.length;
         return (
-          <div style={{ padding: "0.5rem 1rem 1rem" }}>
+          <div
+            style={{
+              padding: "0.5rem 1rem 1rem",
+              flex: "1 1 auto",
+              minHeight: 0,
+              overflowY: "auto",
+              overflowX: "auto",
+            }}
+          >
             <div style={{ fontWeight: 600, marginBottom: 4 }}>Labels ({count})</div>
             {count === 0 ? (
               <div style={{ opacity: 0.7 }}>No labels</div>
             ) : (
-              <div className="wf-labels-list" style={{ margin: 0 }}>
+              <div style={{ margin: 0 }}>
                 {entries.map(([k, v]) => (
-                  <code key={k} title={k}>
-                    <strong>{k}</strong>=<span>{v}</span>
-                  </code>
+                  <div key={k} style={{ margin: "2px 0" }}>
+                    <code title={k}>
+                      <strong>{k}</strong>=<span>{v}</span>
+                    </code>
+                  </div>
                 ))}
               </div>
             )}
@@ -550,7 +560,15 @@ export default function LogViewer({
         const inCount = inputs.length;
         const outCount = outputs.length;
         return (
-          <div style={{ padding: "0.5rem 1rem 1rem" }}>
+          <div
+            style={{
+              padding: "0.5rem 1rem 1rem",
+              flex: "1 1 auto",
+              minHeight: 0,
+              overflowY: "auto",
+              overflowX: "auto",
+            }}
+          >
             <div style={{ fontWeight: 600, marginBottom: 4 }}>I/O ({inCount} in, {outCount} out)</div>
             <div style={{
               border: "1px solid var(--border-color)",
@@ -559,8 +577,6 @@ export default function LogViewer({
               marginTop: "0.5rem",
               background: "var(--card-bg)",
               fontFamily: "var(--font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace)",
-              maxHeight: "40vh",
-              overflow: "auto"
             }}>
               <div style={{ marginBottom: "0.5rem" }}>
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>Inputs</div>
@@ -659,7 +675,15 @@ export default function LogViewer({
 
       {/* Events tab content */}
       {activeTab === "events" && (
-        <div style={{ padding: "0.5rem 1rem 1rem" }}>
+        <div
+          style={{
+            padding: "0.5rem 1rem 1rem",
+            flex: "1 1 auto",
+            minHeight: 0,
+            overflowY: "auto",
+            overflowX: "auto",
+          }}
+        >
           {!activeNodeId ? (
             <div style={{ opacity: 0.8 }}>Select a task node to view pod events.</div>
           ) : (
@@ -668,8 +692,6 @@ export default function LogViewer({
               borderRadius: 6,
               padding: "0.75rem",
               background: "var(--card-bg)",
-              maxHeight: "40vh",
-              overflow: "auto"
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
                 <div style={{ fontWeight: 600 }}>
