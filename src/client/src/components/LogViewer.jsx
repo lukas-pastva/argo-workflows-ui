@@ -12,7 +12,6 @@ import {
   IconDownload,
   IconClose,
 } from "./icons";
-import { IconList } from "./icons";
 
 /* ------------------------------------------------------------------ */
 /*  Helper: strip JSON envelope produced by Argo’s log API            */
@@ -55,8 +54,7 @@ export default function LogViewer({
   const [wrapLines, setWrapLines] = useState(true);
   const [wf, setWf] = useState(null); // slim workflow (labels, nodes)
   const [activeNodeId, setActiveNodeId] = useState(nodeId);
-  const [labelsOpen, setLabelsOpen] = useState(false);
-  const [ioOpen, setIoOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("logs"); // logs | events | labels | io
   const [fontSize, setFontSize] = useState(() => {
     try {
       const raw = localStorage.getItem("logFontSizePx");
@@ -71,7 +69,6 @@ export default function LogViewer({
   });
   const linesBox = useRef();
   // Pod events panel state
-  const [eventsOpen, setEventsOpen] = useState(false);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsError, setEventsError] = useState("");
   const [events, setEvents] = useState([]);
@@ -88,7 +85,6 @@ export default function LogViewer({
   }
 
   async function loadEventsIfNeeded() {
-    if (!eventsOpen) return;
     if (!activeNodeId) return;
     try {
       setEventsLoading(true);
@@ -105,6 +101,14 @@ export default function LogViewer({
       setEventsLoading(false);
     }
   }
+
+  // Auto-load events when switching to Events tab or when node changes while on Events tab
+  useEffect(() => {
+    if (activeTab === "events" && activeNodeId) {
+      loadEventsIfNeeded();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, activeNodeId]);
 
   /* ─── Disable body scroll while viewer is open ─────────────────── */
   useEffect(() => {
@@ -340,6 +344,7 @@ export default function LogViewer({
               onClick={zoomIn}
               title="Increase text size"
               aria-label="Increase text size"
+              disabled={activeTab !== "logs"}
             >
               <span className="btn-icon" aria-hidden>
                 <IconZoomIn />
@@ -350,6 +355,7 @@ export default function LogViewer({
               onClick={zoomOut}
               title="Decrease text size"
               aria-label="Decrease text size"
+              disabled={activeTab !== "logs"}
             >
               <span className="btn-icon" aria-hidden>
                 <IconZoomOut />
@@ -361,6 +367,7 @@ export default function LogViewer({
               title={wrapLines ? "Disable wrapping" : "Enable wrapping"}
               aria-label={wrapLines ? "Disable wrapping" : "Enable wrapping"}
               aria-pressed={wrapLines}
+              disabled={activeTab !== "logs"}
             >
               <span className="btn-icon" aria-hidden>
                 <svg
@@ -385,6 +392,7 @@ export default function LogViewer({
               onClick={handleCopy}
               title="Copy logs to clipboard"
               aria-label="Copy logs to clipboard"
+              disabled={activeTab !== "logs"}
             >
               <span className="btn-icon" aria-hidden>
                 {copied ? <IconCheck /> : <IconCopy />}
@@ -396,6 +404,7 @@ export default function LogViewer({
               onClick={() => setAutoScroll((v) => !v)}
               title={autoScroll ? "Pause auto-scroll" : "Resume auto-scroll"}
               aria-label={autoScroll ? "Pause auto-scroll" : "Resume auto-scroll"}
+              disabled={activeTab !== "logs"}
             >
               <span className="btn-icon" aria-hidden>
                 {autoScroll ? <IconPause /> : <IconPlay />}
@@ -407,6 +416,7 @@ export default function LogViewer({
               onClick={handleDownload}
               title="Download logs"
               aria-label="Download logs"
+              disabled={activeTab !== "logs"}
             >
               <span className="btn-icon" aria-hidden>
                 <IconDownload />
@@ -426,49 +436,39 @@ export default function LogViewer({
             </button>
           </div>
         </div>
-
-        {/* Labels + I/O + mini pipeline directly under the toolbar */}
+        {/* Tabs + meta + mini pipeline under toolbar */}
         {wf && (
           <div className="log-meta">
-            {(() => {
+            {/* Tabs */}
+            <div className="tabs" role="tablist" aria-label="Detail Views" style={{ marginBottom: "0.35rem" }}>
+              {[
+                ["logs", "Logs"],
+                ["events", "Events"],
+                ["labels", "Labels"],
+                ["io", "I/O"],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  role="tab"
+                  aria-selected={activeTab === key}
+                  className={`tab ${activeTab === key ? "active" : ""}`}
+                  onClick={() => setActiveTab(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Labels panel */}
+            {activeTab === "labels" && (() => {
               const entries = Object.entries(wf.metadata?.labels || {});
               const count = entries.length;
               return (
-                <div
-                  style={{
-                    marginBottom: "0.75rem",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <button
-                    className="btn-light"
-                    onClick={() => setLabelsOpen((v) => !v)}
-                    aria-expanded={labelsOpen}
-                    disabled={count === 0}
-                    title={count ? (labelsOpen ? "Hide labels" : "Show labels") : "No labels"}
-                  >
-                    {count ? (labelsOpen ? `Hide labels (${count})` : `Labels (${count})`) : "Labels (0)"}
-                  </button>
-                  <button
-                    className="btn-light"
-                    onClick={async () => {
-                      const next = !eventsOpen;
-                      setEventsOpen(next);
-                      if (next) await loadEventsIfNeeded();
-                    }}
-                    aria-expanded={eventsOpen}
-                    disabled={!activeNodeId}
-                    title={activeNodeId ? (eventsOpen ? "Hide events" : "Show events for selected task") : "Select a task node to view events"}
-                  >
-                    <span className="btn-icon" aria-hidden>
-                      <IconList />
-                    </span>
-                    <span className="btn-label">Events{eventsOpen && ` (${events?.length || 0})`}</span>
-                  </button>
-                  {labelsOpen && count > 0 && (
+                <div style={{ marginBottom: "0.5rem" }}>
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>Labels ({count})</div>
+                  {count === 0 ? (
+                    <div style={{ opacity: 0.7 }}>No labels</div>
+                  ) : (
                     <div className="wf-labels-list" style={{ margin: 0 }}>
                       {entries.map(([k, v]) => (
                         <code key={k} title={k}>
@@ -477,75 +477,12 @@ export default function LogViewer({
                       ))}
                     </div>
                   )}
-                  {eventsOpen && (
-                    <div style={{
-                      border: "1px solid var(--border-color)",
-                      borderRadius: 6,
-                      padding: "0.75rem",
-                      marginTop: "0.5rem",
-                      background: "var(--card-bg)",
-                      width: "100%",
-                      maxHeight: "40vh",
-                      overflow: "auto"
-                    }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                        <div style={{ fontWeight: 600 }}>
-                          {eventsPod ? <>Pod <code>{eventsPod}</code></> : "Pod events"}
-                        </div>
-                        <div>
-                          <button
-                            className="btn-light"
-                            onClick={loadEventsIfNeeded}
-                            disabled={!activeNodeId || eventsLoading}
-                            title="Refresh events"
-                          >
-                            {eventsLoading ? "Refreshing…" : "Refresh"}
-                          </button>
-                        </div>
-                      </div>
-                      {eventsError && (
-                        <div style={{ color: "#d64543", background: "#ffe5e5", border: "1px solid #f5a8a8", padding: "0.5rem", borderRadius: 4, marginBottom: "0.5rem" }}>
-                          {eventsError}
-                        </div>
-                      )}
-                      {!eventsError && eventsLoading && (
-                        <div style={{ opacity: 0.8 }}>Loading…</div>
-                      )}
-                      {!eventsError && !eventsLoading && (events?.length || 0) === 0 && (
-                        <div style={{ opacity: 0.8 }}>No events found for this task pod.</div>
-                      )}
-                      {!eventsError && !eventsLoading && (events?.length || 0) > 0 && (
-                        <table className="wf-table intimate" style={{ width: "100%" }}>
-                          <thead>
-                            <tr>
-                              <th>Time</th>
-                              <th>Type</th>
-                              <th>Reason</th>
-                              <th>Message</th>
-                              <th>Count</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {events.map((e, i) => (
-                              <tr key={i}>
-                                <td style={{ whiteSpace: "nowrap" }}>{fmtTime(e.lastTimestamp || e.firstTimestamp)}</td>
-                                <td>{e.type || ""}</td>
-                                <td>{e.reason || ""}</td>
-                                <td style={{ maxWidth: 520, whiteSpace: "normal", wordBreak: "break-word" }}>{e.message || ""}</td>
-                                <td style={{ textAlign: "right" }}>{e.count || 1}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  )}
                 </div>
               );
             })()}
 
-            {/* Inputs / Outputs toggle + panel */}
-            {(() => {
+            {/* Inputs / Outputs panel */}
+            {activeTab === "io" && (() => {
               const inputs = (wf?.spec?.arguments?.parameters || []).map((p) => ({ name: p.name, value: p.value }));
               // Aggregate outputs across nodes, dedupe values, trim var_ prefix
               const outMap = new Map();
@@ -564,21 +501,8 @@ export default function LogViewer({
 
               return (
                 <div style={{ marginBottom: "0.5rem" }}>
-                  <button
-                    className="btn-light"
-                    onClick={() => setIoOpen((v) => !v)}
-                    aria-expanded={ioOpen}
-                    disabled={inCount + outCount === 0}
-                    title={ioOpen ? "Hide inputs/outputs" : "Show inputs/outputs"}
-                  >
-                    {inCount + outCount === 0
-                      ? "I/O (0)"
-                      : ioOpen
-                        ? `Hide I/O (${inCount} in, ${outCount} out)`
-                        : `I/O (${inCount} in, ${outCount} out)`}
-                  </button>
-                  {ioOpen && (
-                    <div style={{
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>I/O ({inCount} in, {outCount} out)</div>
+                  <div style={{
                       border: "1px solid var(--border-color)",
                       borderRadius: 6,
                       padding: "0.75rem",
@@ -681,10 +605,80 @@ export default function LogViewer({
                         )}
                       </div>
                     </div>
-                  )}
                 </div>
               );
             })()}
+
+            {/* Events panel */}
+            {activeTab === "events" && (
+              <div style={{
+                border: "1px solid var(--border-color)",
+                borderRadius: 6,
+                padding: "0.75rem",
+                marginTop: "0.25rem",
+                background: "var(--card-bg)",
+                width: "100%",
+                maxHeight: "40vh",
+                overflow: "auto"
+              }}>
+                {!activeNodeId ? (
+                  <div style={{ opacity: 0.8 }}>Select a task node to view pod events.</div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                      <div style={{ fontWeight: 600 }}>
+                        {eventsPod ? <>Pod <code>{eventsPod}</code></> : "Pod events"}
+                      </div>
+                      <div>
+                        <button
+                          className="btn-light"
+                          onClick={loadEventsIfNeeded}
+                          disabled={eventsLoading}
+                          title="Refresh events"
+                        >
+                          {eventsLoading ? "Refreshing…" : "Refresh"}
+                        </button>
+                      </div>
+                    </div>
+                    {eventsError && (
+                      <div style={{ color: "#d64543", background: "#ffe5e5", border: "1px solid #f5a8a8", padding: "0.5rem", borderRadius: 4, marginBottom: "0.5rem" }}>
+                        {eventsError}
+                      </div>
+                    )}
+                    {!eventsError && eventsLoading && (
+                      <div style={{ opacity: 0.8 }}>Loading…</div>
+                    )}
+                    {!eventsError && !eventsLoading && (events?.length || 0) === 0 && (
+                      <div style={{ opacity: 0.8 }}>No events found for this task pod.</div>
+                    )}
+                    {!eventsError && !eventsLoading && (events?.length || 0) > 0 && (
+                      <table className="wf-table intimate" style={{ width: "100%" }}>
+                        <thead>
+                          <tr>
+                            <th>Time</th>
+                            <th>Type</th>
+                            <th>Reason</th>
+                            <th>Message</th>
+                            <th>Count</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {events.map((e, i) => (
+                            <tr key={i}>
+                              <td style={{ whiteSpace: "nowrap" }}>{fmtTime(e.lastTimestamp || e.firstTimestamp)}</td>
+                              <td>{e.type || ""}</td>
+                              <td>{e.reason || ""}</td>
+                              <td style={{ maxWidth: 520, whiteSpace: "normal", wordBreak: "break-word" }}>{e.message || ""}</td>
+                              <td style={{ textAlign: "right" }}>{e.count || 1}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
             <div>
               <div
                 style={{
@@ -700,11 +694,10 @@ export default function LogViewer({
                   showAll={true}
                   onTaskClick={(nid) => {
                     setActiveNodeId(nid);
-                    // Clear events state on node switch
+                    // Clear events state on node switch; reload if on Events tab
                     setEvents([]);
                     setEventsPod("");
-                    if (eventsOpen) {
-                      // Fetch new node's events
+                    if (activeTab === "events") {
                       setTimeout(() => { loadEventsIfNeeded(); }, 0);
                     }
                     try {
@@ -740,23 +733,25 @@ export default function LogViewer({
       {/* Meta moved inside .log-sticky above */}
 
       {/* Log lines */}
-      <div
-        className="log-lines"
-        ref={linesBox}
-        style={{
-          fontSize   : `${Number.isFinite(fontSize) ? fontSize : 14}px`,
-          lineHeight : 1.4,
-          overflowY  : "auto",
-          overflowX  : "auto",
-          whiteSpace : wrapLines ? "pre-wrap" : "pre",
-          flex       : "1 1 auto",
-          minHeight  : 0,
-        }}
-      >
-        {lines.map((l, i) => (
-          <div key={i}><Ansi useClasses>{l}</Ansi></div>
-        ))}
-      </div>
+      {activeTab === "logs" && (
+        <div
+          className="log-lines"
+          ref={linesBox}
+          style={{
+            fontSize   : `${Number.isFinite(fontSize) ? fontSize : 14}px`,
+            lineHeight : 1.4,
+            overflowY  : "auto",
+            overflowX  : "auto",
+            whiteSpace : wrapLines ? "pre-wrap" : "pre",
+            flex       : "1 1 auto",
+            minHeight  : 0,
+          }}
+        >
+          {lines.map((l, i) => (
+            <div key={i}><Ansi useClasses>{l}</Ansi></div>
+          ))}
+        </div>
+      )}
 
     </div>
   );
