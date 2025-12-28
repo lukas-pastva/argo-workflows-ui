@@ -110,12 +110,7 @@ export default function LogViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, activeNodeId]);
 
-  /* ─── Disable body scroll while viewer is open ─────────────────── */
-  useEffect(() => {
-    const orig = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = orig; };
-  }, []);
+  /* Body scroll handling removed - now a regular page, not overlay */
 
   /* ─── Fetch workflow info (labels + nodes) and poll ────────────── */
   useEffect(() => {
@@ -317,16 +312,13 @@ export default function LogViewer({
     <div
       className="log-viewer"
       style={{
-        position   : "fixed",
-        inset      : 0,
+        minHeight  : "100vh",
         padding    : "0.75rem 0 1rem",
         display    : "flex",
         flexDirection: "column",
         overflow   : "hidden",
         fontFamily : "monospace",
-        zIndex     : 2000,
       }}
-      
     >
       {/* Sticky container: buttons + labels/pipeline */}
       <div className="log-sticky">

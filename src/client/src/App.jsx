@@ -85,9 +85,16 @@ export default function App() {
   const [error,     setError]     = useState("");
   const [logTarget, setLogTarget] = useState(null);
   const [showHelp,  setShowHelp]  = useState(false);
-  const [page,      setPage]      = useState("list");   // "list" | "chart"
+  const [page,      setPage]      = useState("list");   // "list" | "chart" | "logs"
 
   useLogUrlSync(logTarget, setLogTarget);
+
+  // When logTarget is set, switch to logs page; when cleared, go back to list
+  useEffect(() => {
+    if (logTarget) {
+      setPage("logs");
+    }
+  }, [logTarget]);
 
   const runtime  = window.__ENV__ || {};
   const headerBg = runtime.headerBg || import.meta.env.VITE_HEADER_BG;
@@ -95,41 +102,44 @@ export default function App() {
 
   return (
     <>
-      <header
-        className="header"
-        style={headerBg ? { background: headerBg } : {}}
-      >
-        <h1>Workflows</h1>
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
-          <div className="tabs" role="tablist" aria-label="Views">
-            <button
-              id="tab-list"
-              role="tab"
-              aria-selected={page === "list"}
-              aria-controls="panel-list"
-              className={`tab ${page === "list" ? "active" : ""}`}
-              onClick={() => setPage("list")}
-            >
-              List
-            </button>
-            <button
-              id="tab-chart"
-              role="tab"
-              aria-selected={page === "chart"}
-              aria-controls="panel-chart"
-              className={`tab ${page === "chart" ? "active" : ""}`}
-              onClick={() => setPage("chart")}
-            >
-              Chart
+      {/* Hide header when viewing logs page */}
+      {page !== "logs" && (
+        <header
+          className="header"
+          style={headerBg ? { background: headerBg } : {}}
+        >
+          <h1>Workflows</h1>
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+            <div className="tabs" role="tablist" aria-label="Views">
+              <button
+                id="tab-list"
+                role="tab"
+                aria-selected={page === "list"}
+                aria-controls="panel-list"
+                className={`tab ${page === "list" ? "active" : ""}`}
+                onClick={() => setPage("list")}
+              >
+                List
+              </button>
+              <button
+                id="tab-chart"
+                role="tab"
+                aria-selected={page === "chart"}
+                aria-controls="panel-chart"
+                className={`tab ${page === "chart" ? "active" : ""}`}
+                onClick={() => setPage("chart")}
+              >
+                Chart
+              </button>
+            </div>
+
+            <ThemeToggle />
+            <button className="btn-light" onClick={() => setShowHelp(true)}>
+              Help
             </button>
           </div>
-
-          <ThemeToggle />
-          <button className="btn-light" onClick={() => setShowHelp(true)}>
-            Help
-          </button>
-        </div>
-      </header>
+        </header>
+      )}
 
       <ErrorBanner message={error} onClose={() => setError("")} />
 
@@ -159,16 +169,6 @@ export default function App() {
             onError={setError}
           />
         </div>
-
-        {logTarget && (
-          <LogViewer
-            workflowName={logTarget.name}
-            nodeId={logTarget.nodeId}
-            phase={logTarget.phase}
-            failureMessage={logTarget.failureMessage}
-            onClose={() => setLogTarget(null)}
-          />
-        )}
       </div>
 
       <div
@@ -179,6 +179,20 @@ export default function App() {
       >
         <Chart onError={setError} />
       </div>
+
+      {/* Logs page - separate full page instead of overlay */}
+      {page === "logs" && logTarget && (
+        <LogViewer
+          workflowName={logTarget.name}
+          nodeId={logTarget.nodeId}
+          phase={logTarget.phase}
+          failureMessage={logTarget.failureMessage}
+          onClose={() => {
+            setLogTarget(null);
+            setPage("list");
+          }}
+        />
+      )}
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </>
