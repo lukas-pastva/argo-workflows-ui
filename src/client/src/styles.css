@@ -198,7 +198,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-3) var(--space-6);
+  padding: var(--space-2) var(--space-6);
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-600) 100%);
   box-shadow: 0 4px 30px rgba(24, 190, 148, 0.2), var(--shadow-md);
   animation: fadeInDown 0.4s var(--ease-out-expo);
@@ -330,10 +330,10 @@ body {
 .card {
   background: var(--card-bg);
   border-radius: var(--radius-lg);
-  padding: var(--space-6);
+  padding: var(--space-3);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
-  margin-top: var(--space-6);
+  margin-top: var(--space-3);
   transition: all var(--transition-base);
   animation: fadeInUp 0.5s var(--ease-out-expo);
 }
@@ -425,13 +425,13 @@ body {
 /* ============================================================================
    WORKFLOW TABLE
    ============================================================================ */
-.wf-container { width: 100%; max-width: none; padding: 0; padding-bottom: 5rem; }
-.wf-title { padding-left: var(--space-4); margin: var(--space-2) 0; font-size: 1.125rem; font-weight: 600; }
+.wf-container { width: 100%; max-width: none; padding: 0; padding-bottom: 4rem; }
+.wf-title { padding-left: var(--space-4); margin: var(--space-1) 0; font-size: 1.125rem; font-weight: 600; }
 
 table.wf-table { width: 100%; border-collapse: separate; border-spacing: 0; }
 
 table.wf-table th, table.wf-table td {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-4);
   text-align: left;
   font-size: 0.875rem;
   border-bottom: 1px solid var(--border-color);
@@ -460,7 +460,7 @@ table.wf-table tbody tr:hover { background: var(--row-hover-bg); }
 table.wf-table th:last-child, table.wf-table td:last-child { text-align: right; white-space: nowrap; }
 
 /* Intimate variant */
-table.wf-table.intimate th, table.wf-table.intimate td { padding: var(--space-3) var(--space-4); font-size: 0.8125rem; }
+table.wf-table.intimate th, table.wf-table.intimate td { padding: var(--space-2) var(--space-3); font-size: 0.8125rem; }
 table.wf-table.intimate td.group-col { font-weight: 500; color: var(--primary); }
 table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); }
 
@@ -571,6 +571,8 @@ table.wf-table tbody tr:nth-child(n+6) { animation-delay: 0.12s; }
   padding: var(--space-1) var(--space-3);
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-base);
+  min-width: 4.5rem;
+  text-align: center;
 }
 
 .filter-panel[open] summary.filter-title::before {
@@ -617,6 +619,8 @@ table.wf-table tbody tr:nth-child(n+6) { animation-delay: 0.12s; }
   font-weight: 600;
   padding: 2px 8px;
   transition: all var(--transition-base);
+  min-width: 4rem;
+  text-align: center;
 }
 
 .label-filters details[open] summary::before { content: "Collapse"; background: var(--gray-500); }
@@ -848,7 +852,7 @@ table.wf-table tbody tr:nth-child(n+6) { animation-delay: 0.12s; }
   left: 0;
   right: 0;
   bottom: 0;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-4);
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -904,6 +908,22 @@ table.wf-table tbody tr:nth-child(n+6) { animation-delay: 0.12s; }
 
 .pager-inner select:hover { border-color: var(--primary); }
 .pager-inner select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(24, 190, 148, 0.2); }
+
+.page-info-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.8125rem;
+}
+
+.page-info-divider {
+  opacity: 0.3;
+  font-weight: 300;
+}
 
 /* ============================================================================
    LABELS ROW
@@ -981,12 +1001,12 @@ input[type="checkbox"]:hover { transform: scale(1.1); }
    ============================================================================ */
 @media (max-width: 768px) {
   html { font-size: 14px; }
-  .header { padding: var(--space-3) var(--space-4); flex-wrap: wrap; gap: var(--space-3); }
+  .header { padding: var(--space-2) var(--space-4); flex-wrap: wrap; gap: var(--space-2); }
   .header h1 { font-size: 1.2rem; }
   .tabs { order: 3; width: 100%; justify-content: center; }
-  .card { padding: var(--space-4); margin-top: var(--space-4); }
+  .card { padding: var(--space-3); margin-top: var(--space-3); }
   .modal-dialog { width: 95vw; padding: var(--space-6); }
-  table.wf-table th, table.wf-table td { padding: var(--space-2) var(--space-3); font-size: 0.8125rem; }
+  table.wf-table th, table.wf-table td { padding: var(--space-1) var(--space-3); font-size: 0.8125rem; }
   .pager-inner { flex-wrap: wrap; gap: var(--space-2); padding: var(--space-2); }
 }
 

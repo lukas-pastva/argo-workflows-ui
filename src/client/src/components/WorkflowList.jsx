@@ -697,13 +697,17 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
               <span className="btn-icon" aria-hidden><IconChevronRight /></span>
               Next
             </button>
-            <span style={{ opacity: 0.8, marginLeft: "0.25rem" }}>Page {pageNum}</span>
-            <span style={{ marginLeft: "1rem" }}>
-              Page size:&nbsp;
+            <span className="page-info-group">
+              <span>Page {pageNum}</span>
+              <span className="page-info-divider">|</span>
+              <span>Size:</span>
               <select value={pageSize} onChange={(e) => changePageSize(parseInt(e.target.value, 10))}>
                 <option value={50}>50</option>
                 <option value={100}>100</option>
                 <option value={200}>200</option>
+                <option value={300}>300</option>
+                <option value={400}>400</option>
+                <option value={500}>500</option>
               </select>
             </span>
 
