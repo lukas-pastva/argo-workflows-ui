@@ -545,7 +545,7 @@ table.wf-table tbody tr:nth-child(n+6) { animation-delay: 0.12s; }
 .card > .filter-panel { margin-top: var(--space-2); }
 
 .filter-panel summary.filter-title {
-  padding: var(--space-4) var(--space-6) var(--space-4) 6rem;
+  padding: var(--space-4) var(--space-6) var(--space-4) 7rem;
   font-weight: 600;
   cursor: pointer;
   list-style: none;
@@ -598,7 +598,7 @@ table.wf-table tbody tr:nth-child(n+6) { animation-delay: 0.12s; }
   list-style: none;
   font-weight: 600;
   cursor: pointer;
-  padding: var(--space-2) 0 var(--space-2) 4.5rem;
+  padding: var(--space-2) 0 var(--space-2) 5rem;
   position: relative;
   transition: all var(--transition-base);
   border-radius: var(--radius-md);
@@ -632,7 +632,7 @@ table.wf-table tbody tr:nth-child(n+6) { animation-delay: 0.12s; }
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) 0 var(--space-2) 4.5rem;
+  padding: var(--space-2) 0 var(--space-2) 5rem;
 }
 
 .label-filters .label-values span, .label-values span {
@@ -912,6 +912,9 @@ table.wf-table tbody tr:nth-child(n+6) { animation-delay: 0.12s; }
 .page-info-group {
   display: inline-flex;
   align-items: center;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  white-space: nowrap;
   gap: var(--space-2);
   background: var(--bg-subtle);
   border: 1px solid var(--border-color);
