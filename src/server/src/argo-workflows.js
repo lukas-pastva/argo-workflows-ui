@@ -219,12 +219,13 @@ export async function listTemplates() {
 /* ------------------------------------------------------------------ */
 /*  Delete a workflow                                                 */
 /* ------------------------------------------------------------------ */
-export async function deleteWorkflow(name) {
+export async function deleteWorkflow(name, { force = false } = {}) {
+  const qs = force ? "?force=true" : "";
   const url =
     `${ARGO_WORKFLOWS_URL}/api/v1/workflows/` +
-    `${ARGO_WORKFLOWS_NAMESPACE}/${name}`;
+    `${ARGO_WORKFLOWS_NAMESPACE}/${name}${qs}`;
 
-  if (debug) console.log("[DEBUG] Deleting workflow", name);
+  if (debug) console.log("[DEBUG] Deleting workflow", name, force ? "(force)" : "");
   curlHint(url, "DELETE");
 
   const r = await fetch(url, { method: "DELETE", headers: headers() });

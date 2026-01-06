@@ -271,8 +271,11 @@ app.get("/api/workflows/:name", async (req, res, next) => {
 });
 
 app.delete("/api/workflows/:name", requireWriteAccess, async (req, res, next) => {
-  try { await deleteWorkflow(req.params.name); res.json({ deleted: true }); }
-  catch (e) { next(e); }
+  try {
+    const force = req.query.force === "true";
+    await deleteWorkflow(req.params.name, { force });
+    res.json({ deleted: true });
+  } catch (e) { next(e); }
 });
 
 app.get("/api/templates", async (_req, res, next) => {

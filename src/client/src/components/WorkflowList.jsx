@@ -252,14 +252,14 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
 
   /* ---- delete helpers ------------------------------------------ */
   const handleSingleDelete = async (name, phase) => {
-    const baseMsg = `Delete workflow “${name}”?`;
-    const msg =
-      phase === "Running"
-        ? `${baseMsg}\n\nThis workflow is still running and will be terminated.`
-        : baseMsg;
+    const isRunning = phase === "Running";
+    const baseMsg = `Delete workflow "${name}"?`;
+    const msg = isRunning
+      ? `${baseMsg}\n\nThis workflow is still running and will be terminated.`
+      : baseMsg;
     if (!window.confirm(msg)) return;
     try {
-      await deleteWorkflow(name);
+      await deleteWorkflow(name, { force: isRunning });
       setItems((it) => it.filter((w) => w.metadata.name !== name));
     } catch (e) { onError(`Failed to delete: ${e.message}`); }
   };

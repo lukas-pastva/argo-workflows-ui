@@ -41,11 +41,12 @@ export async function submitWorkflow(body) {
 }
 
 /* ---------- delete helpers ----------------------------------- */
-export async function deleteWorkflow(name) {
-  const r = await fetch(`${base}/workflows/${encodeURIComponent(name)}`, { method: "DELETE" });
+export async function deleteWorkflow(name, { force = false } = {}) {
+  const qs = force ? "?force=true" : "";
+  const r = await fetch(`${base}/workflows/${encodeURIComponent(name)}${qs}`, { method: "DELETE" });
   return jsonOrThrow(r);
 }
-export async function deleteWorkflows(names) { await Promise.all(names.map(deleteWorkflow)); }
+export async function deleteWorkflows(names) { await Promise.all(names.map((n) => deleteWorkflow(n))); }
 
 /* ------------------------------------------------------------------ */
 /*  Get logs for a workflow run.                                       */
