@@ -109,7 +109,7 @@ export default function App() {
           style={headerBg ? { background: headerBg } : {}}
         >
           <h1>Workflows</h1>
-          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
             <div className="tabs" role="tablist" aria-label="Views">
               <button
                 id="tab-list"

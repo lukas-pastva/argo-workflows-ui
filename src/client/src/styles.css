@@ -1004,9 +1004,12 @@ input[type="checkbox"]:hover { transform: scale(1.1); }
    ============================================================================ */
 @media (max-width: 768px) {
   html { font-size: 14px; }
-  .header { padding: var(--space-2) var(--space-4); flex-wrap: wrap; gap: var(--space-2); }
-  .header h1 { font-size: 1.2rem; }
-  .tabs { order: 3; width: 100%; justify-content: center; }
+  .header { padding: var(--space-2) var(--space-3); gap: var(--space-2); }
+  .header h1 { font-size: 1rem; }
+  .header h1::before { display: none; }
+  .header .btn-light { padding: var(--space-1) var(--space-2); font-size: 0.75rem; }
+  .tabs { gap: 0; padding: var(--space-1); }
+  .tab { padding: var(--space-1) var(--space-2); font-size: 0.75rem; }
   .card { padding: var(--space-3); margin-top: var(--space-3); }
   .modal-dialog { width: 95vw; padding: var(--space-6); }
   table.wf-table th, table.wf-table td { padding: var(--space-1) var(--space-3); font-size: 0.8125rem; }
@@ -1019,7 +1022,10 @@ input[type="checkbox"]:hover { transform: scale(1.1); }
   .log-toolbar .btn-label { display: none; }
   .log-toolbar .btn-icon { margin-right: 0; }
   .log-toolbar .btn, .log-toolbar .btn-light, .log-toolbar .btn-danger { padding: var(--space-2); }
-  .pager-inner .smart-delete { width: 100%; justify-content: center; opacity: 1; pointer-events: auto; transform: none; margin-left: 0; }
+  /* Smart delete: hidden by default on mobile, shown on tap/focus */
+  .pager-inner .smart-delete { width: 100%; justify-content: center; margin-left: 0; }
+  .pager-inner:active .smart-delete,
+  .pager-inner:focus-within .smart-delete { opacity: 1; pointer-events: auto; transform: none; }
 }
 
 /* ============================================================================
