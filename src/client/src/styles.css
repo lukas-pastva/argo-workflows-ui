@@ -741,6 +741,7 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
 .pager-inner {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: 0.5rem;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
@@ -748,6 +749,7 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
   padding: 0.4rem 0.75rem;
   font-size: 0.85rem; /* a tad smaller */
   width: 100%;
+  overflow-x: auto;
 }
 
 /* right-aligned action that appears on hover */
