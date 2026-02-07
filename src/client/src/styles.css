@@ -1,1069 +1,917 @@
-/* ---------------- Argo CD-like palette & font ------------------ */
+/* ================================================================
+   Argo Workflows UI - Compact Responsive Styles
+   ================================================================ */
+
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
-/*  ↓ 20 % smaller baseline for everything that uses rem/em  */
-html { font-size: 90%; }
+/* Base font size */
+html { font-size: 87.5%; }
 
-/* ---------- Core design tokens (light defaults) ---------------- */
+/* ----------------------------------------------------------------
+   Design Tokens
+   ---------------------------------------------------------------- */
 :root {
-  --primary      : rgb(24, 190, 148);
-  /* darker shade of Argo CD green for hovers/selected */
-  --primary-dark : #139e7a;
-
-  --danger       : #ef5654;          /* Argo CD delete-red */
-  --danger-dark  : #d64543;
-
-  /* neutrals that switch with the theme */
-  --bg           : #f4f6f8;          /* page background   */
-  --card-bg      : #ffffff;          /* panels / cards    */
-  --log-bg       : #f9fafb;          /* log-viewer bg     */
-  --text-color   : #000000;
-  --border-color : #cbd5e1;          /* faint dividers    */
-
-  /* table / extra backgrounds */
-  --row-alt-bg          : #fafafa;
-  --row-hover-bg        : #eef4ff;
-  --row-hover-intimate  : #f0f4fa;
-  --labels-row-bg       : #f9fbff;
-
-  /* ANSI palette overrides for log viewer (light theme) */
-  --ansi-black-fg : #000000;  /* map “black”  → black on light bg */
-  --ansi-white-fg : #000000;  /* map “white”  → black on light bg */
-}
-
-/* Darkness fine‑tune for dark theme (3 steps via data-darkness) */
-:root { --brightness-mult: 1; }
-:root[data-darkness="0"] { --brightness-mult: 1; }
-:root[data-darkness="1"] { --brightness-mult: 0.9; }
-:root[data-darkness="2"] { --brightness-mult: 0.8; }
-
-/* ---------- Explicit theme overrides -------------------------- */
-[data-theme="light"] {
-  --bg           : #f4f6f8;
-  --card-bg      : #ffffff;
-  --log-bg       : #f9fafb;
-  --text-color   : #000000;
-  --border-color : #cbd5e1;
-
-  --row-alt-bg          : #fafafa;
-  --row-hover-bg        : #eef4ff;
-  --row-hover-intimate  : #f0f4fa;
-  --labels-row-bg       : #f9fbff;
-
-  --ansi-black-fg : #000000;
-  --ansi-white-fg : #000000;
+  --primary: rgb(24, 190, 148);
+  --primary-dark: #139e7a;
+  --danger: #ef5654;
+  --danger-dark: #d64543;
+  --bg: #f4f6f8;
+  --card-bg: #ffffff;
+  --log-bg: #f9fafb;
+  --text: #000000;
+  --text-muted: #64748b;
+  --border: #cbd5e1;
+  --row-alt: #fafafa;
+  --row-hover: #eef4ff;
+  --ansi-black-fg: #000;
+  --ansi-white-fg: #000;
 }
 
 [data-theme="dark"] {
-  /* slightly brighter than previous iteration */
-  --bg           : #232326;
-  --card-bg      : #2e2e31;
-  --log-bg       : #2e2e31;
-  --text-color   : #ebebeb;
-  --border-color : #3d3d3f;
-
-  --row-alt-bg          : #2a2a2d;
-  --row-hover-bg        : #353538;
-  --row-hover-intimate  : #3a3a3d;
-  --labels-row-bg       : #303033;
-
-  --ansi-black-fg : #e5e5e5;         /* map “black” → light-gray */
-  --ansi-white-fg : #ffffff;
+  --bg: #232326;
+  --card-bg: #2e2e31;
+  --log-bg: #2e2e31;
+  --text: #ebebeb;
+  --text-muted: #94a3b8;
+  --border: #3d3d3f;
+  --row-alt: #2a2a2d;
+  --row-hover: #353538;
+  --ansi-black-fg: #e5e5e5;
+  --ansi-white-fg: #fff;
 }
 
-/* ---------- “auto” = follow OS preference --------------------- */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --bg           : #232326;
-    --card-bg      : #2e2e31;
-    --log-bg       : #2e2e31;
-    --text-color   : #ebebeb;
-    --border-color : #3d3d3f;
-
-    --row-alt-bg          : #2a2a2d;
-    --row-hover-bg        : #353538;
-    --row-hover-intimate  : #3a3a3d;
-    --labels-row-bg       : #303033;
-
-    --ansi-black-fg : #e5e5e5;
-    --ansi-white-fg : #ffffff;
+    --bg: #232326;
+    --card-bg: #2e2e31;
+    --log-bg: #2e2e31;
+    --text: #ebebeb;
+    --text-muted: #94a3b8;
+    --border: #3d3d3f;
+    --row-alt: #2a2a2d;
+    --row-hover: #353538;
+    --ansi-black-fg: #e5e5e5;
+    --ansi-white-fg: #fff;
   }
 }
 
-* { box-sizing: border-box; }
+/* Darkness levels */
+:root { --brightness: 1; }
+:root[data-darkness="1"] { --brightness: 0.9; }
+:root[data-darkness="2"] { --brightness: 0.8; }
+
+[data-theme="dark"] #app-shell { filter: brightness(var(--brightness)); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) #app-shell { filter: brightness(var(--brightness)); }
+}
+
+/* ----------------------------------------------------------------
+   Reset & Base
+   ---------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
-  margin     : 0;
-  font-family: "Inter", sans-serif;
-  background : var(--bg);
-  color      : var(--text-color);
+  margin: 0;
+  font-family: "Inter", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.4;
 }
 
-/* Apply additional dimming only when the effective theme is dark */
-[data-theme="dark"] #app-shell { filter: brightness(var(--brightness-mult, 1)); }
-
-/* Apply the same dimming for auto-dark (OS preference) */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) #app-shell { filter: brightness(var(--brightness-mult, 1)); }
-}
-
-/* ---------------- Layout --------------------------------------- */
+/* ----------------------------------------------------------------
+   Header
+   ---------------------------------------------------------------- */
 .header {
-  display        : flex;
+  display: flex;
   justify-content: space-between;
-  align-items    : center;
-  background     : var(--primary);
-  color          : #fff;
-  padding        : 0.75rem 1rem;
+  align-items: center;
+  background: var(--primary);
+  color: #fff;
+  padding: 0.5rem 0.75rem;
+  gap: 0.5rem;
 }
-.header h1 { margin: 0; font-size: 1.4rem; }
 
-/* make “light” buttons readable inside the green header */
+.header h1 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .header .btn-light {
-  color        : #ffffff;
-  border-color : #ffffff;
+  color: #fff;
+  border-color: #fff;
 }
-.header .btn-light:hover { background: rgba(255,255,255,0.15); }
 
-/* ---------------- Tabs (List / Chart) -------------------------- */
+.header .btn-light:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+/* Tabs */
 .tabs {
-  display    : inline-flex;
-  align-items: flex-end;
-  gap        : 0.25rem;
+  display: inline-flex;
+  gap: 0.15rem;
 }
+
 .tab {
-  background : transparent;
-  border     : none;
-  color      : inherit;
-  padding    : 0.35rem 0.6rem;
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 0.25rem 0.5rem;
   border-bottom: 2px solid transparent;
-  cursor     : pointer;
+  cursor: pointer;
   font-weight: 500;
-  opacity    : 0.9;
+  font-size: 0.85rem;
+  opacity: 0.85;
 }
+
 .tab:hover { opacity: 1; }
 .tab.active { border-bottom-color: currentColor; opacity: 1; }
 
-.wf-title {
-  padding-left : 1rem;
-  margin       : 0.5rem 0;
-  font-size    : 1.2rem;
-  font-weight  : 600;
-}
-
+/* ----------------------------------------------------------------
+   Layout
+   ---------------------------------------------------------------- */
 .container {
   max-width: 1280px;
-  margin   : 0 auto;
-  padding  : 0 1rem;
+  margin: 0 auto;
+  padding: 0 0.5rem;
 }
 
 .wf-container {
-  width     : 100%;
-  max-width : none;
-  padding   : 0;
-  /* reserve space so the fixed pager doesn't overlap content */
-  padding-bottom: 4.5rem;
+  width: 100%;
+  padding: 0;
+  padding-bottom: 3.5rem;
 }
 
-.card {
-  background   : var(--card-bg);
-  border-radius: 6px;
-  padding      : 1.25rem 1.5rem;
-  box-shadow   : 0 1px 3px rgba(0,0,0,0.08);
-  margin-top   : 1.5rem;
+.wf-title {
+  padding-left: 0.5rem;
+  margin: 0.35rem 0;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
-/* ---------------- Buttons -------------------------------------- */
-.btn,
-.btn-danger,
-.btn-light {
-  display        : inline-block;
-  border         : none;
-  padding        : 0.4rem 1.2rem;
-  margin-right   : 0.4rem;
-  font-size      : 0.9rem;
-  font-weight    : 500;
-  line-height    : 1.1;
-  border-radius  : 4px;
-  cursor         : pointer;
-  transition     : background 0.2s ease, transform 0.1s ease;
+/* ----------------------------------------------------------------
+   Buttons
+   ---------------------------------------------------------------- */
+.btn, .btn-danger, .btn-light {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  min-height: 36px;
 }
-.btn:active,
-.btn-danger:active,
-.btn-light:active { transform: scale(0.97); }
 
-.btn              { background: var(--primary); color: #fff; }
-.btn:hover        { background: var(--primary-dark); }
+.btn:active, .btn-danger:active, .btn-light:active { transform: scale(0.97); }
 
-.btn-danger       { background: var(--danger);  color: #fff; }
+.btn { background: var(--primary); color: #fff; }
+.btn:hover { background: var(--primary-dark); }
+
+.btn-danger { background: var(--danger); color: #fff; }
 .btn-danger:hover { background: var(--danger-dark); }
 
 .btn-light {
   background: transparent;
-  color     : var(--primary);
-  border    : 1px solid var(--primary);
+  color: var(--primary);
+  border: 1px solid var(--primary);
 }
-.btn-light:hover { background: rgba(24,190,148,0.12); }
+.btn-light:hover { background: rgba(24,190,148,0.1); }
 
-/* Theme toggle: button that softly fades between tones */
-.theme-toggle-btn {
-  transition:
-    background 0.35s ease,
-    color 0.35s ease,
-    border-color 0.35s ease,
-    box-shadow 0.35s ease,
-    transform 0.1s ease;
-}
-
-.theme-toggle-btn--auto {
-  background: radial-gradient(circle at top left,
-    rgba(248,250,252,0.85),
-    rgba(24,190,148,0.12)
-  );
+.btn-sm {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  min-height: 28px;
+  border-radius: 3px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
 }
 
-.theme-toggle-btn--light {
-  background: linear-gradient(135deg,
-    rgba(248,250,252,0.95),
-    rgba(148,163,184,0.22)
-  );
+.btn-icon { margin-right: 0.25rem; display: inline-flex; }
+.btn-icon svg { width: 14px; height: 14px; }
+
+/* ----------------------------------------------------------------
+   Panels (collapsible)
+   ---------------------------------------------------------------- */
+.panel, .filter-panel {
+  width: 100%;
+  margin: 0.5rem 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--card-bg);
 }
 
-.theme-toggle-btn--dark {
-  background  : linear-gradient(135deg, #0f172a, #1f2937);
-  color       : #f9fafb;
-  border-color: rgba(249,250,251,0.9);
-  box-shadow  : 0 0 0 1px rgba(15,23,42,0.25);
+.panel-title, .filter-title {
+  padding: 0.4rem 0.75rem 0.4rem 4rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  list-style: none;
+  position: relative;
 }
 
-.header .theme-toggle-btn {
-  color       : #ffffff;
-  border-color: #ffffff;
-}
-.header .theme-toggle-btn:hover {
-  background: rgba(255,255,255,0.12);
-}
+.panel-title::-webkit-details-marker,
+.filter-title::-webkit-details-marker { display: none; }
 
-/* Icon helper for buttons */
-.btn-icon { margin-right: 0.35rem; }
-.btn-icon svg {
-  width: 16px;
-  height: 16px;
-  display: inline-block;
-  vertical-align: text-bottom;
-}
-
-/* ---------------- Workflow tables ------------------------------ */
-table.wf-table { width: 100%; border-collapse: collapse; }
-
-table.wf-table th,
-table.wf-table td {
-  padding   : 0.25rem 0.6rem;
-  text-align: left;
-  font-size : 0.9rem;
+.panel-title::before,
+.filter-title::before {
+  content: "Expand";
+  position: absolute;
+  left: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--primary);
+  color: #fff;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  padding: 2px 5px;
+  font-weight: 500;
 }
 
-table.wf-table thead th { border-bottom: 2px solid var(--border-color); }
+.panel[open] > .panel-title::before,
+.filter-panel[open] > .filter-title::before,
+details[open] > .panel-title::before,
+details[open] > .filter-title::before { content: "Collapse"; }
 
-table.wf-table tbody tr:nth-child(odd) { background: var(--row-alt-bg); }
-table.wf-table tbody tr:hover          { background: var(--row-hover-bg); }
+.panel-body {
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
 
-table.wf-table th:last-child,
-table.wf-table td:last-child {
-  text-align : right;
+/* ----------------------------------------------------------------
+   Button Grid (template/option buttons)
+   ---------------------------------------------------------------- */
+.btn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.35rem;
+}
+
+.grid-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--card-bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.12s;
+  min-height: 40px;
+  overflow: hidden;
+}
+
+.grid-btn .btn-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
 }
 
-/* ---------------- Group headings ------------------------------- */
-.wf-group-title {
-  margin      : 0.25rem 0 0.5rem;
-  padding-left: 0.5rem;
-  font-size   : 1rem;
-  font-weight : 600;
-  border-left : 3px solid var(--primary);
+.grid-btn:hover {
+  border-color: var(--primary);
+  background: rgba(24,190,148,0.06);
 }
 
-/* ---------------- Trigger / filter panels ---------------------- */
-.filter-panel {
-  width        : 100%;
-  margin       : 1rem 0;
-  border       : 1px solid var(--border-color);
-  border-radius: 6px;
-  background   : var(--card-bg);
+.grid-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
 }
 
-/* Reduce extra whitespace above the Insert panel inside cards */
-.card > .filter-panel { margin-top: 0.25rem; }
-
-/* -----------------------------------------------------------------
-   Collapsible panels – “Expand | Collapse” pills
-   ----------------------------------------------------------------- */
-.filter-panel summary.filter-title {
-  padding     : 0.5rem 2.5rem 0.5rem 5.25rem;
-  font-weight : 600;
-  cursor      : pointer;
-  list-style  : none;
-  position    : relative;
-}
-.filter-panel summary.filter-title::-webkit-details-marker { display: none; }
-
-.filter-panel summary.filter-title::before {
-  content       : "Expand";
-  position      : absolute;
-  left          : 0.75rem;
-  top           : 50%;
-  transform     : translateY(-50%);
-  background    : var(--primary);
-  color         : #fff;
-  border-radius : 4px;
-  font-size     : 0.75rem;
-  line-height   : 1;
-  padding       : 2px 6px;
-  font-weight   : 500;
-  pointer-events: none;
-}
-.filter-panel[open] summary.filter-title::before { content: "Collapse"; }
-
-/* AND/OR toggle */
-.filter-mode {
-  padding   : 0 1rem;
-  font-size : 0.9rem;
+.grid-btn.more-btn {
+  background: var(--bg);
+  color: var(--text-muted);
+  font-style: italic;
 }
 
-/* -----------------------------------------------------------------
-   Label-filter groups
-   ----------------------------------------------------------------- */
+.grid-btn.more-btn:hover {
+  color: var(--primary);
+}
+
+/* ----------------------------------------------------------------
+   Insert Panel
+   ---------------------------------------------------------------- */
+.insert-panel .desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.form-box {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--bg);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.field input[type="text"],
+.form-box textarea {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--card-bg);
+  color: var(--text);
+  min-height: 36px;
+}
+
+.field input:focus,
+.form-box textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.form-box textarea {
+  font-family: monospace;
+  resize: vertical;
+}
+
+.event-data {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.event-data .btn-sm {
+  align-self: flex-end;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Option buttons */
+.opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.opt-btn {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--card-bg);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.12s;
+  min-height: 32px;
+}
+
+.opt-btn:hover {
+  border-color: var(--primary);
+}
+
+.opt-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.opt-btn.add {
+  padding: 0.35rem 0.5rem;
+  font-weight: 600;
+}
+
+.add-group {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.add-group input {
+  width: 100px;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  min-height: 32px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+.submit-btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9rem;
+  min-height: 40px;
+}
+
+.msg {
+  color: var(--primary);
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.chk {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.chk input { width: 16px; height: 16px; }
+
+/* ----------------------------------------------------------------
+   Filter Panel
+   ---------------------------------------------------------------- */
 .label-filters {
-  width      : 100%;
-  max-height : 25vh;
-  overflow-y : auto;
-  padding    : 0.5rem 1rem 1rem;
+  max-height: 20vh;
+  overflow-y: auto;
+  padding: 0.4rem 0.75rem;
 }
 
 .label-filters details summary {
-  list-style : none;
+  list-style: none;
   font-weight: 600;
-  cursor     : pointer;
-  padding    : 0.25rem 0 0.25rem 4rem;
-  position   : relative;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.2rem 0 0.2rem 3.5rem;
+  position: relative;
 }
+
 .label-filters details summary::-webkit-details-marker { display: none; }
 
 .label-filters details summary::before {
-  content       : "Expand";
-  position      : absolute;
-  left          : 0;
-  top           : 50%;
-  transform     : translateY(-50%);
-  background    : var(--primary);
-  color         : #fff;
-  border-radius : 4px;
-  font-size     : 0.7rem;
-  line-height   : 1;
-  padding       : 1px 6px 2px;
-  font-weight   : 500;
-  pointer-events: none;
+  content: "Expand";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--primary);
+  color: #fff;
+  border-radius: 3px;
+  font-size: 0.6rem;
+  padding: 1px 5px;
+  font-weight: 500;
 }
+
 .label-filters details[open] summary::before { content: "Collapse"; }
-
-.label-filters details summary.selected::after {
-  content      : "✓";
-  margin-left  : 0.35rem;
-  color        : var(--primary-dark);
-  pointer-events: none;
-}
 .label-filters details summary.selected { color: var(--primary-dark); }
+.label-filters details summary.selected::after { content: " ✓"; }
 
-.label-filters .label-values {
-  display    : inline-flex;
-  flex-wrap  : wrap;
-  align-items: center;
+.label-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.25rem 0;
 }
 
-.label-filters .label-values span,
 .label-values span {
-  display       : inline-block;
-  margin        : 0 0.5rem 0.5rem 0;
-  padding       : 0.2rem 0.4rem;
-  border-radius : 4px;
-  cursor        : pointer;
-  background    : var(--bg);
-  opacity       : 0.6;
-  transition    : background 0.2s, color 0.2s, opacity 0.2s;
-  font-size     : 90%;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.75rem;
+  border-radius: 3px;
+  cursor: pointer;
+  background: var(--bg);
+  opacity: 0.7;
+  transition: all 0.15s;
 }
-.label-filters .label-values span.selected,
+
+.label-values span:hover { opacity: 1; }
+
 .label-values span.selected {
   background: var(--primary-dark);
-  color     : #fff;
-  opacity   : 1;
-}
-.label-values span.selected::before { content: none; }
-
-/* ---------------- “intimate” table variant --------------------- */
-table.wf-table.intimate th,
-table.wf-table.intimate td {
-  padding   : 0.4rem 0.6rem;
-  font-size : 0.85rem;
+  color: #fff;
+  opacity: 1;
 }
 
-table.wf-table.intimate th:first-child,
-table.wf-table.intimate td.group-col {
-  font-weight: 500;
-  color      : var(--primary-dark);
+/* ----------------------------------------------------------------
+   Tables
+   ---------------------------------------------------------------- */
+table.wf-table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-table.wf-table.intimate td.group-col { width: 10%; }
-
-table.wf-table.intimate th:last-child,
-table.wf-table.intimate td:last-child { text-align: right; }
-
-table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); }
-
-/* ---------------- Status pills --------------------------------- */
-.status-pill {
-  display      : inline-flex;
-  align-items  : center;
-  justify-content: center;   /* center single icon / spinner */
-  padding      : 0.25rem;
-  border-radius: 12px;
-  font-size    : 0.85rem;
-  font-weight  : 600;
+table.wf-table th,
+table.wf-table td {
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  font-size: 0.8rem;
 }
 
-.status-failed {
-  background: #ffe5e5;
-  color     : #d64543;
-  border    : 1px solid #f5a8a8;
-}
-
-.status-succeeded {
-  background: #e7f9ed;
-  color     : var(--primary);
-  border    : 1px solid #a7e3c5;
-}
-
-/* 🆕 running pill uses a yellow-ish spinner icon */
-.status-running {
-  background: #fff4e6;
-  color     : #d98c00;
-  border    : 1px solid #f7d9b0;
-}
-
-/* -----------------------------------------------------------------
-   Labels expansion rows
-   ----------------------------------------------------------------- */
-.tr-labels td {
-  background: var(--labels-row-bg);
-  padding   : 0.6rem 1rem;
-}
-
-.wf-labels-list {
-  display   : flex;
-  flex-wrap : wrap;
-  gap       : 0.4rem 1rem;
-  font-size : 0.85rem;
-}
-
-.wf-labels-list code {
-  background   : var(--bg);
-  padding      : 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-family  : "Inter", monospace;
-}
-.wf-labels-list code strong { font-weight: 600; }
-.wf-labels-list em { opacity: 0.6; }
-
-/* ---------------- Modal --------------------------------------- */
-.modal-overlay {
-  position   : fixed;
-  inset      : 0;
-  background : rgba(0,0,0,0.45);
-  display    : flex;
-  align-items: center;
-  justify-content: center;
-  z-index    : 1000;
-}
-
-.modal-dialog {
-  background   : var(--card-bg);
-  color        : var(--text-color);
-  border-radius: 8px;
-  padding      : 1.8rem 2rem;
-  width        : min(90vw, 600px);
-  position     : relative;
-  box-shadow   : 0 4px 16px rgba(0,0,0,0.25);
-}
-
-.modal-dialog h2 { margin-top: 0; }
-
-.modal-close {
-  position  : absolute;
-  top       : 0.6rem;
-  right     : 0.8rem;
-  background: transparent;
-  border    : none;
-  font-size : 1.5rem;
-  cursor    : pointer;
-  color     : inherit;
-}
-
-/* ---------------- Spinner -------------------------------------- */
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.spinner {
-  display          : inline-block;
-  width            : 36px;
-  height           : 36px;
-  border           : 4px solid rgba(0,0,0,0.1);
-  border-top-color : var(--primary);
-  border-radius    : 50%;
-  animation        : spin 1s linear infinite;
-}
-
-.spinner-sm {
-  width         : 16px;
-  height        : 16px;
-  border-width  : 2px;
-  vertical-align: text-bottom;
-}
-
-/* ---------------- Log viewer ----------------------------------- */
-.log-viewer {
-  background: var(--log-bg);
-  color     : var(--text-color);
-}
-
-/* Single sticky block: toolbar + meta */
-.log-sticky {
-  position     : sticky;
-  top          : 0;
-  z-index      : 1;
-  background   : var(--log-bg);
-  border-bottom: 1px solid var(--border-color);
-  box-shadow   : 0 2px 6px rgba(0,0,0,0.06);
-}
-
-/* Toolbar (no longer sticky on its own) */
-.log-toolbar {
-  display    : flex;
-  align-items: center;
-  justify-content: space-between;
-  gap        : 0.75rem;
-  padding    : 0.5rem 1rem;
-}
-.log-toolbar-left { display: flex; align-items: center; gap: 0.5rem; }
-.log-toolbar-meta { opacity: 0.8; }
-.log-toolbar-actions { display: flex; gap: 0.5rem; }
-
-/* Icon + label layout for toolbar buttons */
-.log-toolbar .btn-icon { margin-right: 0.35rem; }
-.log-toolbar .btn-label { display: inline; }
-.log-toolbar .btn-icon svg {
-  width: 16px;
-  height: 16px;
-  display: inline-block;
-  vertical-align: text-bottom;
-}
-
-/* Log line container */
-.log-lines { padding: 0.5rem 1rem 1rem; }
-
-/* Failure summary inside the log viewer */
-.log-failure-banner {
-  margin      : 0.5rem 1rem 0.25rem;
-  padding     : 0.4rem 0.6rem;
-  background  : #ffe5e5;
-  color       : #d64543;
-  border      : 1px solid #f5a8a8;
-  border-radius: 4px;
-  font-size   : 0.85rem;
-  white-space : pre-wrap;
-}
-
-/* ---------- ANSI colour overrides for log viewer --------------- */
-.log-viewer .ansi-black-fg,
-.log-viewer .ansi-bright-black-fg {
-  color: var(--ansi-black-fg) !important;
-}
-.log-viewer .ansi-white-fg,
-.log-viewer .ansi-bright-white-fg {
-  color: var(--ansi-white-fg) !important;
-}
-
-/* ── Responsive: stack toolbar on small screens */
-@media (max-width: 640px) {
-  .log-toolbar {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
-  .log-toolbar-left,
-  .log-toolbar-actions {
-    flex: 1 1 100%;
-  }
-  .log-toolbar-actions {
-    display: flex;
-    gap: 0.4rem;
-    margin-top: 0.1rem;
-  }
-  /* On mobile, show icon-only buttons in the log toolbar */
-  .log-toolbar .btn-label { display: none; }
-  .log-toolbar .btn-icon { margin-right: 0; }
-.log-toolbar .btn,
-.log-toolbar .btn-light,
-.log-toolbar .btn-danger { padding: 0.4rem 0.55rem; }
-}
-
-/* Meta panel (labels + mini pipeline) inside the sticky block */
-.log-meta {
-  margin  : 0;
-  padding : 0.25rem 1rem 0.75rem;
-}
-
-/* I/O list rows inside the log viewer */
-.io-list { list-style: none; margin: 0; padding-left: 0; }
-.io-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.15rem 0.25rem;
-  border-radius: 4px;
-}
-.io-row:hover { background: var(--row-hover-intimate); }
-.io-row .io-text { flex: 1 1 auto; word-break: break-word; }
-.io-row .io-actions { flex: 0 0 auto; margin-left: 0.5rem; }
-.io-row .btn-light { padding: 0.15rem 0.35rem; }
-
-/* ---------------- Status pills --------------------------------- */
-.status-pill {
-  display      : inline-flex;
-  align-items  : center;
-  justify-content: center;   /* center single icon */
-  padding      : 0.25rem;
-  border-radius: 12px;
-  font-size    : 0.85rem;
-  font-weight  : 600;
-}
-
-.status-failed {
-  background: #ffe5e5;
-  color     : #d64543;
-  border    : 1px solid #f5a8a8;
-}
-
-/* ✅ NEW: icon-only pill for succeeded runs */
-.status-succeeded {
-  background: #e7f9ed;
-  color     : var(--primary);
-  border    : 1px solid #a7e3c5;
-}
-
-/* === Mini DAG preview ========================================= */
-.mini-dag {
-  display      : flex;
-  align-items  : center;
-  flex-wrap    : wrap;
-  gap          : 0.4rem;
-  font-size    : 0.7rem;   /* arrow size */
-}
-
-.dag-node {
-  width        : 14px;
-  height       : 14px;
-  border-radius: 50%;
-}
-
-.dag-arrow {
-  opacity      : 0.6;
-  line-height  : 1;
-}
-/* === Mini DAG v2: captions & clickability ===================== */
-.mini-dag {
-  display   : flex;
-  align-items: center;
-  flex-wrap : wrap;
-  gap       : 0.4rem;
-  font-size : 0.7rem;   /* arrow & caption size */
-}
-
-.dag-node-wrap {
-  display        : flex;
-  flex-direction : column;
-  align-items    : center;
-  gap            : 0.2rem;
-  cursor         : pointer;
-}
-
-.dag-node {                     /* bubble */
-  width        : 14px;
-  height       : 14px;
-  border-radius: 50%;
-}
-
-/* NEW — let captions expand & wrap instead of being ellipsised */
-.dag-caption {
-  text-align : center;
-  word-break : break-word;
-  line-height: 1.1;
-}
-
-.dag-arrow { opacity: 0.6; }
-
-/* selection highlight for current step */
-.dag-node-wrap.selected .dag-node {
-  box-shadow: 0 0 0 2px var(--primary-dark);
-}
-.dag-node-wrap.selected .dag-caption {
-  color: var(--primary-dark);
+table.wf-table thead th {
+  border-bottom: 2px solid var(--border);
   font-weight: 600;
 }
 
-/* ===== Fixed bottom pager ===================================== */
+table.wf-table tbody tr:nth-child(odd) { background: var(--row-alt); }
+table.wf-table tbody tr:hover { background: var(--row-hover); }
+
+table.wf-table th:last-child,
+table.wf-table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+table.wf-table.intimate th,
+table.wf-table.intimate td {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.78rem;
+}
+
+/* ----------------------------------------------------------------
+   Status Pills
+   ---------------------------------------------------------------- */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-failed {
+  background: #ffe5e5;
+  color: #d64543;
+  border: 1px solid #f5a8a8;
+}
+
+.status-succeeded {
+  background: #e7f9ed;
+  color: var(--primary);
+  border: 1px solid #a7e3c5;
+}
+
+.status-running {
+  background: #fff4e6;
+  color: #d98c00;
+  border: 1px solid #f7d9b0;
+}
+
+/* ----------------------------------------------------------------
+   Pager (fixed bottom)
+   ---------------------------------------------------------------- */
 .pager-bar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.5rem;
   background: var(--bg);
-  z-index: 900; /* below modals (1000) and log viewer (2000) */
-  /* subtle separation from content behind */
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+  z-index: 900;
+  box-shadow: 0 -2px 6px rgba(0,0,0,0.08);
 }
 
-.pager {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-}
+.pager { width: 100%; }
 
 .pager-inner {
   display: flex;
   align-items: center;
-  flex-wrap: nowrap;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.35rem;
   background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 0;
-  padding: 0.4rem 0.75rem;
-  font-size: 0.85rem; /* a tad smaller */
-  width: 100%;
-  overflow-x: auto;
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.5rem;
+  font-size: 0.78rem;
 }
 
-/* right-aligned action that appears on hover */
+.pager-inner .btn,
+.pager-inner .btn-light,
+.pager-inner .btn-danger {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.6rem;
+  min-height: 32px;
+}
+
 .pager-inner .smart-delete {
-  margin-left: auto;          /* push to right */
-  opacity: 0;                 /* hidden by default */
-  pointer-events: none;       /* ignore clicks when hidden */
-  transition: opacity 120ms ease-in-out;
+  margin-left: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
 }
-.pager-inner:hover .smart-delete {
-  opacity: 1;
-  pointer-events: auto;
-}
+
+.pager-inner:hover .smart-delete,
 .pager-inner:focus-within .smart-delete {
   opacity: 1;
   pointer-events: auto;
 }
 
-/* make the buttons in the pager slightly smaller too */
-.pager-inner .btn,
-.pager-inner .btn-light,
-.pager-inner .btn-danger {
-  font-size: 0.85rem;
-  padding: 0.3rem 0.9rem;
-}
-
-/* ===== Insert Panel - Responsive Design ========================== */
-
-/* Panel container */
-.insert-panel {
-  width: 100%;
-}
-
-/* Content wrapper */
-.insert-content {
-  padding: 1rem;
+/* ----------------------------------------------------------------
+   Modal
+   ---------------------------------------------------------------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-/* Section layout */
-.insert-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-/* Labels */
-.insert-label {
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--text-color);
-  margin-bottom: 0.25rem;
-}
-
-/* Template buttons grid */
-.template-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.template-btn {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.6rem 1rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
+  z-index: 1000;
+}
+
+.modal-dialog {
   background: var(--card-bg);
-  color: var(--text-color);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  width: min(92vw, 500px);
+  position: relative;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+
+.modal-dialog h2 { margin-top: 0; font-size: 1.1rem; }
+
+.modal-close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.6rem;
+  background: transparent;
+  border: none;
+  font-size: 1.3rem;
   cursor: pointer;
-  transition: all 0.15s ease;
-  min-height: 44px;
+  color: inherit;
 }
 
-.template-btn:hover {
-  border-color: var(--primary);
-  background: rgba(24, 190, 148, 0.08);
+/* ----------------------------------------------------------------
+   Spinner
+   ---------------------------------------------------------------- */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.spinner {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(0,0,0,0.1);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
-.template-btn.active {
-  background: var(--primary);
-  color: #fff;
-  border-color: var(--primary);
+.spinner-sm {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
 }
 
-/* Description text */
-.insert-description {
-  font-style: italic;
-  opacity: 0.75;
-  font-size: 0.9rem;
-  padding: 0.5rem 0;
+/* ----------------------------------------------------------------
+   Log Viewer
+   ---------------------------------------------------------------- */
+.log-viewer {
+  background: var(--log-bg);
+  color: var(--text);
 }
 
-/* Form container */
-.insert-form {
+.log-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--log-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.log-toolbar {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 1rem;
-  background: var(--card-bg);
-}
-
-/* Field rows */
-.insert-field {
-  display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  flex-wrap: wrap;
 }
 
-/* Input fields */
-.insert-input {
-  width: 100%;
-  padding: 0.6rem 0.75rem;
-  font-size: 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg);
-  color: var(--text-color);
-  min-height: 44px;
-}
+.log-toolbar-left { display: flex; align-items: center; gap: 0.4rem; }
+.log-toolbar-meta { opacity: 0.8; font-size: 0.8rem; }
+.log-toolbar-actions { display: flex; gap: 0.35rem; }
 
-.insert-input:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(24, 190, 148, 0.2);
-}
+.log-toolbar .btn-icon { margin-right: 0.2rem; }
+.log-toolbar .btn-label { display: inline; }
 
-/* Small input for inline add */
-.insert-input-small {
-  padding: 0.4rem 0.6rem;
-  font-size: 0.9rem;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg);
-  color: var(--text-color);
-  min-height: 40px;
-  width: 120px;
-}
+.log-lines { padding: 0.4rem 0.75rem; }
 
-/* Textarea */
-.insert-textarea {
-  width: 100%;
-  padding: 0.75rem;
-  font-size: 0.9rem;
-  font-family: monospace;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg);
-  color: var(--text-color);
-  resize: vertical;
-}
-
-/* Event data section */
-.insert-event-data {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.insert-toggle-raw {
-  align-self: flex-end;
-  padding: 0.3rem 0.6rem;
+.log-failure-banner {
+  margin: 0.4rem 0.75rem;
+  padding: 0.35rem 0.5rem;
+  background: #ffe5e5;
+  color: #d64543;
+  border: 1px solid #f5a8a8;
+  border-radius: 3px;
   font-size: 0.8rem;
+  white-space: pre-wrap;
 }
 
-.insert-fields {
+.log-meta { padding: 0.2rem 0.75rem 0.5rem; }
+
+/* ANSI overrides */
+.log-viewer .ansi-black-fg,
+.log-viewer .ansi-bright-black-fg { color: var(--ansi-black-fg) !important; }
+.log-viewer .ansi-white-fg,
+.log-viewer .ansi-bright-white-fg { color: var(--ansi-white-fg) !important; }
+
+/* I/O list */
+.io-list { list-style: none; margin: 0; padding: 0; }
+.io-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 0.15rem 0.2rem;
+  border-radius: 3px;
+}
+.io-row:hover { background: var(--row-hover); }
+.io-row .io-text { flex: 1; word-break: break-word; font-size: 0.8rem; }
+.io-row .io-actions { flex: 0 0 auto; }
+
+/* ----------------------------------------------------------------
+   Mini DAG
+   ---------------------------------------------------------------- */
+.mini-dag {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  font-size: 0.65rem;
+}
+
+.dag-node-wrap {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-}
-
-/* Option buttons (suggestions) */
-.insert-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
   align-items: center;
-}
-
-.option-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg);
-  color: var(--text-color);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  min-height: 40px;
-}
-
-.option-btn:hover {
-  border-color: var(--primary);
-  background: rgba(24, 190, 148, 0.08);
-}
-
-.option-btn.active {
-  background: var(--primary);
-  color: #fff;
-  border-color: var(--primary);
-}
-
-.option-btn.add-btn {
-  padding: 0.5rem 0.75rem;
-  font-weight: 600;
-}
-
-/* Inline add input group */
-.insert-add-input {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-/* Actions row */
-.insert-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding-top: 0.5rem;
-}
-
-.insert-submit {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  min-height: 48px;
-}
-
-.insert-msg {
-  color: var(--primary);
-  font-weight: 500;
-}
-
-/* Checkbox label */
-.insert-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
+  gap: 0.15rem;
   cursor: pointer;
 }
 
-.insert-checkbox input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+.dag-node {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
 }
 
-.insert-empty {
-  opacity: 0.6;
-  font-style: italic;
+.dag-caption {
+  text-align: center;
+  word-break: break-word;
+  line-height: 1.1;
 }
 
-/* ===== Mobile Responsive ========================================== */
-@media (max-width: 640px) {
-  /* Larger touch targets for all buttons */
-  .btn,
-  .btn-danger,
-  .btn-light {
-    padding: 0.6rem 1rem;
-    font-size: 1rem;
+.dag-arrow { opacity: 0.6; }
+
+.dag-node-wrap.selected .dag-node { box-shadow: 0 0 0 2px var(--primary-dark); }
+.dag-node-wrap.selected .dag-caption { color: var(--primary-dark); font-weight: 600; }
+
+/* ----------------------------------------------------------------
+   Theme Toggle
+   ---------------------------------------------------------------- */
+.theme-toggle-btn {
+  transition: background 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.theme-toggle-btn--auto {
+  background: radial-gradient(circle at top left, rgba(248,250,252,0.85), rgba(24,190,148,0.12));
+}
+
+.theme-toggle-btn--light {
+  background: linear-gradient(135deg, rgba(248,250,252,0.95), rgba(148,163,184,0.22));
+}
+
+.theme-toggle-btn--dark {
+  background: linear-gradient(135deg, #0f172a, #1f2937);
+  color: #f9fafb;
+  border-color: rgba(249,250,251,0.9);
+}
+
+.header .theme-toggle-btn { color: #fff; border-color: #fff; }
+.header .theme-toggle-btn:hover { background: rgba(255,255,255,0.12); }
+
+/* ----------------------------------------------------------------
+   Mobile Responsive (2 buttons per row, larger touch targets)
+   ---------------------------------------------------------------- */
+@media (max-width: 600px) {
+  html { font-size: 90%; }
+
+  .header { padding: 0.4rem 0.5rem; }
+  .header h1 { font-size: 1rem; }
+
+  /* Two buttons per row on mobile */
+  .btn-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.4rem;
+  }
+
+  .grid-btn {
     min-height: 44px;
+    padding: 0.5rem 0.4rem;
+    font-size: 0.78rem;
   }
 
-  /* Template buttons full width on small screens */
-  .template-buttons {
-    flex-direction: column;
+  /* Larger touch targets */
+  .btn, .btn-danger, .btn-light {
+    min-height: 40px;
+    padding: 0.4rem 0.7rem;
   }
 
-  .template-btn {
+  .opt-btn {
+    min-height: 38px;
+    padding: 0.4rem 0.6rem;
+  }
+
+  .submit-btn {
     width: 100%;
-    justify-content: flex-start;
-    padding: 0.75rem 1rem;
-  }
-
-  /* Option buttons larger on mobile */
-  .option-btn {
-    padding: 0.6rem 0.9rem;
-    font-size: 0.95rem;
     min-height: 44px;
   }
 
-  /* Submit button full width */
-  .insert-actions {
+  .actions {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .insert-submit {
-    width: 100%;
+  /* Pager */
+  .pager-inner {
+    gap: 0.3rem;
+    padding: 0.25rem 0.4rem;
   }
 
-  /* Pager buttons sized for touch */
   .pager-inner .btn,
   .pager-inner .btn-light,
   .pager-inner .btn-danger {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.9rem;
-    min-height: 40px;
+    min-height: 36px;
+    padding: 0.3rem 0.5rem;
   }
 
-  /* Make pager wrap if needed */
-  .pager-inner {
-    flex-wrap: wrap;
-    gap: 0.4rem;
+  /* Log toolbar */
+  .log-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .log-toolbar-left,
+  .log-toolbar-actions {
+    width: 100%;
+  }
+
+  .log-toolbar .btn-label { display: none; }
+  .log-toolbar .btn-icon { margin: 0; }
+
+  .log-toolbar .btn,
+  .log-toolbar .btn-light,
+  .log-toolbar .btn-danger {
+    padding: 0.35rem 0.45rem;
+    min-height: 36px;
+  }
+
+  /* Table */
+  table.wf-table th,
+  table.wf-table td {
+    padding: 0.35rem 0.3rem;
+    font-size: 0.75rem;
+  }
+
+  /* Panels */
+  .panel-body {
+    padding: 0.4rem 0.5rem;
+  }
+}
+
+/* Larger phones / small tablets */
+@media (min-width: 601px) and (max-width: 900px) {
+  .btn-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Desktop */
+@media (min-width: 901px) {
+  .btn-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
 }
