@@ -776,63 +776,280 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
   padding: 0.3rem 0.9rem;
 }
 
-/* ===== Mobile: Insert panel full width & larger touch targets ===== */
-@media (max-width: 640px) {
-  /* Force insert panel full width on mobile (override inline styles) */
-  .filter-panel {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-  }
+/* ===== Insert Panel - Responsive Design ========================== */
 
-  /* Larger, easier-to-tap buttons throughout */
+/* Panel container */
+.insert-panel {
+  width: 100%;
+}
+
+/* Content wrapper */
+.insert-content {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Section layout */
+.insert-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Labels */
+.insert-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-color);
+  margin-bottom: 0.25rem;
+}
+
+/* Template buttons grid */
+.template-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.template-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 44px;
+}
+
+.template-btn:hover {
+  border-color: var(--primary);
+  background: rgba(24, 190, 148, 0.08);
+}
+
+.template-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* Description text */
+.insert-description {
+  font-style: italic;
+  opacity: 0.75;
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+/* Form container */
+.insert-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 1rem;
+  background: var(--card-bg);
+}
+
+/* Field rows */
+.insert-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Input fields */
+.insert-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-color);
+  min-height: 44px;
+}
+
+.insert-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(24, 190, 148, 0.2);
+}
+
+/* Small input for inline add */
+.insert-input-small {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-color);
+  min-height: 40px;
+  width: 120px;
+}
+
+/* Textarea */
+.insert-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 0.9rem;
+  font-family: monospace;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-color);
+  resize: vertical;
+}
+
+/* Event data section */
+.insert-event-data {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.insert-toggle-raw {
+  align-self: flex-end;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.insert-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Option buttons (suggestions) */
+.insert-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.option-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 40px;
+}
+
+.option-btn:hover {
+  border-color: var(--primary);
+  background: rgba(24, 190, 148, 0.08);
+}
+
+.option-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.option-btn.add-btn {
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+}
+
+/* Inline add input group */
+.insert-add-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Actions row */
+.insert-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 0.5rem;
+}
+
+.insert-submit {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  min-height: 48px;
+}
+
+.insert-msg {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+/* Checkbox label */
+.insert-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.insert-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+.insert-empty {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* ===== Mobile Responsive ========================================== */
+@media (max-width: 640px) {
+  /* Larger touch targets for all buttons */
   .btn,
   .btn-danger,
   .btn-light {
     padding: 0.6rem 1rem;
     font-size: 1rem;
-    min-height: 44px;  /* iOS recommended touch target */
-  }
-
-  /* Form buttons in trigger panel */
-  .trigger-form .btn,
-  .trigger-form .btn-light {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.95rem;
-    min-height: 40px;
-  }
-
-  /* Dropdown select easier to tap */
-  .trigger-select {
-    padding: 0.5rem 0.75rem;
-    font-size: 1rem;
     min-height: 44px;
+  }
+
+  /* Template buttons full width on small screens */
+  .template-buttons {
+    flex-direction: column;
+  }
+
+  .template-btn {
     width: 100%;
+    justify-content: flex-start;
+    padding: 0.75rem 1rem;
   }
 
-  /* Stack form rows vertically on mobile */
-  .trigger-form > div {
-    flex-direction: column !important;
-    align-items: stretch !important;
-  }
-
-  .trigger-form label {
-    width: 100% !important;
-    margin-bottom: 0.25rem;
-  }
-
-  .trigger-form input,
-  .trigger-form textarea {
-    width: 100% !important;
-    padding: 0.5rem;
-    font-size: 1rem;
+  /* Option buttons larger on mobile */
+  .option-btn {
+    padding: 0.6rem 0.9rem;
+    font-size: 0.95rem;
     min-height: 44px;
   }
 
-  /* Suggestion buttons wrap better & easier to tap */
-  .trigger-form .btn-light,
-  .trigger-form .btn {
-    margin-bottom: 0.25rem;
+  /* Submit button full width */
+  .insert-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .insert-submit {
+    width: 100%;
   }
 
   /* Pager buttons sized for touch */

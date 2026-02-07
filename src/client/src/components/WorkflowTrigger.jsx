@@ -1,5 +1,5 @@
 /* WorkflowTrigger – pick a WorkflowTemplate, fill in parameters,
-   hit “Insert”. Dropdown suggestions are harvested from past runs. */
+   hit "Insert". Dropdown suggestions are harvested from past runs. */
 
 import React, {
   useEffect,
@@ -91,38 +91,6 @@ async function collectSuggestions(templateName) {
   return flat;
 }
 
-/* ------------------------------------------------------------------ */
-/*  SuggestInput – always opens its <datalist> picker on click/focus  */
-/* ------------------------------------------------------------------ */
-function SuggestInput({ listId, value, onChange, style = {} }) {
-  const ref = useRef(null);
-
-  const openPicker = () => {
-    const el = ref.current;
-    if (!el?.showPicker) return;
-
-    const orig = el.value;
-    el.value = "";
-    el.showPicker();
-    setTimeout(() => {
-      el.value = orig;
-      try { el.setSelectionRange(orig.length, orig.length); } catch {}
-    });
-  };
-
-  return (
-    <input
-      ref={ref}
-      list={listId}
-      value={value}
-      onChange={onChange}
-      onFocus={openPicker}
-      onMouseDown={openPicker}
-      style={style}
-    />
-  );
-}
-
 /* ================================================================== */
 /*  Main component                                                    */
 /* ================================================================== */
@@ -211,18 +179,11 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   const doSubmit = async () => {
     setConfirming(false); setSubmitting(true);
     try {
-      // 🆕 include resourceName so the server can derive the event endpoint
       await submitWorkflow({ resourceName: selected, template: selected, parameters: params });
-      setInfoMsg("✅ Submitted!"); setTimeout(() => setInfoMsg(""), 3000);
+      setInfoMsg("Submitted!"); setTimeout(() => setInfoMsg(""), 3000);
     } catch (e) { onError(e.message); }
     finally     { setSubmitting(false); }
   };
-
-  /* styling shorthands */
-  const panel = { width: "50%", minWidth: 320, maxWidth: "50vw", marginLeft: 0 };
-  const formCard = { border: "1px solid #cbd5e1", borderRadius: 6, padding: "1rem", marginBottom: "0.75rem" };
-  const kvRow      = { display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" };
-  const labelStyle = { width: 120, fontWeight: 500 };
 
   const visibleTemplates = templates.filter(
     (t) => !(hideTemp && t.metadata.name.startsWith("template-"))
@@ -232,38 +193,47 @@ export default function WorkflowTrigger({ onError = () => {} }) {
 
   return (
     <>
-      <details className="filter-panel" style={panel}>
+      <details className="filter-panel insert-panel">
         <summary className="filter-title">Insert</summary>
 
-        <div style={{ padding: "0.75rem 1rem" }}>
-          {/* ── template picker ─────────────────────────────────── */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
-            <select
-              className="trigger-select"
-              value={selected}
-              onChange={(e) => setSelected(e.target.value)}
-            >
-              <option value="">-- choose template --</option>
+        <div className="insert-content">
+          {/* Template selector as button grid */}
+          <div className="insert-section">
+            <label className="insert-label">Template</label>
+            <div className="template-buttons">
               {visibleTemplates.map((t) => (
-                <option key={t.metadata.name}>{t.metadata.name}</option>
+                <button
+                  key={t.metadata.name}
+                  type="button"
+                  className={selected === t.metadata.name ? "template-btn active" : "template-btn"}
+                  onClick={() => setSelected(t.metadata.name)}
+                >
+                  {t.metadata.name}
+                </button>
               ))}
-            </select>
-            {selected && description && (
-              <span style={{ fontStyle: "italic", opacity: 0.7 }}>{description}</span>
-            )}
+              {visibleTemplates.length === 0 && (
+                <span className="insert-empty">No templates available</span>
+              )}
+            </div>
           </div>
 
-          {/* ── parameters form ────────────────────────────────── */}
+          {/* Description */}
+          {selected && description && (
+            <div className="insert-description">{description}</div>
+          )}
+
+          {/* Parameters form */}
           {selected && (
-            <div className="trigger-form" style={formCard}>
-              {/* scalar parameters */}
+            <div className="insert-form">
+              {/* Scalar parameters */}
               {Object.keys(params)
                 .filter((n) => n !== "event-data")
                 .map((name) => (
-                  <div key={name} style={kvRow}>
-                    <label style={labelStyle}>{name}</label>
+                  <div key={name} className="insert-field">
+                    <label className="insert-label">{name}</label>
                     <input
-                      style={{ flex: 1 }}
+                      type="text"
+                      className="insert-input"
                       value={params[name]}
                       onChange={(e) =>
                         setParams((p) => ({ ...p, [name]: e.target.value }))}
@@ -271,42 +241,41 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                   </div>
                 ))}
 
-              {/* event-data block */}
+              {/* Event-data block */}
               {params["event-data"] !== undefined && (
-                <div style={{ margin: "0.75rem 0" }}>
+                <div className="insert-event-data">
                   {showRawButton && (
                     <button
-                      className="btn-light"
-                      style={{ float: "right", marginTop: -4, fontSize: "0.8rem", padding: "0.15rem 0.5rem" }}
+                      type="button"
+                      className="btn-light insert-toggle-raw"
                       onClick={() => setRawView((r) => !r)}
                     >
-                      {rawView ? "Form" : "Raw"}
+                      {rawView ? "Form View" : "Raw JSON"}
                     </button>
                   )}
 
-                  <div style={{ clear: "both", marginTop: rawView ? 6 : 0 }}>
-                    {rawView ? (
-                      <textarea
-                        rows={4}
-                        style={{ width: "100%" }}
-                        value={params["event-data"]}
-                        onChange={(e) =>
-                          setParams((p) => ({ ...p, "event-data": e.target.value }))}
-                      />
-                    ) : (
-                      Object.entries(parsedObj()).map(([k, v]) => {
+                  {rawView ? (
+                    <textarea
+                      className="insert-textarea"
+                      rows={6}
+                      value={params["event-data"]}
+                      onChange={(e) =>
+                        setParams((p) => ({ ...p, "event-data": e.target.value }))}
+                    />
+                  ) : (
+                    <div className="insert-fields">
+                      {Object.entries(parsedObj()).map(([k, v]) => {
                         const opts = suggestions[k] || [];
                         const isAdding = addingField === k;
                         return (
-                          <div key={k} style={{ ...kvRow, flexWrap: "wrap" }}>
-                            <label style={labelStyle}>{k}</label>
-                            <div style={{ flex: 1, display: "flex", flexWrap: "wrap", gap: "0.25rem", alignItems: "center" }}>
+                          <div key={k} className="insert-field">
+                            <label className="insert-label">{k}</label>
+                            <div className="insert-options">
                               {opts.map((val) => (
                                 <button
                                   key={val}
                                   type="button"
-                                  className={v === val ? "btn" : "btn-light"}
-                                  style={{ fontSize: "0.8rem", padding: "0.2rem 0.5rem" }}
+                                  className={v === val ? "option-btn active" : "option-btn"}
                                   onClick={() => handleFieldChange(k, val)}
                                 >
                                   {val}
@@ -315,18 +284,17 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                               {v && !opts.includes(v) && (
                                 <button
                                   type="button"
-                                  className="btn"
-                                  style={{ fontSize: "0.8rem", padding: "0.2rem 0.5rem" }}
-                                  onClick={() => {}}
+                                  className="option-btn active"
                                 >
                                   {v}
                                 </button>
                               )}
                               {isAdding ? (
-                                <span style={{ display: "inline-flex", gap: "0.25rem", alignItems: "center" }}>
+                                <span className="insert-add-input">
                                   <input
                                     autoFocus
-                                    style={{ width: 120, fontSize: "0.8rem", padding: "0.2rem 0.3rem" }}
+                                    type="text"
+                                    className="insert-input-small"
                                     value={newFieldValue}
                                     onChange={(e) => setNewFieldValue(e.target.value)}
                                     onKeyDown={(e) => {
@@ -342,8 +310,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                                   />
                                   <button
                                     type="button"
-                                    className="btn"
-                                    style={{ fontSize: "0.8rem", padding: "0.2rem 0.4rem" }}
+                                    className="option-btn"
                                     onClick={() => {
                                       if (newFieldValue.trim()) {
                                         handleFieldChange(k, newFieldValue.trim());
@@ -358,8 +325,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                               ) : (
                                 <button
                                   type="button"
-                                  className="btn-light"
-                                  style={{ fontSize: "0.8rem", padding: "0.2rem 0.4rem" }}
+                                  className="option-btn add-btn"
                                   onClick={() => { setAddingField(k); setNewFieldValue(""); }}
                                 >
                                   +
@@ -368,37 +334,42 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                             </div>
                           </div>
                         );
-                      })
-                    )}
-                  </div>
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* submit button */}
-              <button className="btn" disabled={submitting} onClick={() => setConfirming(true)}>
-                {submitting ? <Spinner small /> : "Insert"}
-              </button>
-              <span style={{ marginLeft: "0.75rem" }}>{infoMsg}</span>
+              {/* Submit button */}
+              <div className="insert-actions">
+                <button
+                  type="button"
+                  className="btn insert-submit"
+                  disabled={submitting}
+                  onClick={() => setConfirming(true)}
+                >
+                  {submitting ? <Spinner small /> : "Insert Workflow"}
+                </button>
+                {infoMsg && <span className="insert-msg">{infoMsg}</span>}
+              </div>
             </div>
           )}
 
-          {/* toggle template-* visibility */}
+          {/* Toggle template-* visibility */}
           {showHideTemplateCheckbox && (
-            <div style={{ fontSize: "0.85rem" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                <input
-                  type="checkbox"
-                  checked={hideTemp}
-                  onChange={(e) => setHideTemp(e.target.checked)}
-                />
-                Hide <code>template-*</code> templates
-              </label>
-            </div>
+            <label className="insert-checkbox">
+              <input
+                type="checkbox"
+                checked={hideTemp}
+                onChange={(e) => setHideTemp(e.target.checked)}
+              />
+              Hide <code>template-*</code> templates
+            </label>
           )}
         </div>
       </details>
 
-      {/* confirmation modal */}
+      {/* Confirmation modal */}
       {confirming && (
         <InsertConfirmModal
           template={selected}
