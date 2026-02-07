@@ -775,3 +775,78 @@ table.wf-table.intimate tbody tr:hover { background: var(--row-hover-intimate); 
   font-size: 0.85rem;
   padding: 0.3rem 0.9rem;
 }
+
+/* ===== Mobile: Insert panel full width & larger touch targets ===== */
+@media (max-width: 640px) {
+  /* Force insert panel full width on mobile (override inline styles) */
+  .filter-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Larger, easier-to-tap buttons throughout */
+  .btn,
+  .btn-danger,
+  .btn-light {
+    padding: 0.6rem 1rem;
+    font-size: 1rem;
+    min-height: 44px;  /* iOS recommended touch target */
+  }
+
+  /* Form buttons in trigger panel */
+  .trigger-form .btn,
+  .trigger-form .btn-light {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.95rem;
+    min-height: 40px;
+  }
+
+  /* Dropdown select easier to tap */
+  .trigger-select {
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    min-height: 44px;
+    width: 100%;
+  }
+
+  /* Stack form rows vertically on mobile */
+  .trigger-form > div {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .trigger-form label {
+    width: 100% !important;
+    margin-bottom: 0.25rem;
+  }
+
+  .trigger-form input,
+  .trigger-form textarea {
+    width: 100% !important;
+    padding: 0.5rem;
+    font-size: 1rem;
+    min-height: 44px;
+  }
+
+  /* Suggestion buttons wrap better & easier to tap */
+  .trigger-form .btn-light,
+  .trigger-form .btn {
+    margin-bottom: 0.25rem;
+  }
+
+  /* Pager buttons sized for touch */
+  .pager-inner .btn,
+  .pager-inner .btn-light,
+  .pager-inner .btn-danger {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    min-height: 40px;
+  }
+
+  /* Make pager wrap if needed */
+  .pager-inner {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+}
