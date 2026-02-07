@@ -129,6 +129,8 @@ function SuggestInput({ listId, value, onChange, style = {} }) {
 export default function WorkflowTrigger({ onError = () => {} }) {
   const runtime = (typeof window !== "undefined" && window.__ENV__) || {};
   const canSubmit = String(runtime.canSubmit ?? "true").toLowerCase() === "true";
+  const showRawButton = String(runtime.showRawButton || "").toLowerCase() === "true";
+  const showHideTemplateCheckbox = String(runtime.showHideTemplateCheckbox || "").toLowerCase() === "true";
   const [templates,   setTemplates]   = useState([]);
   const [selected,    setSelected]    = useState("");
   const [params,      setParams]      = useState({});
@@ -140,6 +142,8 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   const [submitting,setSubmitting]= useState(false);
   const [confirming,setConfirming]= useState(false);
   const [infoMsg,   setInfoMsg]   = useState("");
+  const [addingField, setAddingField] = useState(null);
+  const [newFieldValue, setNewFieldValue] = useState("");
 
   /* load templates once */
   useEffect(() => {
@@ -269,19 +273,18 @@ export default function WorkflowTrigger({ onError = () => {} }) {
 
               {/* event-data block */}
               {params["event-data"] !== undefined && (
-                <div style={{ border: "1px solid #e2e8f0", borderRadius: 4, padding: "0.75rem", margin: "0.75rem 0" }}>
-                  <label style={{ ...labelStyle, borderBottom: "1px solid #e2e8f0", paddingBottom: 4 }}>
-                    event-data
-                  </label>
-                  <button
-                    className="btn-light"
-                    style={{ float: "right", marginTop: -4, fontSize: "0.8rem", padding: "0.15rem 0.5rem" }}
-                    onClick={() => setRawView((r) => !r)}
-                  >
-                    {rawView ? "Form" : "Raw"}
-                  </button>
+                <div style={{ margin: "0.75rem 0" }}>
+                  {showRawButton && (
+                    <button
+                      className="btn-light"
+                      style={{ float: "right", marginTop: -4, fontSize: "0.8rem", padding: "0.15rem 0.5rem" }}
+                      onClick={() => setRawView((r) => !r)}
+                    >
+                      {rawView ? "Form" : "Raw"}
+                    </button>
+                  )}
 
-                  <div style={{ clear: "both", marginTop: rawView ? 6 : 10 }}>
+                  <div style={{ clear: "both", marginTop: rawView ? 6 : 0 }}>
                     {rawView ? (
                       <textarea
                         rows={4}
@@ -293,31 +296,76 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                     ) : (
                       Object.entries(parsedObj()).map(([k, v]) => {
                         const opts = suggestions[k] || [];
-                        const listId = `sugg-${k}`;
+                        const isAdding = addingField === k;
                         return (
-                          <div key={k} style={kvRow}>
+                          <div key={k} style={{ ...kvRow, flexWrap: "wrap" }}>
                             <label style={labelStyle}>{k}</label>
-                            {opts.length ? (
-                              <>
-                                <SuggestInput
-                                  listId={listId}
-                                  style={{ flex: 1 }}
-                                  value={v}
-                                  onChange={(e) => handleFieldChange(k, e.target.value)}
-                                />
-                                <datalist id={listId}>
-                                  {opts.map((val) => (
-                                    <option key={val} value={val} />
-                                  ))}
-                                </datalist>
-                              </>
-                            ) : (
-                              <input
-                                style={{ flex: 1 }}
-                                value={v}
-                                onChange={(e) => handleFieldChange(k, e.target.value)}
-                              />
-                            )}
+                            <div style={{ flex: 1, display: "flex", flexWrap: "wrap", gap: "0.25rem", alignItems: "center" }}>
+                              {opts.map((val) => (
+                                <button
+                                  key={val}
+                                  type="button"
+                                  className={v === val ? "btn" : "btn-light"}
+                                  style={{ fontSize: "0.8rem", padding: "0.2rem 0.5rem" }}
+                                  onClick={() => handleFieldChange(k, val)}
+                                >
+                                  {val}
+                                </button>
+                              ))}
+                              {v && !opts.includes(v) && (
+                                <button
+                                  type="button"
+                                  className="btn"
+                                  style={{ fontSize: "0.8rem", padding: "0.2rem 0.5rem" }}
+                                  onClick={() => {}}
+                                >
+                                  {v}
+                                </button>
+                              )}
+                              {isAdding ? (
+                                <span style={{ display: "inline-flex", gap: "0.25rem", alignItems: "center" }}>
+                                  <input
+                                    autoFocus
+                                    style={{ width: 120, fontSize: "0.8rem", padding: "0.2rem 0.3rem" }}
+                                    value={newFieldValue}
+                                    onChange={(e) => setNewFieldValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && newFieldValue.trim()) {
+                                        handleFieldChange(k, newFieldValue.trim());
+                                        setAddingField(null);
+                                        setNewFieldValue("");
+                                      } else if (e.key === "Escape") {
+                                        setAddingField(null);
+                                        setNewFieldValue("");
+                                      }
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="btn"
+                                    style={{ fontSize: "0.8rem", padding: "0.2rem 0.4rem" }}
+                                    onClick={() => {
+                                      if (newFieldValue.trim()) {
+                                        handleFieldChange(k, newFieldValue.trim());
+                                      }
+                                      setAddingField(null);
+                                      setNewFieldValue("");
+                                    }}
+                                  >
+                                    OK
+                                  </button>
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="btn-light"
+                                  style={{ fontSize: "0.8rem", padding: "0.2rem 0.4rem" }}
+                                  onClick={() => { setAddingField(k); setNewFieldValue(""); }}
+                                >
+                                  +
+                                </button>
+                              )}
+                            </div>
                           </div>
                         );
                       })
@@ -335,16 +383,18 @@ export default function WorkflowTrigger({ onError = () => {} }) {
           )}
 
           {/* toggle template-* visibility */}
-          <div style={{ fontSize: "0.85rem" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              <input
-                type="checkbox"
-                checked={hideTemp}
-                onChange={(e) => setHideTemp(e.target.checked)}
-              />
-              Hide <code>template-*</code> templates
-            </label>
-          </div>
+          {showHideTemplateCheckbox && (
+            <div style={{ fontSize: "0.85rem" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                <input
+                  type="checkbox"
+                  checked={hideTemp}
+                  onChange={(e) => setHideTemp(e.target.checked)}
+                />
+                Hide <code>template-*</code> templates
+              </label>
+            </div>
+          )}
         </div>
       </details>
 

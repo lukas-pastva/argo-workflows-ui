@@ -153,14 +153,16 @@ if (DEBUG_LOGS) {
 /* ─── Runtime config exposed for the SPA ─────────────────────────── */
 app.get("/env.js", (req, res) => {
   const cfg = {
-    skipLabels           : process.env.VITE_SKIP_LABELS            || "",
-    collapsedLabelGroups : process.env.VITE_COLLAPSED_LABEL_GROUPS || "",
-    labelPrefixTrim      : process.env.VITE_LABEL_PREFIX_TRIM      || "",
-    headerBg             : process.env.VITE_HEADER_BG              || "",
-    listLabelColumns     : process.env.VITE_LIST_LABEL_COLUMNS     || "",
-    useUtcTime           : process.env.VITE_USE_UTC_TIME           || "",
+    skipLabels              : process.env.VITE_SKIP_LABELS               || "",
+    collapsedLabelGroups    : process.env.VITE_COLLAPSED_LABEL_GROUPS    || "",
+    labelPrefixTrim         : process.env.VITE_LABEL_PREFIX_TRIM         || "",
+    headerBg                : process.env.VITE_HEADER_BG                 || "",
+    listLabelColumns        : process.env.VITE_LIST_LABEL_COLUMNS        || "",
+    useUtcTime              : process.env.VITE_USE_UTC_TIME              || "",
+    showRawButton           : process.env.VITE_SHOW_RAW_BUTTON           || "",
+    showHideTemplateCheckbox: process.env.VITE_SHOW_HIDE_TEMPLATE_CHECKBOX || "",
     // Permissions derived from oauth2-proxy group headers
-    role                 : (req?.auth?.role) || decideRole(requestGroups(req)),
+    role                    : (req?.auth?.role) || decideRole(requestGroups(req)),
   };
   // Convenience booleans for UI logic
   cfg.canSubmit = cfg.role !== "readonly";

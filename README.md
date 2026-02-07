@@ -25,7 +25,7 @@ A lightweight, single-container web interface for Kubernetes **Argo Workflows**.
 | Variable                         | Purpose                                                                 | Default                                                                                  |
 |----------------------------------|-------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
 | **`ARGO_WORKFLOWS_URL`**         | Base URL of the Argo Workflows **API server** (used for list/logs).    | `http://argo-workflows-server:2746`                                                      |
-| **`ARGO_WORKFLOWS_TOKEN`**       | Bearer token; omit to auto-use the pod’s SA token.                      | *(auto)*                                                                                |
+| **`ARGO_WORKFLOWS_TOKEN`**       | Bearer token; omit to auto-use the pod's SA token.                      | *(auto)*                                                                                |
 | **`ARGO_WORKFLOWS_NAMESPACE`**   | Namespace to operate in.                                                | `$POD_NAMESPACE` or `default`                                                            |
 | `DEBUG_LOGS`                     | Verbose server logging.                                                 | `false`                                                                                  |
 | **`CREATE_MODE`**                | Workflow create backend: `events` or `k8s`.                             | `events`                                                                                |
@@ -38,6 +38,9 @@ A lightweight, single-container web interface for Kubernetes **Argo Workflows**.
 | `K8S_API_URL`                    | Kubernetes API base URL.                                                | `https://kubernetes.default.svc`                                                         |
 | `K8S_CA_PATH`                    | Path to cluster CA certificate.                                         | `/var/run/secrets/kubernetes.io/serviceaccount/ca.crt`                                   |
 | `K8S_INSECURE_SKIP_TLS_VERIFY`   | Skip TLS verification if no CA is available.                            | `false`                                                                                  |
+| **UI customization** |  |  |
+| `VITE_SHOW_RAW_BUTTON`           | Show the Raw/Form toggle button in the Insert panel.                    | `false`                                                                                  |
+| `VITE_SHOW_HIDE_TEMPLATE_CHECKBOX` | Show the "Hide template-* templates" checkbox in the Insert panel.    | `false`                                                                                  |
 
 
 ### Role-based access (with oauth2-proxy)
