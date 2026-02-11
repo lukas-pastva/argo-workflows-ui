@@ -90,7 +90,15 @@ export default function WorkflowTrigger({ onError = () => {} }) {
   const [infoMsg, setInfoMsg] = useState("");
   const [addingField, setAddingField] = useState(null);
   const [newFieldValue, setNewFieldValue] = useState("");
-  const [showParams, setShowParams] = useState(false);
+  const [expandedFields, setExpandedFields] = useState(new Set());
+  const toggleField = (name) => {
+    setExpandedFields((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
 
   useEffect(() => {
     listTemplates().then(setTemplates).catch((e) => onError(e.message));
@@ -164,7 +172,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                 <span className="btn-text">{selected}</span>
               </button>
               <button type="button" className="btn-sm deselect-btn"
-                onClick={() => { setSelected(""); setShowParams(false); }}>
+                onClick={() => { setSelected(""); setExpandedFields(new Set()); }}>
                 Change
               </button>
             </div>
@@ -175,7 +183,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                   key={t.metadata.name}
                   type="button"
                   className="grid-btn"
-                  onClick={() => { setSelected(t.metadata.name); setShowParams(false); }}
+                  onClick={() => { setSelected(t.metadata.name); setExpandedFields(new Set()); }}
                   title={t.metadata.name}
                 >
                   <span className="btn-text">{t.metadata.name}</span>
@@ -202,71 +210,82 @@ export default function WorkflowTrigger({ onError = () => {} }) {
             <div className="form-box">
               <div className="params-toolbar">
                 <button type="button" className="btn submit-btn" disabled={submitting} onClick={() => setConfirming(true)}>
-                  {submitting ? <Spinner small /> : "+"}
-                </button>
-                <button type="button" className="btn-sm" onClick={() => setShowParams((s) => !s)}>
-                  {showParams ? "Hide values" : "Show values"}
+                  {submitting ? <Spinner small /> : "Submit"}
                 </button>
                 {infoMsg && <span className="msg">{infoMsg}</span>}
               </div>
 
-              {showParams && (
-                <>
-                  {Object.keys(params).filter((n) => n !== "event-data").map((name) => (
-                    <div key={name} className="field">
-                      <label>{name}</label>
-                      <input type="text" value={params[name]} onChange={(e) => setParams((p) => ({ ...p, [name]: e.target.value }))} />
-                    </div>
-                  ))}
+              {/* Regular params (non event-data) */}
+              {Object.keys(params).filter((n) => n !== "event-data").map((name) => (
+                <div key={name} className="field">
+                  <div className="field-header">
+                    <label>{name}</label>
+                    <button type="button" className="btn-sm field-toggle" onClick={() => toggleField(name)}>
+                      {expandedFields.has(name) ? "less" : "more"}
+                    </button>
+                  </div>
+                  {expandedFields.has(name) && (
+                    <input type="text" value={params[name]} onChange={(e) => setParams((p) => ({ ...p, [name]: e.target.value }))} />
+                  )}
+                </div>
+              ))}
 
-                  {params["event-data"] !== undefined && (
-                    <div className="event-data">
-                      {showRawButton && (
-                        <button type="button" className="btn-sm" onClick={() => setRawView((r) => !r)}>
-                          {rawView ? "Form" : "JSON"}
-                        </button>
-                      )}
-                      {rawView ? (
-                        <textarea rows={4} value={params["event-data"]} onChange={(e) => setParams((p) => ({ ...p, "event-data": e.target.value }))} />
-                      ) : (
-                        <div className="fields">
-                          {Object.entries(parsedObj()).map(([k, v]) => {
-                            const opts = suggestions[k] || [];
-                            const isAdding = addingField === k;
-                            return (
-                              <div key={k} className="field">
-                                <label>{k}</label>
-                                <div className="opts">
-                                  {opts.map((val) => (
-                                    <button key={val} type="button" className={`opt-btn ${v === val ? "active" : ""}`} onClick={() => handleFieldChange(k, val)}>{val}</button>
-                                  ))}
-                                  {v && !opts.includes(v) && <button type="button" className="opt-btn active">{v}</button>}
-                                  {isAdding ? (
-                                    <span className="add-group">
-                                      <input
-                                        autoFocus
-                                        type="text"
-                                        value={newFieldValue}
-                                        onChange={(e) => setNewFieldValue(e.target.value)}
-                                        onKeyDown={(e) => {
-                                          if (e.key === "Enter" && newFieldValue.trim()) { handleFieldChange(k, newFieldValue.trim()); setAddingField(null); setNewFieldValue(""); }
-                                          else if (e.key === "Escape") { setAddingField(null); setNewFieldValue(""); }
-                                        }}
-                                      />
-                                      <button type="button" className="opt-btn" onClick={() => { if (newFieldValue.trim()) handleFieldChange(k, newFieldValue.trim()); setAddingField(null); setNewFieldValue(""); }}>OK</button>
-                                    </span>
-                                  ) : (
-                                    <button type="button" className="opt-btn add" onClick={() => { setAddingField(k); setNewFieldValue(""); }}>+</button>
-                                  )}
-                                </div>
+              {/* Event-data key-value pairs */}
+              {params["event-data"] !== undefined && (
+                <div className="event-data">
+                  {showRawButton && (
+                    <button type="button" className="btn-sm" onClick={() => setRawView((r) => !r)}>
+                      {rawView ? "Form" : "JSON"}
+                    </button>
+                  )}
+                  {rawView ? (
+                    <textarea rows={4} value={params["event-data"]} onChange={(e) => setParams((p) => ({ ...p, "event-data": e.target.value }))} />
+                  ) : (
+                    <div className="fields">
+                      {Object.entries(parsedObj()).map(([k, v]) => {
+                        const opts = suggestions[k] || [];
+                        const isAdding = addingField === k;
+                        const isExpanded = expandedFields.has(`ed:${k}`);
+                        return (
+                          <div key={k} className="field">
+                            <div className="field-header">
+                              <label>{k}</label>
+                              {v && !isExpanded && <span className="field-value-preview">{v}</span>}
+                              <button type="button" className="btn-sm field-toggle" onClick={() => toggleField(`ed:${k}`)}>
+                                {isExpanded ? "less" : "more"}
+                              </button>
+                            </div>
+                            {isExpanded && (
+                              <div className="opts">
+                                {opts.map((val) => (
+                                  <button key={val} type="button" className={`opt-btn ${v === val ? "active" : ""}`} onClick={() => handleFieldChange(k, val)}>{val}</button>
+                                ))}
+                                {v && !opts.includes(v) && <button type="button" className="opt-btn active">{v}</button>}
+                                {isAdding ? (
+                                  <span className="add-group">
+                                    <input
+                                      autoFocus
+                                      type="text"
+                                      value={newFieldValue}
+                                      onChange={(e) => setNewFieldValue(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter" && newFieldValue.trim()) { handleFieldChange(k, newFieldValue.trim()); setAddingField(null); setNewFieldValue(""); }
+                                        else if (e.key === "Escape") { setAddingField(null); setNewFieldValue(""); }
+                                      }}
+                                    />
+                                    <button type="button" className="opt-btn" onClick={() => { if (newFieldValue.trim()) handleFieldChange(k, newFieldValue.trim()); setAddingField(null); setNewFieldValue(""); }}>OK</button>
+                                  </span>
+                                ) : (
+                                  <button type="button" className="opt-btn add" onClick={() => { setAddingField(k); setNewFieldValue(""); }}>+</button>
+                                )}
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           )}

@@ -406,6 +406,32 @@ details[open] > .filter-title::before { content: "Collapse"; }
   font-weight: 600;
 }
 
+.field-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.field-header label {
+  flex: 0 0 auto;
+}
+
+.field-value-preview {
+  flex: 1;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-toggle {
+  flex: 0 0 auto;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.7rem;
+  min-height: 22px;
+}
+
 .add-group {
   display: inline-flex;
   gap: 0.25rem;
