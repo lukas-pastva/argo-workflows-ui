@@ -432,6 +432,24 @@ details[open] > .filter-title::before { content: "Collapse"; }
   min-height: 22px;
 }
 
+.field-add {
+  flex: 0 0 auto;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.75rem;
+  min-height: 22px;
+  font-weight: 600;
+}
+
+.submit-btn-sm {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.submit-btn-sm:hover {
+  background: var(--primary-dark);
+}
+
 .add-group {
   display: inline-flex;
   gap: 0.25rem;
@@ -896,9 +914,8 @@ table.wf-table.intimate td {
     padding: 0.4rem 0.6rem;
   }
 
-  .submit-btn {
+  .submit-btn-sm {
     width: 100%;
-    min-height: 44px;
   }
 
   .actions {

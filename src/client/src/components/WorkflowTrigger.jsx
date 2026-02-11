@@ -208,13 +208,6 @@ export default function WorkflowTrigger({ onError = () => {} }) {
           {/* Parameters */}
           {selected && (
             <div className="form-box">
-              <div className="params-toolbar">
-                <button type="button" className="btn submit-btn" disabled={submitting} onClick={() => setConfirming(true)}>
-                  {submitting ? <Spinner small /> : "Submit"}
-                </button>
-                {infoMsg && <span className="msg">{infoMsg}</span>}
-              </div>
-
               {/* Regular params (non event-data) */}
               {Object.keys(params).filter((n) => n !== "event-data").map((name) => (
                 <div key={name} className="field">
@@ -251,6 +244,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                             <div className="field-header">
                               <label>{k}</label>
                               {v && !isExpanded && <span className="field-value-preview">{v}</span>}
+                              <button type="button" className="opt-btn add field-add" onClick={() => { setAddingField(k); setNewFieldValue(""); if (!expandedFields.has(`ed:${k}`)) toggleField(`ed:${k}`); }}>+</button>
                               <button type="button" className="btn-sm field-toggle" onClick={() => toggleField(`ed:${k}`)}>
                                 {isExpanded ? "less" : "more"}
                               </button>
@@ -261,7 +255,7 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                                   <button key={val} type="button" className={`opt-btn ${v === val ? "active" : ""}`} onClick={() => handleFieldChange(k, val)}>{val}</button>
                                 ))}
                                 {v && !opts.includes(v) && <button type="button" className="opt-btn active">{v}</button>}
-                                {isAdding ? (
+                                {isAdding && (
                                   <span className="add-group">
                                     <input
                                       autoFocus
@@ -275,8 +269,6 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                                     />
                                     <button type="button" className="opt-btn" onClick={() => { if (newFieldValue.trim()) handleFieldChange(k, newFieldValue.trim()); setAddingField(null); setNewFieldValue(""); }}>OK</button>
                                   </span>
-                                ) : (
-                                  <button type="button" className="opt-btn add" onClick={() => { setAddingField(k); setNewFieldValue(""); }}>+</button>
                                 )}
                               </div>
                             )}
@@ -287,6 +279,13 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                   )}
                 </div>
               )}
+
+              <div className="params-toolbar">
+                <button type="button" className="btn-sm submit-btn-sm" disabled={submitting} onClick={() => setConfirming(true)}>
+                  {submitting ? <Spinner small /> : "Submit"}
+                </button>
+                {infoMsg && <span className="msg">{infoMsg}</span>}
+              </div>
             </div>
           )}
 
