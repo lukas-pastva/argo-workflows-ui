@@ -406,10 +406,11 @@ details[open] > .filter-title::before { content: "Collapse"; }
   font-weight: 600;
 }
 
+/* Field header row (key + controls) */
 .field-header {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
 
 .field-header label {
@@ -425,25 +426,38 @@ details[open] > .filter-title::before { content: "Collapse"; }
   white-space: nowrap;
 }
 
-.field-toggle {
+/* Compact inline buttons in field headers (+, more/less) */
+.field-header .field-toggle,
+.field-header .field-add {
   flex: 0 0 auto;
-  padding: 0.1rem 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.4rem;
   font-size: 0.7rem;
-  min-height: 22px;
+  min-height: 24px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--card-bg);
+  color: var(--text);
+  cursor: pointer;
 }
 
-.field-add {
-  flex: 0 0 auto;
-  padding: 0.1rem 0.35rem;
-  font-size: 0.75rem;
-  min-height: 22px;
+.field-header .field-add {
   font-weight: 600;
 }
 
+.field-header .field-toggle:hover,
+.field-header .field-add:hover {
+  border-color: var(--primary);
+}
+
+/* Submit (bottom of form-box) */
 .submit-btn-sm {
   background: var(--primary);
   color: #fff;
   border-color: var(--primary);
+  font-weight: 500;
 }
 
 .submit-btn-sm:hover {
@@ -472,12 +486,6 @@ details[open] > .filter-title::before { content: "Collapse"; }
   padding-top: 0.25rem;
 }
 
-.submit-btn {
-  padding: 0.5rem 1.25rem;
-  font-size: 0.9rem;
-  min-height: 40px;
-}
-
 .msg {
   color: var(--primary);
   font-weight: 500;
@@ -503,12 +511,6 @@ details[open] > .filter-title::before { content: "Collapse"; }
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.params-toolbar .submit-btn {
-  padding: 0.5rem 1.25rem;
-  font-size: 0.9rem;
-  min-height: 40px;
 }
 
 .chk {
@@ -910,12 +912,21 @@ table.wf-table.intimate td {
   }
 
   .opt-btn {
-    min-height: 38px;
-    padding: 0.4rem 0.6rem;
+    min-height: 36px;
+    padding: 0.35rem 0.55rem;
+  }
+
+  /* Keep field-header buttons compact & aligned on mobile */
+  .field-header .field-toggle,
+  .field-header .field-add {
+    min-height: 28px;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.72rem;
   }
 
   .submit-btn-sm {
     width: 100%;
+    min-height: 36px;
   }
 
   .actions {
