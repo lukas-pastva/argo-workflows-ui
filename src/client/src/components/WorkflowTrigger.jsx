@@ -244,32 +244,32 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                             <div className="field-header">
                               <label>{k}</label>
                               {v && !isExpanded && <span className="field-value-preview">{v}</span>}
-                              <button type="button" className="opt-btn add field-add" onClick={() => { setAddingField(k); setNewFieldValue(""); if (!expandedFields.has(`ed:${k}`)) toggleField(`ed:${k}`); }}>+</button>
+                              <button type="button" className="opt-btn add field-add" onClick={() => { setAddingField(k); setNewFieldValue(""); }}>+</button>
                               <button type="button" className="btn-sm field-toggle" onClick={() => toggleField(`ed:${k}`)}>
                                 {isExpanded ? "less" : "more"}
                               </button>
                             </div>
+                            {isAdding && (
+                              <span className="add-group">
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  value={newFieldValue}
+                                  onChange={(e) => setNewFieldValue(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && newFieldValue.trim()) { handleFieldChange(k, newFieldValue.trim()); setAddingField(null); setNewFieldValue(""); }
+                                    else if (e.key === "Escape") { setAddingField(null); setNewFieldValue(""); }
+                                  }}
+                                />
+                                <button type="button" className="opt-btn" onClick={() => { if (newFieldValue.trim()) handleFieldChange(k, newFieldValue.trim()); setAddingField(null); setNewFieldValue(""); }}>OK</button>
+                              </span>
+                            )}
                             {isExpanded && (
                               <div className="opts">
                                 {opts.map((val) => (
                                   <button key={val} type="button" className={`opt-btn ${v === val ? "active" : ""}`} onClick={() => handleFieldChange(k, val)}>{val}</button>
                                 ))}
                                 {v && !opts.includes(v) && <button type="button" className="opt-btn active">{v}</button>}
-                                {isAdding && (
-                                  <span className="add-group">
-                                    <input
-                                      autoFocus
-                                      type="text"
-                                      value={newFieldValue}
-                                      onChange={(e) => setNewFieldValue(e.target.value)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter" && newFieldValue.trim()) { handleFieldChange(k, newFieldValue.trim()); setAddingField(null); setNewFieldValue(""); }
-                                        else if (e.key === "Escape") { setAddingField(null); setNewFieldValue(""); }
-                                      }}
-                                    />
-                                    <button type="button" className="opt-btn" onClick={() => { if (newFieldValue.trim()) handleFieldChange(k, newFieldValue.trim()); setAddingField(null); setNewFieldValue(""); }}>OK</button>
-                                  </span>
-                                )}
                               </div>
                             )}
                           </div>
