@@ -471,19 +471,16 @@ details[open] > .filter-title::before { content: "Collapse"; }
   background: var(--primary-dark);
 }
 
-.add-group {
-  display: inline-flex;
-  gap: 0.2rem;
-  align-items: center;
-}
-
-.add-group input {
-  width: 90px;
+.add-input {
+  width: 100%;
   padding: 0.2rem 0.35rem;
   font-size: 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--primary);
   border-radius: 3px;
   min-height: 24px;
+  background: var(--card-bg);
+  color: var(--text);
+  outline: none;
 }
 
 .actions {

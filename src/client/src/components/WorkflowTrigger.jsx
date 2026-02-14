@@ -250,19 +250,18 @@ export default function WorkflowTrigger({ onError = () => {} }) {
                               </button>
                             </div>
                             {isAdding && (
-                              <span className="add-group">
-                                <input
-                                  autoFocus
-                                  type="text"
-                                  value={newFieldValue}
-                                  onChange={(e) => setNewFieldValue(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && newFieldValue.trim()) { handleFieldChange(k, newFieldValue.trim()); setAddingField(null); setNewFieldValue(""); }
-                                    else if (e.key === "Escape") { setAddingField(null); setNewFieldValue(""); }
-                                  }}
-                                />
-                                <button type="button" className="opt-btn" onClick={() => { if (newFieldValue.trim()) handleFieldChange(k, newFieldValue.trim()); setAddingField(null); setNewFieldValue(""); }}>OK</button>
-                              </span>
+                              <input
+                                className="add-input"
+                                autoFocus
+                                type="text"
+                                placeholder={`${k} value`}
+                                value={newFieldValue}
+                                onChange={(e) => { setNewFieldValue(e.target.value); handleFieldChange(k, e.target.value); }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === "Escape") { setAddingField(null); setNewFieldValue(""); }
+                                }}
+                                onBlur={() => { setAddingField(null); setNewFieldValue(""); }}
+                              />
                             )}
                             {isExpanded && (
                               <div className="opts">
