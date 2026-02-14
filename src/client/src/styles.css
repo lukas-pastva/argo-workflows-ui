@@ -4,8 +4,8 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
 
-/* Base font size */
-html { font-size: 87.5%; }
+/* Base font size — compact */
+html { font-size: 13px; }
 
 /* ----------------------------------------------------------------
    Design Tokens
@@ -25,6 +25,7 @@ html { font-size: 87.5%; }
   --row-hover: #eef4ff;
   --ansi-black-fg: #000;
   --ansi-white-fg: #000;
+  --content-max: 720px;
 }
 
 [data-theme="dark"] {
@@ -79,6 +80,34 @@ body {
 }
 
 /* ----------------------------------------------------------------
+   Layout — centred content column
+   ---------------------------------------------------------------- */
+.card {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 0.5rem;
+}
+
+.container {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 0.5rem;
+}
+
+.wf-container {
+  width: 100%;
+  padding: 0;
+  padding-bottom: 3rem;
+}
+
+.wf-title {
+  padding-left: 0.4rem;
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* ----------------------------------------------------------------
    Header
    ---------------------------------------------------------------- */
 .header {
@@ -87,13 +116,13 @@ body {
   align-items: center;
   background: var(--primary);
   color: #fff;
-  padding: 0.5rem 0.75rem;
-  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  gap: 0.4rem;
 }
 
 .header h1 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -110,18 +139,18 @@ body {
 /* Tabs */
 .tabs {
   display: inline-flex;
-  gap: 0.15rem;
+  gap: 0.1rem;
 }
 
 .tab {
   background: transparent;
   border: none;
   color: inherit;
-  padding: 0.25rem 0.5rem;
+  padding: 0.2rem 0.4rem;
   border-bottom: 2px solid transparent;
   cursor: pointer;
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   opacity: 0.85;
 }
 
@@ -129,42 +158,20 @@ body {
 .tab.active { border-bottom-color: currentColor; opacity: 1; }
 
 /* ----------------------------------------------------------------
-   Layout
-   ---------------------------------------------------------------- */
-.container {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0 0.5rem;
-}
-
-.wf-container {
-  width: 100%;
-  padding: 0;
-  padding-bottom: 3.5rem;
-}
-
-.wf-title {
-  padding-left: 0.5rem;
-  margin: 0.35rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-/* ----------------------------------------------------------------
-   Buttons
+   Buttons — unified compact sizes
    ---------------------------------------------------------------- */
 .btn, .btn-danger, .btn-light {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: none;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.85rem;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.8rem;
   font-weight: 500;
-  border-radius: 4px;
+  border-radius: 3px;
   cursor: pointer;
   transition: background 0.15s, transform 0.1s;
-  min-height: 36px;
+  min-height: 28px;
 }
 
 .btn:active, .btn-danger:active, .btn-light:active { transform: scale(0.97); }
@@ -183,9 +190,9 @@ body {
 .btn-light:hover { background: rgba(24,190,148,0.1); }
 
 .btn-sm {
-  padding: 0.2rem 0.5rem;
-  font-size: 0.75rem;
-  min-height: 28px;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.7rem;
+  min-height: 22px;
   border-radius: 3px;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -193,24 +200,24 @@ body {
   cursor: pointer;
 }
 
-.btn-icon { margin-right: 0.25rem; display: inline-flex; }
-.btn-icon svg { width: 14px; height: 14px; }
+.btn-icon { margin-right: 0.2rem; display: inline-flex; }
+.btn-icon svg { width: 12px; height: 12px; }
 
 /* ----------------------------------------------------------------
    Panels (collapsible)
    ---------------------------------------------------------------- */
 .panel, .filter-panel {
   width: 100%;
-  margin: 0.5rem 0;
+  margin: 0.35rem 0;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--card-bg);
 }
 
 .panel-title, .filter-title {
-  padding: 0.4rem 0.75rem 0.4rem 4rem;
+  padding: 0.3rem 0.6rem 0.3rem 3.5rem;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   cursor: pointer;
   list-style: none;
   position: relative;
@@ -223,14 +230,14 @@ body {
 .filter-title::before {
   content: "Expand";
   position: absolute;
-  left: 0.5rem;
+  left: 0.4rem;
   top: 50%;
   transform: translateY(-50%);
   background: var(--primary);
   color: #fff;
   border-radius: 3px;
-  font-size: 0.65rem;
-  padding: 2px 5px;
+  font-size: 0.6rem;
+  padding: 1px 4px;
   font-weight: 500;
 }
 
@@ -240,10 +247,10 @@ details[open] > .panel-title::before,
 details[open] > .filter-title::before { content: "Collapse"; }
 
 .panel-body {
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.6rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 /* ----------------------------------------------------------------
@@ -251,24 +258,24 @@ details[open] > .filter-title::before { content: "Collapse"; }
    ---------------------------------------------------------------- */
 .btn-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 0.35rem;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.25rem;
 }
 
 .grid-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 0.5rem;
-  font-size: 0.8rem;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.75rem;
   font-weight: 500;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 3px;
   background: var(--card-bg);
   color: var(--text);
   cursor: pointer;
   transition: all 0.12s;
-  min-height: 40px;
+  min-height: 30px;
   overflow: hidden;
 }
 
@@ -304,29 +311,29 @@ details[open] > .filter-title::before { content: "Collapse"; }
    Insert Panel
    ---------------------------------------------------------------- */
 .insert-panel .desc {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   font-style: italic;
 }
 
 .form-box {
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.5rem;
+  border-radius: 3px;
+  padding: 0.35rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
   background: var(--bg);
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
 .field label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-muted);
 }
@@ -334,13 +341,13 @@ details[open] > .filter-title::before { content: "Collapse"; }
 .field input[type="text"],
 .form-box textarea {
   width: 100%;
-  padding: 0.4rem 0.5rem;
-  font-size: 0.85rem;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.8rem;
   border: 1px solid var(--border);
   border-radius: 3px;
   background: var(--card-bg);
   color: var(--text);
-  min-height: 36px;
+  min-height: 28px;
 }
 
 .field input:focus,
@@ -357,7 +364,7 @@ details[open] > .filter-title::before { content: "Collapse"; }
 .event-data {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.3rem;
 }
 
 .event-data .btn-sm {
@@ -367,20 +374,20 @@ details[open] > .filter-title::before { content: "Collapse"; }
 .fields {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.3rem;
 }
 
 /* Option buttons */
 .opts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.2rem;
   align-items: center;
 }
 
 .opt-btn {
-  padding: 0.35rem 0.6rem;
-  font-size: 0.8rem;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.75rem;
   font-weight: 500;
   border: 1px solid var(--border);
   border-radius: 3px;
@@ -388,7 +395,7 @@ details[open] > .filter-title::before { content: "Collapse"; }
   color: var(--text);
   cursor: pointer;
   transition: all 0.12s;
-  min-height: 32px;
+  min-height: 24px;
 }
 
 .opt-btn:hover {
@@ -402,7 +409,7 @@ details[open] > .filter-title::before { content: "Collapse"; }
 }
 
 .opt-btn.add {
-  padding: 0.35rem 0.5rem;
+  padding: 0.2rem 0.4rem;
   font-weight: 600;
 }
 
@@ -410,7 +417,7 @@ details[open] > .filter-title::before { content: "Collapse"; }
 .field-header {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
 .field-header label {
@@ -419,7 +426,7 @@ details[open] > .filter-title::before { content: "Collapse"; }
 
 .field-value-preview {
   flex: 1;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -433,9 +440,9 @@ details[open] > .filter-title::before { content: "Collapse"; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.15rem 0.4rem;
-  font-size: 0.7rem;
-  min-height: 24px;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.65rem;
+  min-height: 20px;
   border: 1px solid var(--border);
   border-radius: 3px;
   background: var(--card-bg);
@@ -466,36 +473,36 @@ details[open] > .filter-title::before { content: "Collapse"; }
 
 .add-group {
   display: inline-flex;
-  gap: 0.25rem;
+  gap: 0.2rem;
   align-items: center;
 }
 
 .add-group input {
-  width: 100px;
-  padding: 0.3rem 0.4rem;
-  font-size: 0.8rem;
+  width: 90px;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.75rem;
   border: 1px solid var(--border);
   border-radius: 3px;
-  min-height: 32px;
+  min-height: 24px;
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding-top: 0.25rem;
+  gap: 0.5rem;
+  padding-top: 0.15rem;
 }
 
 .msg {
   color: var(--primary);
   font-weight: 500;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .selected-flow-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .selected-flow-row .grid-btn {
@@ -510,19 +517,19 @@ details[open] > .filter-title::before { content: "Collapse"; }
 .params-toolbar {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .chk {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8rem;
+  gap: 0.3rem;
+  font-size: 0.75rem;
   cursor: pointer;
   color: var(--text-muted);
 }
 
-.chk input { width: 16px; height: 16px; }
+.chk input { width: 14px; height: 14px; }
 
 /* ----------------------------------------------------------------
    Filter Panel
@@ -530,15 +537,15 @@ details[open] > .filter-title::before { content: "Collapse"; }
 .label-filters {
   max-height: 20vh;
   overflow-y: auto;
-  padding: 0.4rem 0.75rem;
+  padding: 0.3rem 0.6rem;
 }
 
 .label-filters details summary {
   list-style: none;
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   cursor: pointer;
-  padding: 0.2rem 0 0.2rem 3.5rem;
+  padding: 0.15rem 0 0.15rem 3.2rem;
   position: relative;
 }
 
@@ -553,25 +560,25 @@ details[open] > .filter-title::before { content: "Collapse"; }
   background: var(--primary);
   color: #fff;
   border-radius: 3px;
-  font-size: 0.6rem;
-  padding: 1px 5px;
+  font-size: 0.55rem;
+  padding: 1px 4px;
   font-weight: 500;
 }
 
 .label-filters details[open] summary::before { content: "Collapse"; }
 .label-filters details summary.selected { color: var(--primary-dark); }
-.label-filters details summary.selected::after { content: " ✓"; }
+.label-filters details summary.selected::after { content: " \2713"; }
 
 .label-values {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
-  padding: 0.25rem 0;
+  gap: 0.2rem;
+  padding: 0.2rem 0;
 }
 
 .label-values span {
-  padding: 0.2rem 0.4rem;
-  font-size: 0.75rem;
+  padding: 0.15rem 0.35rem;
+  font-size: 0.7rem;
   border-radius: 3px;
   cursor: pointer;
   background: var(--bg);
@@ -597,9 +604,9 @@ table.wf-table {
 
 table.wf-table th,
 table.wf-table td {
-  padding: 0.3rem 0.5rem;
+  padding: 0.2rem 0.4rem;
   text-align: left;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 table.wf-table thead th {
@@ -618,8 +625,8 @@ table.wf-table td:last-child {
 
 table.wf-table.intimate th,
 table.wf-table.intimate td {
-  padding: 0.25rem 0.4rem;
-  font-size: 0.78rem;
+  padding: 0.15rem 0.3rem;
+  font-size: 0.72rem;
 }
 
 /* ----------------------------------------------------------------
@@ -629,9 +636,9 @@ table.wf-table.intimate td {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.2rem;
-  border-radius: 10px;
-  font-size: 0.75rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
   font-weight: 600;
 }
 
@@ -661,7 +668,7 @@ table.wf-table.intimate td {
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 0.35rem 0.5rem;
+  padding: 0.25rem 0.4rem;
   background: var(--bg);
   z-index: 900;
   box-shadow: 0 -2px 6px rgba(0,0,0,0.08);
@@ -670,22 +677,24 @@ table.wf-table.intimate td {
 .pager { width: 100%; }
 
 .pager-inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.25rem;
   background: var(--card-bg);
   border: 1px solid var(--border);
-  padding: 0.3rem 0.5rem;
-  font-size: 0.78rem;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.72rem;
 }
 
 .pager-inner .btn,
 .pager-inner .btn-light,
 .pager-inner .btn-danger {
-  font-size: 0.78rem;
-  padding: 0.25rem 0.6rem;
-  min-height: 32px;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.5rem;
+  min-height: 26px;
 }
 
 .pager-inner .smart-delete {
@@ -717,22 +726,22 @@ table.wf-table.intimate td {
 .modal-dialog {
   background: var(--card-bg);
   color: var(--text);
-  border-radius: 6px;
-  padding: 1.25rem 1.5rem;
-  width: min(92vw, 500px);
+  border-radius: 5px;
+  padding: 1rem 1.25rem;
+  width: min(90vw, 420px);
   position: relative;
   box-shadow: 0 4px 16px rgba(0,0,0,0.25);
 }
 
-.modal-dialog h2 { margin-top: 0; font-size: 1.1rem; }
+.modal-dialog h2 { margin-top: 0; font-size: 0.95rem; }
 
 .modal-close {
   position: absolute;
-  top: 0.4rem;
-  right: 0.6rem;
+  top: 0.3rem;
+  right: 0.5rem;
   background: transparent;
   border: none;
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   cursor: pointer;
   color: inherit;
 }
@@ -744,17 +753,17 @@ table.wf-table.intimate td {
 
 .spinner {
   display: inline-block;
-  width: 28px;
-  height: 28px;
-  border: 3px solid rgba(0,0,0,0.1);
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(0,0,0,0.1);
   border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 .spinner-sm {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-width: 2px;
 }
 
@@ -778,32 +787,32 @@ table.wf-table.intimate td {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.35rem 0.75rem;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
   flex-wrap: wrap;
 }
 
-.log-toolbar-left { display: flex; align-items: center; gap: 0.4rem; }
-.log-toolbar-meta { opacity: 0.8; font-size: 0.8rem; }
-.log-toolbar-actions { display: flex; gap: 0.35rem; }
+.log-toolbar-left { display: flex; align-items: center; gap: 0.3rem; }
+.log-toolbar-meta { opacity: 0.8; font-size: 0.75rem; }
+.log-toolbar-actions { display: flex; gap: 0.25rem; }
 
-.log-toolbar .btn-icon { margin-right: 0.2rem; }
+.log-toolbar .btn-icon { margin-right: 0.15rem; }
 .log-toolbar .btn-label { display: inline; }
 
-.log-lines { padding: 0.4rem 0.75rem; }
+.log-lines { padding: 0.3rem 0.6rem; }
 
 .log-failure-banner {
-  margin: 0.4rem 0.75rem;
-  padding: 0.35rem 0.5rem;
+  margin: 0.3rem 0.6rem;
+  padding: 0.25rem 0.4rem;
   background: #ffe5e5;
   color: #d64543;
   border: 1px solid #f5a8a8;
   border-radius: 3px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   white-space: pre-wrap;
 }
 
-.log-meta { padding: 0.2rem 0.75rem 0.5rem; }
+.log-meta { padding: 0.15rem 0.6rem 0.4rem; }
 
 /* ANSI overrides */
 .log-viewer .ansi-black-fg,
@@ -816,12 +825,12 @@ table.wf-table.intimate td {
 .io-row {
   display: flex;
   align-items: flex-start;
-  gap: 0.4rem;
-  padding: 0.15rem 0.2rem;
+  gap: 0.3rem;
+  padding: 0.1rem 0.15rem;
   border-radius: 3px;
 }
 .io-row:hover { background: var(--row-hover); }
-.io-row .io-text { flex: 1; word-break: break-word; font-size: 0.8rem; }
+.io-row .io-text { flex: 1; word-break: break-word; font-size: 0.75rem; }
 .io-row .io-actions { flex: 0 0 auto; }
 
 /* ----------------------------------------------------------------
@@ -831,21 +840,21 @@ table.wf-table.intimate td {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.3rem;
-  font-size: 0.65rem;
+  gap: 0.25rem;
+  font-size: 0.6rem;
 }
 
 .dag-node-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.1rem;
   cursor: pointer;
 }
 
 .dag-node {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
 }
 
@@ -885,48 +894,25 @@ table.wf-table.intimate td {
 .header .theme-toggle-btn:hover { background: rgba(255,255,255,0.12); }
 
 /* ----------------------------------------------------------------
-   Mobile Responsive (2 buttons per row, larger touch targets)
+   Mobile (≤600px) — same compact sizes, layout tweaks only
    ---------------------------------------------------------------- */
 @media (max-width: 600px) {
-  html { font-size: 90%; }
+  .card { padding: 0 0.35rem; }
 
-  .header { padding: 0.4rem 0.5rem; }
-  .header h1 { font-size: 1rem; }
+  .header { padding: 0.3rem 0.4rem; }
+  .header h1 { font-size: 0.9rem; }
 
-  /* Two buttons per row on mobile */
   .btn-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.4rem;
   }
 
   .grid-btn {
-    min-height: 44px;
-    padding: 0.5rem 0.4rem;
-    font-size: 0.78rem;
-  }
-
-  /* Larger touch targets */
-  .btn, .btn-danger, .btn-light {
-    min-height: 40px;
-    padding: 0.4rem 0.7rem;
-  }
-
-  .opt-btn {
-    min-height: 36px;
-    padding: 0.35rem 0.55rem;
-  }
-
-  /* Keep field-header buttons compact & aligned on mobile */
-  .field-header .field-toggle,
-  .field-header .field-add {
-    min-height: 28px;
-    padding: 0.2rem 0.45rem;
-    font-size: 0.72rem;
+    min-height: 32px;
+    padding: 0.3rem 0.35rem;
   }
 
   .submit-btn-sm {
     width: 100%;
-    min-height: 36px;
   }
 
   .actions {
@@ -934,25 +920,12 @@ table.wf-table.intimate td {
     align-items: stretch;
   }
 
-  /* Pager */
-  .pager-inner {
-    gap: 0.3rem;
-    padding: 0.25rem 0.4rem;
-  }
-
-  .pager-inner .btn,
-  .pager-inner .btn-light,
-  .pager-inner .btn-danger {
-    min-height: 36px;
-    padding: 0.3rem 0.5rem;
-  }
-
-  /* Log toolbar */
+  /* Log toolbar stacks on narrow screens */
   .log-toolbar {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.3rem;
-    padding: 0.3rem 0.5rem;
+    gap: 0.25rem;
+    padding: 0.25rem 0.4rem;
   }
 
   .log-toolbar-left,
@@ -963,27 +936,12 @@ table.wf-table.intimate td {
   .log-toolbar .btn-label { display: none; }
   .log-toolbar .btn-icon { margin: 0; }
 
-  .log-toolbar .btn,
-  .log-toolbar .btn-light,
-  .log-toolbar .btn-danger {
-    padding: 0.35rem 0.45rem;
-    min-height: 36px;
-  }
-
-  /* Table */
-  table.wf-table th,
-  table.wf-table td {
-    padding: 0.35rem 0.3rem;
-    font-size: 0.75rem;
-  }
-
-  /* Panels */
   .panel-body {
-    padding: 0.4rem 0.5rem;
+    padding: 0.3rem 0.4rem;
   }
 }
 
-/* Larger phones / small tablets */
+/* Tablet */
 @media (min-width: 601px) and (max-width: 900px) {
   .btn-grid {
     grid-template-columns: repeat(3, 1fr);
@@ -993,6 +951,6 @@ table.wf-table.intimate td {
 /* Desktop */
 @media (min-width: 901px) {
   .btn-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   }
 }
