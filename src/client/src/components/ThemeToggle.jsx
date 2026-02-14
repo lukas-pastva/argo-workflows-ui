@@ -16,7 +16,7 @@ const ZOOM_KEY = "ui-zoom";
 const ZOOM_MIN = 70;
 const ZOOM_MAX = 150;
 const ZOOM_STEP = 10;
-const ZOOM_DEFAULT = 120;
+const ZOOM_DEFAULT = 100;
 
 function ThemeIcon({ mode }) {
   if (mode === "light") return <IconSun />;
@@ -64,7 +64,7 @@ export default function ThemeToggle() {
   });
 
   const applyZoom = useCallback((z) => {
-    document.documentElement.style.fontSize = `${13 * z / 100}px`;
+    document.documentElement.style.fontSize = `${15.6 * z / 100}px`;
     localStorage.setItem(ZOOM_KEY, String(z));
   }, []);
 
