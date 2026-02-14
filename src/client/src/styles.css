@@ -25,7 +25,7 @@ html { font-size: 13px; }
   --row-hover: #eef4ff;
   --ansi-black-fg: #000;
   --ansi-white-fg: #000;
-  --content-max: 720px;
+  --content-max: 100%;
 }
 
 [data-theme="dark"] {
