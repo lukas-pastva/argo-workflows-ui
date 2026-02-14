@@ -16,7 +16,7 @@ const ZOOM_KEY = "ui-zoom";
 const ZOOM_MIN = 70;
 const ZOOM_MAX = 150;
 const ZOOM_STEP = 10;
-const ZOOM_DEFAULT = 100;
+const ZOOM_DEFAULT = 120;
 
 function ThemeIcon({ mode }) {
   if (mode === "light") return <IconSun />;
