@@ -396,6 +396,10 @@ details[open] > .filter-title::before { content: "Collapse"; }
   cursor: pointer;
   transition: all 0.12s;
   min-height: 24px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .opt-btn:hover {
@@ -418,6 +422,7 @@ details[open] > .filter-title::before { content: "Collapse"; }
   display: flex;
   align-items: center;
   gap: 0.3rem;
+  overflow: hidden;
 }
 
 .field-header label {
@@ -426,6 +431,7 @@ details[open] > .filter-title::before { content: "Collapse"; }
 
 .field-value-preview {
   flex: 1;
+  min-width: 0;
   font-size: 0.7rem;
   color: var(--text-muted);
   overflow: hidden;
