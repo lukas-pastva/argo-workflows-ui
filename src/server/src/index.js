@@ -178,7 +178,8 @@ app.get("/api/workflows", async (req, res, next) => {
   try {
     const limit  = req.query?.limit  ? Math.max(1, parseInt(req.query.limit, 10)  || 0) : undefined;
     const cursor = typeof req.query?.cursor === "string" ? req.query.cursor : "";
-    const result = await listWorkflows({ limit, cursor });
+    const includeNodes = String(req.query?.nodes || "").toLowerCase() === "true";
+    const result = await listWorkflows({ limit, cursor, includeNodes });
     const role = req?.auth?.role || decideRole(requestGroups(req));
     const filters = Array.isArray(req?.auth?.nameFilters) ? req.auth.nameFilters : [];
     if (role === "readonly" && filters.length > 0) {

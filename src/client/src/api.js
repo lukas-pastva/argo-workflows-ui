@@ -15,10 +15,11 @@ async function jsonOrThrow(resp) {
 /* ------------------------------------------------------------------ */
 
 // Paged: returns { items, nextCursor }
-export async function listWorkflowsPaged({ limit, cursor } = {}) {
+export async function listWorkflowsPaged({ limit, cursor, nodes } = {}) {
   const qs = new URLSearchParams();
   if (limit)  qs.set("limit", String(limit));
   if (cursor) qs.set("cursor", cursor);
+  if (nodes)  qs.set("nodes", "true");
   const url = `${base}/workflows${qs.toString() ? `?${qs}` : ""}`;
   return jsonOrThrow(await fetch(url));
 }

@@ -106,7 +106,7 @@ export default function Chart({ onError = () => {} }) {
       }
     }
     refresh();
-    const id = setInterval(refresh, 10_000);
+    const id = setInterval(refresh, 30_000);
     return () => clearInterval(id);
   }, [onError]);
 

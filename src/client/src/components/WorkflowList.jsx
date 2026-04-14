@@ -134,7 +134,7 @@ export default function WorkflowList({ onShowLogs, onError = () => {} }) {
     }
 
     fetchPage();
-    const id = setInterval(fetchPage, 10_000);
+    const id = setInterval(fetchPage, 30_000);
     return () => { cancelled = true; clearInterval(id); };
   }, [onError, pageSize, cursor]);
 

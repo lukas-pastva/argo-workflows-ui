@@ -45,7 +45,7 @@ async function collectSuggestions(templateName) {
   };
   if (!templateName) return {};
   let wfs = [];
-  try { wfs = await listWorkflows(); } catch { }
+  try { wfs = await listWorkflows({ nodes: true }); } catch { }
   wfs
     .filter((wf) => wf.spec?.workflowTemplateRef?.name === templateName || wf.metadata?.generateName?.startsWith(`${templateName}-`))
     .forEach((wf) => {

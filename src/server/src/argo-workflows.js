@@ -146,9 +146,43 @@ function slimWorkflow(wf) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Simple in-memory cache for list responses                         */
+/* ------------------------------------------------------------------ */
+const CACHE_TTL_MS = 5_000; // 5 seconds
+const _cache = new Map();   // key → { data, ts }
+
+function cacheGet(key) {
+  const entry = _cache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL_MS) { _cache.delete(key); return null; }
+  return entry.data;
+}
+function cacheSet(key, data) {
+  _cache.set(key, { data, ts: Date.now() });
+  // evict old entries if map grows (safety)
+  if (_cache.size > 200) {
+    const now = Date.now();
+    for (const [k, v] of _cache) { if (now - v.ts > CACHE_TTL_MS) _cache.delete(k); }
+  }
+}
+
+/* ------------------------------------------------------------------ */
 /*  Fetch exactly one upstream page (cursor-based paging)             */
 /* ------------------------------------------------------------------ */
-async function fetchWorkflowsPage({ limit, cursor }) {
+async function fetchWorkflowsPage({ limit, cursor, includeNodes = false }) {
+  const cacheKey = `list:${limit}:${cursor || ""}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) {
+    if (debug) console.log(`[DEBUG] Cache hit for page (limit=${limit}, cursor=${cursor || "-"})`);
+    if (includeNodes) {
+      return { items: cached._full, nextCursor: cached.nextCursor };
+    }
+    return {
+      items: cached._full.map(({ status: { nodes, ...rest }, ...wf }) => ({ ...wf, status: rest })),
+      nextCursor: cached.nextCursor,
+    };
+  }
+
   const params = new URLSearchParams({
     "listOptions.fieldSelector": "",
     "listOptions.limit"        : String(limit)
@@ -171,27 +205,26 @@ async function fetchWorkflowsPage({ limit, cursor }) {
   const nextCursor =
     j.metadata?.continue || j.continueToken || j.continue || null;
 
-  // Sort slimmed page for stable UI (template ASC, startedAt DESC)
-  slimmed.sort((a, b) => {
-    const aKey = a.spec?.workflowTemplateRef?.name || a.metadata.generateName || "";
-    const bKey = b.spec?.workflowTemplateRef?.name || b.metadata.generateName || "";
-    if (aKey < bKey) return -1;
-    if (aKey > bKey) return 1;
-    return new Date(b.status.startedAt || 0) - new Date(a.status.startedAt || 0);
-  });
-
   if (debug) {
     console.log(`[DEBUG] Page size=${slimmed.length}, nextCursor=${nextCursor ? "(present)" : "null"}`);
   }
 
-  return { items: slimmed, nextCursor };
+  // Cache full response (with nodes) so both variants can be served
+  cacheSet(cacheKey, { _full: slimmed, nextCursor });
+
+  // Return without nodes unless explicitly requested
+  const resultItems = includeNodes
+    ? slimmed
+    : slimmed.map(({ status: { nodes, ...rest }, ...wf }) => ({ ...wf, status: rest }));
+
+  return { items: resultItems, nextCursor };
 }
 
 /* ------------------------------------------------------------------ */
 /*  Public list API (always returns {items, nextCursor})              */
 /* ------------------------------------------------------------------ */
-export async function listWorkflows({ limit = DEFAULT_LIMIT, cursor = "" } = {}) {
-  return fetchWorkflowsPage({ limit, cursor });
+export async function listWorkflows({ limit = DEFAULT_LIMIT, cursor = "", includeNodes = false } = {}) {
+  return fetchWorkflowsPage({ limit, cursor, includeNodes });
 }
 
 /* ------------------------------------------------------------------ */
