@@ -125,23 +125,26 @@ function readOnlyGroups() {
   return [...READONLY_GROUPS, ...(mappingWatcher ? mappingWatcher.defaultReadOnlyGroups() : [])];
 }
 
+// Cluster-wide readwrite groups: READWRITE_GROUPS env plus defaultRWMappingSecurityGroups
+// from the mapping file.
+function readWriteGroups() {
+  return [...READWRITE_GROUPS, ...(mappingWatcher ? mappingWatcher.defaultReadWriteGroups() : [])];
+}
+
 // Groups whose members are never narrowed by the mapping (cluster-wide roles).
 function clusterWideGroups() {
-  return [
-    ...readOnlyGroups(),
-    ...READWRITE_GROUPS,
-    ...(mappingWatcher ? mappingWatcher.defaultReadWriteGroups() : []),
-  ];
+  return [...readOnlyGroups(), ...readWriteGroups()];
 }
 
 function decideRole(groups) {
   const roGroups = readOnlyGroups();
-  const hasWrite = READWRITE_GROUPS.length > 0 && groups.some((g) => READWRITE_GROUPS.includes(g));
-  const hasRead  = roGroups.length  > 0 && groups.some((g) => roGroups.includes(g));
+  const rwGroups = readWriteGroups();
+  const hasWrite = rwGroups.length > 0 && groups.some((g) => rwGroups.includes(g));
+  const hasRead  = roGroups.length > 0 && groups.some((g) => roGroups.includes(g));
   if (hasWrite) return "readwrite";
   if (hasRead)  return "readonly";
   // If nothing is configured, default to readwrite to preserve current behavior
-  if (roGroups.length === 0 && READWRITE_GROUPS.length === 0 && !mappingWatcher) return "readwrite";
+  if (roGroups.length === 0 && rwGroups.length === 0 && !mappingWatcher) return "readwrite";
   // Configured but user not in any → readonly by default
   return "readonly";
 }
