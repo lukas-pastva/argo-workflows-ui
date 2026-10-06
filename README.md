@@ -54,6 +54,22 @@ If you place oauth2-proxy in front of this app and forward the user’s group cl
   - Non-JSON shortcut syntax is also supported: `groupA=foo,groupB:bar|baz`.
   - When a readonly user matches one or more groups in this map, only workflows whose name OR any top-level parameter value contains at least one of the configured substrings are listed and accessible (detail/logs). If none of the user’s groups are in the map, the user retains normal readonly visibility.
 
+- `READONLY_MAPPING_FILE` – optional path to a *security groups mapping* file (YAML or JSON) that derives readonly visibility dynamically instead of maintaining `READONLY_NAME_FILTERS` by hand. The file is re-read every `READONLY_MAPPING_REFRESH_SECONDS` (default `30`) and on filesystem events, so a ConfigMap update is picked up without a restart. An invalid file is logged and ignored; the last good mapping stays active.
+  - Expected shape (the format of `mapping-security-groups.yaml`):
+
+    ```yaml
+    defaultROMappingSecurityGroups: [ "<group-id>" ]   # cluster-wide groups, never narrowed
+    defaultRWMappingSecurityGroups: [ "<group-id>" ]
+    mappingSecurityGroups:
+      - namespacePrefix: team-a-dev
+        groupsRO: [ "<group-id>" ]
+        groupsRW: [ "<group-id>" ]
+    ```
+
+  - Every group listed under an entry may see workflows of that namespace prefix: the workflow label named by `READONLY_MAPPING_LABEL` (default `application`) starts with the prefix, or the workflow name contains it. Groups from the `default*` lists and from `READONLY_GROUPS` / `READWRITE_GROUPS` are never narrowed.
+  - Prefixes from the mapping are unioned with any static `READONLY_NAME_FILTERS` for the same user.
+- `GET /api/me` returns the caller's groups, role and effective filters (handy to verify the mapping in a cluster).
+
 Details:
 - The server inspects group headers from oauth2-proxy via nginx auth_request: `X-Auth-Request-Groups`.
 - Requests from users in `READONLY_GROUPS` cannot submit new workflows (POST /api/workflows) or delete workflows (DELETE /api/workflows/:name).
@@ -84,6 +100,12 @@ Example: restrict readonly group to workflows with names or parameter values con
 
 ```
 READONLY_NAME_FILTERS='{"READONLY_GROUP_ID":"project-x-"}'
+```
+
+Example: derive the visibility from a mapping file mounted from a ConfigMap (updated by GitOps, no restart needed)
+
+```
+READONLY_MAPPING_FILE=/config/mapping-security-groups.yaml
 ```
 
 ## Deep links

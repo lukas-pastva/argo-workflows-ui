@@ -12,6 +12,7 @@ import {
   listPodEventsForWorkflow,
 } from "./argo-workflows.js";
 import { createWorkflow } from "./create/index.js";
+import { createMappingWatcher } from "./security-mapping.js";
 
 dotenv.config();
 const app = express();
@@ -88,6 +89,20 @@ function normalizeFiltersMap(obj) {
 }
 const READONLY_NAME_FILTERS = normalizeFiltersMap(READONLY_NAME_FILTERS_RAW);
 
+// Optional: dynamic readonly visibility from a security-groups mapping file
+// (namespacePrefix -> groups). Re-read periodically, no restart needed.
+const READONLY_MAPPING_FILE  = (process.env.READONLY_MAPPING_FILE || "").trim();
+const READONLY_MAPPING_LABEL = (process.env.READONLY_MAPPING_LABEL || "application").trim();
+const READONLY_MAPPING_REFRESH_SECONDS = parseInt(process.env.READONLY_MAPPING_REFRESH_SECONDS || "30", 10) || 30;
+const mappingWatcher = READONLY_MAPPING_FILE
+  ? createMappingWatcher({
+      file          : READONLY_MAPPING_FILE,
+      refreshSeconds: READONLY_MAPPING_REFRESH_SECONDS,
+      // Groups with explicit cluster-wide roles are never narrowed by the mapping
+      excludeGroups : [...READONLY_GROUPS, ...READWRITE_GROUPS],
+    })
+  : null;
+
 function parseGroupsHeader(val) {
   if (!val) return [];
   if (Array.isArray(val)) return val.flatMap(parseGroupsHeader);
@@ -124,12 +139,60 @@ function attachAuth(req, _res, next) {
     const arr = READONLY_NAME_FILTERS[g];
     if (Array.isArray(arr)) filters.push(...arr);
   }
+  // Namespace prefixes from the dynamic mapping file (union over all groups)
+  const prefixFilters = mappingWatcher ? mappingWatcher.prefixesForGroups(groups) : [];
   req.auth = {
     groups,
     role: decideRole(groups),
     nameFilters: filters,
+    prefixFilters,
   };
   next();
+}
+
+/* ─── Readonly visibility checks ─────────────────────────────────── */
+function authOf(req) {
+  if (req?.auth) return req.auth;
+  const groups = requestGroups(req);
+  return { groups, role: decideRole(groups), nameFilters: [], prefixFilters: [] };
+}
+
+// A readonly user is "restricted" when at least one of their groups has filters.
+// Readonly users without any filters keep full readonly visibility.
+function isRestricted(auth) {
+  return auth.role === "readonly"
+    && ((auth.nameFilters?.length || 0) + (auth.prefixFilters?.length || 0)) > 0;
+}
+
+// Static filters: substring on name or any top-level parameter value.
+// Mapping prefixes: label `application` starts with prefix, or name contains it.
+function workflowAllowed(auth, wf) {
+  const name   = String(wf?.metadata?.name ?? "");
+  const params = wf?.spec?.arguments?.parameters || [];
+  const names  = auth.nameFilters || [];
+  if (names.length) {
+    const hit = (val) => names.some((s) => String(val ?? "").includes(s));
+    if (hit(name)) return true;
+    if (params.some((p) => hit(p?.value))) return true;
+  }
+  const prefixes = auth.prefixFilters || [];
+  if (prefixes.length) {
+    const label = String(wf?.metadata?.labels?.[READONLY_MAPPING_LABEL] ?? "");
+    if (prefixes.some((p) => (label && label.startsWith(p)) || name.includes(p))) return true;
+  }
+  return false;
+}
+
+// Resolve access to a single workflow by name. Fetches the workflow when the
+// decision cannot be made from the name alone. Returns { allowed, wf, status }.
+async function authorizeWorkflow(req, name) {
+  const auth = authOf(req);
+  if (!isRestricted(auth)) return { allowed: true, wf: null };
+  if (workflowAllowed(auth, { metadata: { name } })) return { allowed: true, wf: null };
+  let wf;
+  try { wf = await getWorkflow(name); }
+  catch { return { allowed: false, status: 404 }; }
+  return workflowAllowed(auth, wf) ? { allowed: true, wf } : { allowed: false, status: 403 };
 }
 
 function requireWriteAccess(req, res, next) {
@@ -172,6 +235,17 @@ app.get("/env.js", (req, res) => {
 });
 
 
+/* ─── Who am I (role + effective visibility filters) ──────────────── */
+app.get("/api/me", (req, res) => {
+  const auth = authOf(req);
+  res.json({
+    groups : auth.groups,
+    role   : auth.role,
+    filters: { names: auth.nameFilters || [], prefixes: auth.prefixFilters || [] },
+    mapping: mappingWatcher ? mappingWatcher.status() : null,
+  });
+});
+
 /* ─── API routes ─────────────────────────────────────── */
 /* Always returns { items, nextCursor } and supports ?limit&cursor */
 app.get("/api/workflows", async (req, res, next) => {
@@ -180,19 +254,9 @@ app.get("/api/workflows", async (req, res, next) => {
     const cursor = typeof req.query?.cursor === "string" ? req.query.cursor : "";
     const includeNodes = String(req.query?.nodes || "").toLowerCase() === "true";
     const result = await listWorkflows({ limit, cursor, includeNodes });
-    const role = req?.auth?.role || decideRole(requestGroups(req));
-    const filters = Array.isArray(req?.auth?.nameFilters) ? req.auth.nameFilters : [];
-    if (role === "readonly" && filters.length > 0) {
-      const anyMatchValue = (val) => filters.some((s) => String(val ?? "").includes(s));
-      const itemMatches = (it) => {
-        if (anyMatchValue(it?.metadata?.name)) return true;
-        const params = it?.spec?.arguments?.parameters || [];
-        for (const p of params) {
-          if (anyMatchValue(p?.value)) return true;
-        }
-        return false;
-      };
-      const filteredItems = (result.items || []).filter(itemMatches);
+    const auth = authOf(req);
+    if (isRestricted(auth)) {
+      const filteredItems = (result.items || []).filter((it) => workflowAllowed(auth, it));
       res.json({ items: filteredItems, nextCursor: result.nextCursor || null });
     } else {
       res.json(result);
@@ -202,23 +266,9 @@ app.get("/api/workflows", async (req, res, next) => {
 
 app.get("/api/workflows/:name/logs", async (req, res, next) => {
   try {
-    const role = req?.auth?.role || decideRole(requestGroups(req));
-    const filters = Array.isArray(req?.auth?.nameFilters) ? req.auth.nameFilters : [];
-    if (role === "readonly" && filters.length > 0) {
-      const name = String(req.params.name || "");
-      const anyMatchValue = (val) => filters.some((s) => String(val ?? "").includes(s));
-      let allowed = anyMatchValue(name);
-      if (!allowed) {
-        // Fetch slim workflow to inspect parameters for permission check
-        try {
-          const wf = await getWorkflow(name);
-          const params = wf?.spec?.arguments?.parameters || [];
-          allowed = params.some((p) => anyMatchValue(p?.value));
-        } catch (e) {
-          return res.status(404).json({ error: "Not Found" });
-        }
-      }
-      if (!allowed) return res.status(403).json({ error: "Forbidden" });
+    const access = await authorizeWorkflow(req, String(req.params.name || ""));
+    if (!access.allowed) {
+      return res.status(access.status).json({ error: access.status === 404 ? "Not Found" : "Forbidden" });
     }
     // Forward *all* query-string params (follow, container, nodeId…)
     return streamLogs(req.params.name, res, req.query);
@@ -227,22 +277,9 @@ app.get("/api/workflows/:name/logs", async (req, res, next) => {
 
 app.get("/api/workflows/:name/events", async (req, res, next) => {
   try {
-    const role = req?.auth?.role || decideRole(requestGroups(req));
-    const filters = Array.isArray(req?.auth?.nameFilters) ? req.auth.nameFilters : [];
-    if (role === "readonly" && filters.length > 0) {
-      const name = String(req.params.name || "");
-      const anyMatchValue = (val) => filters.some((s) => String(val ?? "").includes(s));
-      let allowed = anyMatchValue(name);
-      if (!allowed) {
-        try {
-          const wf = await getWorkflow(name);
-          const params = wf?.spec?.arguments?.parameters || [];
-          allowed = params.some((p) => anyMatchValue(p?.value));
-        } catch (e) {
-          return res.status(404).json({ error: "Not Found" });
-        }
-      }
-      if (!allowed) return res.status(403).json({ error: "Forbidden" });
+    const access = await authorizeWorkflow(req, String(req.params.name || ""));
+    if (!access.allowed) {
+      return res.status(access.status).json({ error: access.status === 404 ? "Not Found" : "Forbidden" });
     }
 
     const { nodeId, podName } = req.query || {};
@@ -253,23 +290,13 @@ app.get("/api/workflows/:name/events", async (req, res, next) => {
 
 app.get("/api/workflows/:name", async (req, res, next) => {
   try {
-    const role = req?.auth?.role || decideRole(requestGroups(req));
-    const filters = Array.isArray(req?.auth?.nameFilters) ? req.auth.nameFilters : [];
     const name = String(req.params.name || "");
-    if (role === "readonly" && filters.length > 0) {
-      const anyMatchValue = (val) => filters.some((s) => String(val ?? "").includes(s));
-      let allowedByName = anyMatchValue(name);
-      if (!allowedByName) {
-        // Fetch once, both to check parameters and to return if allowed
-        const wf = await getWorkflow(name);
-        const params = wf?.spec?.arguments?.parameters || [];
-        const allowedByParams = params.some((p) => anyMatchValue(p?.value));
-        if (!allowedByParams) return res.status(403).json({ error: "Forbidden" });
-        return res.json(wf);
-      }
+    const access = await authorizeWorkflow(req, name);
+    if (!access.allowed) {
+      return res.status(access.status).json({ error: access.status === 404 ? "Not Found" : "Forbidden" });
     }
-    // Not readonly or allowed by name: just fetch and return
-    res.json(await getWorkflow(name));
+    // Reuse the workflow fetched during the permission check when available
+    res.json(access.wf || await getWorkflow(name));
   } catch (e) { next(e); }
 });
 
