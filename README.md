@@ -66,7 +66,8 @@ If you place oauth2-proxy in front of this app and forward the user’s group cl
         groupsRW: [ "<group-id>" ]
     ```
 
-  - Every group listed under an entry may see workflows of that namespace prefix: the workflow label named by `READONLY_MAPPING_LABEL` (default `application`) starts with the prefix, or the workflow name contains it. Groups from the `default*` lists and from `READONLY_GROUPS` / `READWRITE_GROUPS` are never narrowed.
+  - Every group listed under an entry may see workflows of that namespace prefix: the workflow label named by `READONLY_MAPPING_LABEL` (default `application`) starts with the prefix, or the workflow name contains it.
+  - `defaultROMappingSecurityGroups` act as cluster-wide readonly groups (same as `READONLY_GROUPS`, which becomes optional). Members of any cluster-wide group (`default*` lists, `READONLY_GROUPS`, `READWRITE_GROUPS`) are never narrowed, even if they are also in a team group.
   - Prefixes from the mapping are unioned with any static `READONLY_NAME_FILTERS` for the same user.
 - `GET /api/me` returns the caller's groups, role and effective filters (handy to verify the mapping in a cluster).
 

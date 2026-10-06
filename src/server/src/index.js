@@ -119,14 +119,30 @@ function requestGroups(req) {
   return Array.from(new Set(groups));
 }
 
+// Cluster-wide readonly groups: READONLY_GROUPS env plus defaultROMappingSecurityGroups
+// from the mapping file. Members see everything (readonly), never narrowed by prefixes.
+function readOnlyGroups() {
+  return [...READONLY_GROUPS, ...(mappingWatcher ? mappingWatcher.defaultReadOnlyGroups() : [])];
+}
+
+// Groups whose members are never narrowed by the mapping (cluster-wide roles).
+function clusterWideGroups() {
+  return [
+    ...readOnlyGroups(),
+    ...READWRITE_GROUPS,
+    ...(mappingWatcher ? mappingWatcher.defaultReadWriteGroups() : []),
+  ];
+}
+
 function decideRole(groups) {
+  const roGroups = readOnlyGroups();
   const hasWrite = READWRITE_GROUPS.length > 0 && groups.some((g) => READWRITE_GROUPS.includes(g));
-  const hasRead  = READONLY_GROUPS.length  > 0 && groups.some((g) => READONLY_GROUPS.includes(g));
+  const hasRead  = roGroups.length  > 0 && groups.some((g) => roGroups.includes(g));
   if (hasWrite) return "readwrite";
   if (hasRead)  return "readonly";
-  // If no env configured, default to readwrite to preserve current behavior
-  if (READONLY_GROUPS.length === 0 && READWRITE_GROUPS.length === 0) return "readwrite";
-  // Env configured but user not in any → readonly by default
+  // If nothing is configured, default to readwrite to preserve current behavior
+  if (roGroups.length === 0 && READWRITE_GROUPS.length === 0 && !mappingWatcher) return "readwrite";
+  // Configured but user not in any → readonly by default
   return "readonly";
 }
 
@@ -141,11 +157,15 @@ function attachAuth(req, _res, next) {
   }
   // Namespace prefixes from the dynamic mapping file (union over all groups)
   const prefixFilters = mappingWatcher ? mappingWatcher.prefixesForGroups(groups) : [];
+  // A member of a cluster-wide group (e.g. Cluster_Reader) is never narrowed,
+  // even when also a member of a team group.
+  const wide = clusterWideGroups();
+  const clusterWide = groups.some((g) => wide.includes(g));
   req.auth = {
     groups,
     role: decideRole(groups),
-    nameFilters: filters,
-    prefixFilters,
+    nameFilters  : clusterWide ? [] : filters,
+    prefixFilters: clusterWide ? [] : prefixFilters,
   };
   next();
 }

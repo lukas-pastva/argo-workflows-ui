@@ -72,6 +72,7 @@ export function createMappingWatcher({
   if (!file) throw new Error("createMappingWatcher: file is required");
 
   let map       = {};
+  let defaults  = { ro: [], rw: [] };   // cluster-wide groups from the default* lists
   let lastRaw   = null;   // content of the last successfully applied file
   let lastSeen  = null;   // content seen on the last read (good or bad), avoids re-logging
   let lastError = null;
@@ -95,6 +96,10 @@ export function createMappingWatcher({
     try {
       const doc = parseMappingText(raw);
       map       = buildGroupPrefixMap(doc, { excludeGroups });
+      defaults  = {
+        ro: asList(doc.defaultROMappingSecurityGroups),
+        rw: asList(doc.defaultRWMappingSecurityGroups),
+      };
       lastRaw   = raw;
       lastError = null;
       loadedAt  = new Date();
@@ -139,6 +144,10 @@ export function createMappingWatcher({
       return [...set];
     },
     getMap() { return map; },
+    /** Groups from defaultROMappingSecurityGroups (cluster-wide readonly). */
+    defaultReadOnlyGroups() { return defaults.ro; },
+    /** Groups from defaultRWMappingSecurityGroups (cluster-wide, never narrowed). */
+    defaultReadWriteGroups() { return defaults.rw; },
     status() {
       return {
         file,
